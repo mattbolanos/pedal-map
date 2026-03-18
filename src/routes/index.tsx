@@ -1,23 +1,24 @@
-import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import {
-  stationInformationQueryOptions,
-  stationStatusQueryOptions,
-} from "#/lib/citibike";
+import { useRef } from "react";
+import MapView, { type MapRef } from "react-map-gl/maplibre";
 
-export const Route = createFileRoute("/")({ component: App });
+export const Route = createFileRoute("/")({ component: StationMap });
 
-function App() {
-  const infoQuery = useQuery(stationInformationQueryOptions);
-  const statusQuery = useQuery(stationStatusQueryOptions);
+function StationMap() {
+  const mapRef = useRef<MapRef | null>(null);
+
   return (
-    <main className="page-wrap px-4 pb-8 pt-14">
-      <section className="island-shell rise-in relative overflow-hidden rounded-[2rem] px-6 py-10 sm:px-10 sm:py-14">
-        {infoQuery.data?.data.stations.length}
-      </section>
-      <section className="island-shell rise-in relative overflow-hidden rounded-[2rem] px-6 py-10 sm:px-10 sm:py-14">
-        {statusQuery.data?.data.stations.length}
-      </section>
-    </main>
+    <div className="relative h-full w-full">
+      <MapView
+        ref={mapRef}
+        initialViewState={{
+          longitude: -73.945,
+          latitude: 40.719,
+          zoom: 12.6,
+        }}
+        style={{ width: "100%", height: "100%" }}
+        mapStyle="https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
+      />
+    </div>
   );
 }
