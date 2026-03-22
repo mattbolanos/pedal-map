@@ -1,9 +1,14 @@
-import { queryOptions } from "@tanstack/react-query";
+import { keepPreviousData, queryOptions } from "@tanstack/react-query";
 
 const STATION_INFORMATION_URL =
 	"https://gbfs.citibikenyc.com/gbfs/en/station_information.json";
 const STATION_STATUS_URL =
 	"https://gbfs.citibikenyc.com/gbfs/en/station_status.json";
+const STATION_INFORMATION_QUERY_KEY = [
+	"citibike",
+	"station-information",
+] as const;
+const STATION_STATUS_QUERY_KEY = ["citibike", "station-status"] as const;
 
 interface GbfsResponse<T> {
 	data: T;
@@ -50,13 +55,25 @@ interface CitiBikeStationStatus {
 	}>;
 }
 
-export type StationInformationResponse = GbfsResponse<{
+type StationInformationResponse = GbfsResponse<{
 	stations: CitiBikeStationInformation[];
 }>;
 
-export type StationStatusResponse = GbfsResponse<{
+type StationStatusResponse = GbfsResponse<{
 	stations: CitiBikeStationStatus[];
 }>;
+
+export type CitiBikeStation = CitiBikeStationInformation &
+	Partial<Omit<CitiBikeStationStatus, "station_id">>;
+
+export interface CitiBikeStationsData {
+	lastUpdated: number;
+	stationInformationLastUpdated: number;
+	stationStatusLastUpdated: number;
+	ttl: number;
+	version: string;
+	stations: CitiBikeStation[];
+}
 
 async function fetchGbfsJson<T>(url: string, signal?: AbortSignal): Promise<T> {
 	const response = await fetch(url, { signal });
@@ -82,18 +99,51 @@ function fetchStationStatus(options?: { signal?: AbortSignal }) {
 	);
 }
 
-export const stationInformationQueryOptions = queryOptions({
-	queryKey: ["citibike", "station-information"],
+function mergeStations(
+	stationInformation: StationInformationResponse,
+	stationStatus: StationStatusResponse,
+): CitiBikeStationsData {
+	const statusesByStationId = new Map(
+		stationStatus.data.stations.map((status) => [status.station_id, status]),
+	);
+
+	return {
+		lastUpdated: stationStatus.last_updated,
+		stationInformationLastUpdated: stationInformation.last_updated,
+		stationStatusLastUpdated: stationStatus.last_updated,
+		ttl: Math.min(stationInformation.ttl, stationStatus.ttl),
+		version: stationStatus.version,
+		stations: stationInformation.data.stations.map((station) => ({
+			...station,
+			status: statusesByStationId.get(station.station_id) ?? {},
+		})),
+	};
+}
+
+const stationInformationQueryOptions = queryOptions({
+	queryKey: STATION_INFORMATION_QUERY_KEY,
 	queryFn: ({ signal }) => fetchStationInformation({ signal }),
 	staleTime: 60 * 60 * 1000,
 	gcTime: 24 * 60 * 60 * 1000,
 	refetchOnWindowFocus: false,
 });
 
-export const stationStatusQueryOptions = queryOptions({
-	queryKey: ["citibike", "station-status"],
-	queryFn: ({ signal }) => fetchStationStatus({ signal }),
+export const citiBikeStationsQueryOptions = queryOptions({
+	queryKey: STATION_STATUS_QUERY_KEY,
+	queryFn: async ({ client, signal }) => {
+		const [stationInformation, stationStatus] = await Promise.all([
+			client.ensureQueryData({
+				...stationInformationQueryOptions,
+				revalidateIfStale: true,
+			}),
+			fetchStationStatus({ signal }),
+		]);
+
+		return mergeStations(stationInformation, stationStatus);
+	},
 	staleTime: 10 * 1000,
+	gcTime: 24 * 60 * 60 * 1000,
+	placeholderData: keepPreviousData,
 	refetchInterval: 15 * 1000,
 	refetchIntervalInBackground: false,
 	refetchOnWindowFocus: true,
