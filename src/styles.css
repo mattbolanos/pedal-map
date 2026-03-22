@@ -125,7 +125,6 @@ body,
 
 body {
   margin: 0;
-  color: var(--sea-ink);
   font-family: var(--font-sans);
   background-color: var(--bg-base);
   overflow-x: hidden;
@@ -138,63 +137,6 @@ a {
   transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease,
     transform 180ms ease;
 }
-
-.pedal-map {
-  position: relative;
-  background:
-    radial-gradient(circle at top left, rgba(79, 184, 178, 0.18), transparent 34%),
-    linear-gradient(180deg, #f4ecdf 0%, #e7efe6 100%);
-}
-
-.pedal-map .maplibregl-map,
-.pedal-map .maplibregl-canvas,
-.pedal-map .maplibregl-ctrl-group,
-.pedal-map .maplibregl-ctrl-attrib {
-  transition:
-    filter 220ms ease,
-    background-color 220ms ease,
-    border-color 220ms ease,
-    color 220ms ease,
-    box-shadow 220ms ease;
-}
-.dark .pedal-map {
-  background:
-    radial-gradient(circle at top left, rgba(96, 215, 207, 0.1), transparent 34%),
-    linear-gradient(180deg, #050c10 0%, #081116 100%);
-}
-
-.dark .pedal-map .maplibregl-canvas {
-  filter: invert(1) hue-rotate(180deg) saturate(0.82) brightness(.2) contrast(0.9);
-}
-
-.dark .pedal-map .maplibregl-ctrl-group,
-.dark .pedal-map .maplibregl-ctrl-attrib {
-  color: #d7ece8;
-  background: rgba(10, 20, 24, 0.82);
-  border-color: rgba(141, 229, 219, 0.22);
-  box-shadow:
-    0 1px 0 rgba(194, 247, 238, 0.08) inset,
-    0 14px 26px rgba(0, 0, 0, 0.28);
-  backdrop-filter: blur(10px);
-}
-
-.dark .maplibregl-ctrl-attrib-button {
-  background-color: rgba(10, 20, 24, 0.82);
-  filter: invert(1);
-}
-
-.dark .pedal-map .maplibregl-ctrl button {
-  color: #d7ece8;
-}
-
-.dark .pedal-map .maplibregl-ctrl button:hover {
-  background: rgba(96, 215, 207, 0.12);
-}
-
-.dark .pedal-map .maplibregl-ctrl-attrib a {
-  color: oklch(1 0 0);
-}
-
 
 @layer base {
   * {
