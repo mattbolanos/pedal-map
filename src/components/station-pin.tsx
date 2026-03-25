@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import type { CitiBikeStation } from "#/lib/citibike";
 
 const PIN_SIZE = 26;
@@ -62,7 +62,20 @@ interface StationPinProps {
 	station: CitiBikeStation;
 }
 
-export function StationPin({ station }: StationPinProps) {
+function areStationPinPropsEqual(prev: StationPinProps, next: StationPinProps) {
+	if (prev.station === next.station) return true;
+
+	return (
+		prev.station.station_id === next.station.station_id &&
+		prev.station.num_bikes_available === next.station.num_bikes_available &&
+		prev.station.num_docks_available === next.station.num_docks_available &&
+		prev.station.num_ebikes_available === next.station.num_ebikes_available &&
+		prev.station.is_renting === next.station.is_renting &&
+		prev.station.is_installed === next.station.is_installed
+	);
+}
+
+export const StationPin = memo(function StationPin({ station }: StationPinProps) {
 	const { ratio, colors, isActive, hasEbikes, dashArray } = useMemo(() => {
 		const active = isStationActive(station);
 		const r = getAvailabilityRatio(station);
@@ -153,4 +166,4 @@ export function StationPin({ station }: StationPinProps) {
 			)}
 		</svg>
 	);
-}
+}, areStationPinPropsEqual);
