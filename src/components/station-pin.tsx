@@ -1,51 +1,39 @@
-import { memo } from "react";
+import { MapPin } from "@phosphor-icons/react";
+import { memo, useMemo } from "react";
 import type { CitiBikeStation } from "#/lib/citibike";
+import { cn } from "#/lib/utils";
 
-const PIN_SIZE = 26;
-
-/**
- * Pin geometry — teardrop shape with the data ring nestled inside the head.
- *
- * viewBox 0 0 24 28:
- *   Pin head center: (12, 10), head radius ~7
- *   Pin tip: (12, 26)
- *   Availability ring: center (12, 10), r = 4.2
- */
-const VIEWBOX_W = 24;
-const VIEWBOX_H = 28;
-const HEAD_CX = 12;
-const HEAD_CY = 10;
-const RING_R = 4.2;
-const RING_STROKE = 1.6;
-const CIRCUMFERENCE = 2 * Math.PI * RING_R;
-const ARC_TRANSITION =
-  "stroke-dasharray 600ms cubic-bezier(0.23,1,0.32,1), stroke 400ms ease-out";
-
-/** Teardrop path — rounded head tapering to a point */
-const PIN_PATH =
-  "M12 26C9.6 22.6 4 16.2 4 10a8 8 0 0 1 16 0c0 6.2-5.6 12.6-8 16Z";
-
-/**
- * Color palette — blue-to-amber gradient that harmonises with the
- * deep-blue/purple design system and reads clearly on a dark basemap.
- *
- * Scale:  healthy (cool blue) → moderate (lavender) → low (warm amber) → empty (coral-orange)
- * Concept: cool = plentiful/calm, warm = urgent/scarce.
- */
 const STATUS_COLORS = {
+  /** ≥ 50 % — pale steel. Moonlight on water. */
   healthy: {
-    fill: "#60a5fa",
-    glow: "rgba(96, 165, 250, 0.32)",
-    dot: "#eff6ff",
+    accent: "#94b4d4",
+    glowInner: "rgba(148, 180, 212, 0.65)",
+    glowOuter: "rgba(148, 180, 212, 0.22)",
   },
+  /** 25–50 % — grey teal. Cool, muted, still calm. */
   moderate: {
-    fill: "#a78bfa",
-    glow: "rgba(167, 139, 250, 0.28)",
-    dot: "#f5f3ff",
+    accent: "#7aa3b0",
+    glowInner: "rgba(122, 163, 176, 0.55)",
+    glowOuter: "rgba(122, 163, 176, 0.18)",
   },
-  low: { fill: "#f59e0b", glow: "rgba(245, 158, 11, 0.28)", dot: "#fffbeb" },
-  empty: { fill: "#f97316", glow: "rgba(249, 115, 22, 0.30)", dot: "#fff7ed" },
-  offline: { fill: "#475569", glow: "rgba(71, 85, 105, 0.10)", dot: "#94a3b8" },
+  /** 1–24 % — aged brass. Warm but restrained. */
+  low: {
+    accent: "#c4a054",
+    glowInner: "rgba(196, 160, 84, 0.55)",
+    glowOuter: "rgba(196, 160, 84, 0.18)",
+  },
+  /** 0 % — dusty wine. Quiet urgency. */
+  empty: {
+    accent: "#b07278",
+    glowInner: "rgba(176, 114, 120, 0.50)",
+    glowOuter: "rgba(176, 114, 120, 0.16)",
+  },
+  /** Offline — map-colored. Nearly invisible. */
+  offline: {
+    accent: "#384558",
+    glowInner: "rgba(56, 69, 88, 0.15)",
+    glowOuter: "rgba(56, 69, 88, 0.04)",
+  },
 } as const;
 
 function getAvailabilityRatio(station: CitiBikeStation): number {
@@ -66,6 +54,14 @@ function getStatusColors(ratio: number, isActive: boolean) {
 
 function isStationActive(station: CitiBikeStation): boolean {
   return station.is_renting === 1 && station.is_installed === 1;
+}
+
+function buildGlowFilter(glowInner: string, glowOuter: string): string {
+  return [
+    `drop-shadow(0 0 1px ${glowInner})`,
+    `drop-shadow(0 0 3px ${glowInner})`,
+    `drop-shadow(0 0 7px ${glowOuter})`,
+  ].join(" ");
 }
 
 interface StationPinProps {
@@ -91,79 +87,22 @@ export const StationPin = memo(function StationPin({
   const isActive = isStationActive(station);
   const ratio = getAvailabilityRatio(station);
   const colors = getStatusColors(ratio, isActive);
-  const hasEbikes = (station.num_ebikes_available ?? 0) > 0;
-  const filled = ratio * CIRCUMFERENCE;
-  const dashArray = `${filled} ${CIRCUMFERENCE - filled}`;
+
+  const glowFilter = useMemo(
+    () => buildGlowFilter(colors.glowInner, colors.glowOuter),
+    [colors.glowInner, colors.glowOuter],
+  );
 
   return (
-    <svg
+    <MapPin
       aria-hidden="true"
-      className="pointer-events-none block overflow-visible"
-      height={PIN_SIZE}
-      style={{
-        filter: `drop-shadow(0 0 5px ${colors.glow})`,
-        opacity: isActive ? 1 : 0.4,
-      }}
-      viewBox={`0 0 ${VIEWBOX_W} ${VIEWBOX_H}`}
-      width={PIN_SIZE * (VIEWBOX_W / VIEWBOX_H)}
-    >
-      {/* Pin body — teardrop silhouette */}
-      <path
-        d={PIN_PATH}
-        fill="rgba(2, 6, 23, 0.94)"
-        stroke={isActive ? colors.fill : "rgba(100, 116, 139, 0.35)"}
-        strokeOpacity={0.55}
-        strokeWidth={1.2}
-      />
-
-      {/* Ring track — faint guide circle inside the pin head */}
-      <circle
-        cx={HEAD_CX}
-        cy={HEAD_CY}
-        fill="none"
-        r={RING_R}
-        stroke="rgba(148, 163, 184, 0.1)"
-        strokeWidth={RING_STROKE}
-      />
-
-      {/* Availability arc — fills clockwise from 12 o'clock */}
-      {ratio > 0 && isActive && (
-        <circle
-          cx={HEAD_CX}
-          cy={HEAD_CY}
-          fill="none"
-          r={RING_R}
-          stroke={colors.fill}
-          strokeDasharray={dashArray}
-          strokeDashoffset={CIRCUMFERENCE * 0.25}
-          strokeLinecap="round"
-          strokeWidth={RING_STROKE}
-          style={{ transition: ARC_TRANSITION }}
-          transform={`rotate(-90 ${HEAD_CX} ${HEAD_CY})`}
-        />
+      className={cn(
+        "pointer-events-none block size-6",
+        isActive ? "opacity-90" : "opacity-20",
       )}
-
-      {/* Center dot — availability color */}
-      <circle
-        cx={HEAD_CX}
-        cy={HEAD_CY}
-        fill={colors.dot}
-        opacity={isActive ? 0.92 : 0.3}
-        r={1.6}
-      />
-
-      {/* eBike indicator — small bright tick mark at the top of the ring */}
-      {hasEbikes && isActive && (
-        <line
-          stroke="rgba(250, 250, 250, 0.8)"
-          strokeLinecap="round"
-          strokeWidth={1.2}
-          x1={HEAD_CX}
-          x2={HEAD_CX}
-          y1={HEAD_CY - RING_R - RING_STROKE * 0.5 - 0.6}
-          y2={HEAD_CY - RING_R - RING_STROKE * 0.5 - 2}
-        />
-      )}
-    </svg>
+      style={{ filter: glowFilter }}
+      color={colors.accent}
+      weight="fill"
+    />
   );
 }, areStationPinPropsEqual);
