@@ -113,10 +113,11 @@ function mergeStations(
 		stationStatusLastUpdated: stationStatus.last_updated,
 		ttl: Math.min(stationInformation.ttl, stationStatus.ttl),
 		version: stationStatus.version,
-		stations: stationInformation.data.stations.map((station) => ({
-			...station,
-			status: statusesByStationId.get(station.station_id) ?? {},
-		})),
+		stations: stationInformation.data.stations.map((station) => {
+			const { station_id: _, ...status } =
+				statusesByStationId.get(station.station_id) ?? {};
+			return { ...station, ...status };
+		}),
 	};
 }
 

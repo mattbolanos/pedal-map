@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Marker } from "react-map-gl/maplibre";
 import type { CitiBikeStation } from "#/lib/citibike";
+import { StationPin } from "./station-pin";
 
 interface StationPinsLayerProps {
   stations: CitiBikeStation[];
@@ -80,19 +81,12 @@ export function StationPinsLayer({
   return visibleStations.map((station) => (
     <Marker
       key={station.station_id}
-      anchor="center"
+      anchor="bottom"
       latitude={station.lat}
       longitude={station.lon}
     >
-      <div
-        aria-hidden="true"
-        className="pointer-events-none relative flex size-4 items-center justify-center"
-        title={station.name}
-      >
-        <div className="absolute inset-0 translate-y-[1.5px] rounded-full bg-slate-950/55 blur-[2px]" />
-        <div className="absolute inset-[1px] rounded-full bg-cyan-300/35 blur-[4px]" />
-        <div className="relative size-2.5 rounded-full border border-cyan-50/95 bg-slate-950/95 shadow-[0_0_16px_rgba(103,232,249,0.34)]" />
-        <div className="absolute size-1 rounded-full bg-slate-50" />
+      <div title={station.name}>
+        <StationPin station={station} />
       </div>
     </Marker>
   ));

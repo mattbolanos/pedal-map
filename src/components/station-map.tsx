@@ -17,6 +17,7 @@ export function StationMap() {
   const mapRef = useRef<MapRef | null>(null);
   const [viewportBounds, setViewportBounds] =
     useState<MapViewportBounds | null>(null);
+
   const { data: citiBikeStations } = useQuery(citiBikeStationsQueryOptions);
 
   function syncViewportBounds() {
