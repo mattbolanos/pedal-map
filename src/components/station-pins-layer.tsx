@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import { Marker } from "react-map-gl/maplibre";
 import type { CitiBikeStation } from "#/lib/citibike";
 import { StationPin } from "./station-pin";
@@ -56,13 +56,30 @@ function isStationWithinBounds(
   );
 }
 
+const StationMarker = memo(function StationMarker({
+  station,
+}: {
+  station: CitiBikeStation;
+}) {
+  return (
+    <Marker anchor="bottom" latitude={station.lat} longitude={station.lon}>
+      <div title={station.name}>
+        <StationPin station={station} />
+      </div>
+    </Marker>
+  );
+});
+
 export function StationPinsLayer({
   stations,
   viewportBounds,
 }: StationPinsLayerProps) {
-  const visibleStations = useMemo(() => {
-    const validStations = stations.filter(hasValidCoordinates);
+  const validStations = useMemo(
+    () => stations.filter(hasValidCoordinates),
+    [stations],
+  );
 
+  const visibleStations = useMemo(() => {
     if (!viewportBounds) {
       return validStations;
     }
@@ -72,23 +89,14 @@ export function StationPinsLayer({
     return validStations.filter((station) =>
       isStationWithinBounds(station, paddedBounds),
     );
-  }, [stations, viewportBounds]);
+  }, [validStations, viewportBounds]);
 
   if (visibleStations.length === 0) {
     return null;
   }
 
   return visibleStations.map((station) => (
-    <Marker
-      key={station.station_id}
-      anchor="bottom"
-      latitude={station.lat}
-      longitude={station.lon}
-    >
-      <div title={station.name}>
-        <StationPin station={station} />
-      </div>
-    </Marker>
+    <StationMarker key={station.station_id} station={station} />
   ));
 }
 export interface MapViewportBounds {

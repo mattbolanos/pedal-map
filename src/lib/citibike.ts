@@ -102,10 +102,28 @@ function fetchStationStatus(options?: { signal?: AbortSignal }) {
 function mergeStations(
 	stationInformation: StationInformationResponse,
 	stationStatus: StationStatusResponse,
+	previousData?: CitiBikeStationsData,
 ): CitiBikeStationsData {
 	const statusesByStationId = new Map(
 		stationStatus.data.stations.map((status) => [status.station_id, status]),
 	);
+	const previousStationsByStationId = new Map(
+		previousData?.stations.map((station) => [station.station_id, station]) ??
+			[],
+	);
+
+	const stations = stationInformation.data.stations.map((station) => {
+		const { station_id: _, ...status } =
+			statusesByStationId.get(station.station_id) ?? {};
+		const nextStation = { ...station, ...status };
+		const previousStation = previousStationsByStationId.get(station.station_id);
+
+		if (previousStation && areStationsEqual(previousStation, nextStation)) {
+			return previousStation;
+		}
+
+		return nextStation;
+	});
 
 	return {
 		lastUpdated: stationStatus.last_updated,
@@ -113,12 +131,104 @@ function mergeStations(
 		stationStatusLastUpdated: stationStatus.last_updated,
 		ttl: Math.min(stationInformation.ttl, stationStatus.ttl),
 		version: stationStatus.version,
-		stations: stationInformation.data.stations.map((station) => {
-			const { station_id: _, ...status } =
-				statusesByStationId.get(station.station_id) ?? {};
-			return { ...station, ...status };
-		}),
+		stations:
+			previousData &&
+			stations.length === previousData.stations.length &&
+			stations.every(
+				(station, index) => station === previousData.stations[index],
+			)
+				? previousData.stations
+				: stations,
 	};
+}
+
+function areStationsEqual(a: CitiBikeStation, b: CitiBikeStation): boolean {
+	return (
+		a.station_id === b.station_id &&
+		a.name === b.name &&
+		a.lat === b.lat &&
+		a.lon === b.lon &&
+		a.capacity === b.capacity &&
+		a.electric_bike_surcharge_waiver === b.electric_bike_surcharge_waiver &&
+		a.eightd_has_key_dispenser === b.eightd_has_key_dispenser &&
+		a.external_id === b.external_id &&
+		a.has_kiosk === b.has_kiosk &&
+		a.region_id === b.region_id &&
+		a.short_name === b.short_name &&
+		a.is_charging_station === b.is_charging_station &&
+		a.is_installed === b.is_installed &&
+		a.is_renting === b.is_renting &&
+		a.is_returning === b.is_returning &&
+		a.last_reported === b.last_reported &&
+		a.num_bikes_available === b.num_bikes_available &&
+		a.num_bikes_disabled === b.num_bikes_disabled &&
+		a.num_docks_available === b.num_docks_available &&
+		a.num_docks_disabled === b.num_docks_disabled &&
+		a.num_ebikes_available === b.num_ebikes_available &&
+		a.num_scooters_available === b.num_scooters_available &&
+		areRentalMethodsEqual(a.rental_methods, b.rental_methods) &&
+		areVehicleCountsEqual(
+			a.vehicle_docks_available,
+			b.vehicle_docks_available,
+			(vehicleDockA, vehicleDockB) =>
+				vehicleDockA.count === vehicleDockB.count &&
+				areStringArraysEqual(
+					vehicleDockA.vehicle_type_ids,
+					vehicleDockB.vehicle_type_ids,
+				),
+		) &&
+		areVehicleCountsEqual(
+			a.vehicle_types_available,
+			b.vehicle_types_available,
+			(vehicleTypeA, vehicleTypeB) =>
+				vehicleTypeA.count === vehicleTypeB.count &&
+				vehicleTypeA.vehicle_type_id === vehicleTypeB.vehicle_type_id,
+		)
+	);
+}
+
+function areRentalMethodsEqual(a?: string[], b?: string[]): boolean {
+	return areStringArraysEqual(a, b);
+}
+
+function areStringArraysEqual(a?: string[], b?: string[]): boolean {
+	if (a === b) {
+		return true;
+	}
+
+	if (!a || !b || a.length !== b.length) {
+		return false;
+	}
+
+	for (let index = 0; index < a.length; index += 1) {
+		if (a[index] !== b[index]) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+function areVehicleCountsEqual<T>(
+	a: T[] | undefined,
+	b: T[] | undefined,
+	compare: (left: T, right: T) => boolean,
+): boolean {
+	if (a === b) {
+		return true;
+	}
+
+	if (!a || !b || a.length !== b.length) {
+		return false;
+	}
+
+	for (let index = 0; index < a.length; index += 1) {
+		if (!compare(a[index], b[index])) {
+			return false;
+		}
+	}
+
+	return true;
 }
 
 const stationInformationQueryOptions = queryOptions({
@@ -139,13 +249,16 @@ export const citiBikeStationsQueryOptions = queryOptions({
 			}),
 			fetchStationStatus({ signal }),
 		]);
+		const previousData = client.getQueryData<CitiBikeStationsData>(
+			STATION_STATUS_QUERY_KEY,
+		);
 
-		return mergeStations(stationInformation, stationStatus);
+		return mergeStations(stationInformation, stationStatus, previousData);
 	},
 	staleTime: 10 * 1000,
 	gcTime: 24 * 60 * 60 * 1000,
 	placeholderData: keepPreviousData,
 	refetchInterval: 15 * 1000,
 	refetchIntervalInBackground: false,
-	refetchOnWindowFocus: true,
+	refetchOnWindowFocus: false,
 });
