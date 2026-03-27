@@ -1,113 +1,93 @@
-import { ScatterplotLayer } from "@deck.gl/layers";
+import { IconLayer } from "@deck.gl/layers";
+import {
+  availabilityColor,
+  bucketRatio,
+  getPinIconUrl,
+  ICON_RES,
+  pinSize,
+} from "#/components/station-pin";
 import type { CitiBikeStation } from "#/lib/citibike";
 
-function hasValidCoordinates(station: CitiBikeStation) {
-	return (
-		Number.isFinite(station.lat) &&
-		Number.isFinite(station.lon) &&
-		station.lat >= -90 &&
-		station.lat <= 90 &&
-		station.lon >= -180 &&
-		station.lon <= 180
-	);
+// ── Helpers ────────────────────────────────────────────────────
+
+function hasValidCoordinates(s: CitiBikeStation) {
+  return (
+    Number.isFinite(s.lat) &&
+    Number.isFinite(s.lon) &&
+    s.lat >= -90 &&
+    s.lat <= 90 &&
+    s.lon >= -180 &&
+    s.lon <= 180
+  );
 }
 
-function getAvailabilityRatio(station: CitiBikeStation): number {
-	const bikes = station.num_bikes_available ?? 0;
-	const docks = station.num_docks_available ?? 0;
-	const total = bikes + docks;
-
-	if (total === 0) {
-		return 0;
-	}
-
-	return bikes / total;
+function availabilityRatio(s: CitiBikeStation): number {
+  const bikes = s.num_bikes_available ?? 0;
+  const docks = s.num_docks_available ?? 0;
+  const total = bikes + docks;
+  return total === 0 ? 0 : bikes / total;
 }
 
-function isStationActive(station: CitiBikeStation): boolean {
-	return station.is_renting === 1 && station.is_installed === 1;
+function isActive(s: CitiBikeStation): boolean {
+  return s.is_renting === 1 && s.is_installed === 1;
 }
 
-function getStationFillColor(
-	station: CitiBikeStation,
-): [number, number, number, number] {
-	if (!isStationActive(station)) {
-		return [89, 96, 115, 70];
-	}
+// ── Easing ─────────────────────────────────────────────────────
+// Quadratic ease-out: fast initial response, gentle settle.
+// Matches the "ease-out" principle — the user sees movement immediately.
 
-	const ratio = getAvailabilityRatio(station);
+const easeOut = (t: number) => t * (2 - t);
 
-	if (ratio < 0.25) {
-		return [240, 113, 86, 220];
-	}
-
-	if (ratio < 0.5) {
-		return [248, 192, 82, 220];
-	}
-
-	return [67, 205, 170, 220];
-}
-
-function getStationLineColor(
-	station: CitiBikeStation,
-): [number, number, number, number] {
-	if (!isStationActive(station)) {
-		return [51, 65, 85, 120];
-	}
-
-	const ratio = getAvailabilityRatio(station);
-
-	if (ratio < 0.25) {
-		return [166, 56, 33, 255];
-	}
-
-	if (ratio < 0.5) {
-		return [168, 118, 33, 255];
-	}
-
-	return [20, 120, 108, 255];
-}
-
-function getStationRadius(station: CitiBikeStation): number {
-	const capacity = station.capacity ?? 0;
-
-	if (capacity >= 60) {
-		return 10;
-	}
-
-	if (capacity >= 30) {
-		return 8;
-	}
-
-	return 6;
-}
+// ── Layer factory ──────────────────────────────────────────────
 
 export function createStationPinsLayer(stations: CitiBikeStation[]) {
-	const validStations = stations.filter(hasValidCoordinates);
+  const valid = stations.filter(hasValidCoordinates);
+  if (valid.length === 0) return null;
 
-	if (validStations.length === 0) {
-		return null;
-	}
+  return new IconLayer<CitiBikeStation>({
+    id: "station-pins",
+    data: valid,
+    pickable: true,
 
-	return new ScatterplotLayer<CitiBikeStation>({
-		id: "station-pins",
-		data: validStations,
-		pickable: true,
-		stroked: true,
-		filled: true,
-		radiusUnits: "pixels",
-		lineWidthUnits: "pixels",
-		getPosition: (station) => [station.lon, station.lat],
-		getRadius: getStationRadius,
-		getFillColor: getStationFillColor,
-		getLineColor: getStationLineColor,
-		getLineWidth: 1.5,
-		radiusMinPixels: 4,
-		radiusMaxPixels: 14,
-		updateTriggers: {
-			getFillColor: stations,
-			getLineColor: stations,
-			getRadius: stations,
-		},
-	});
+    getPosition: (s) => [s.lon, s.lat],
+
+    getIcon: (s) => {
+      const bucket = isActive(s) ? bucketRatio(availabilityRatio(s)) : 0;
+      return {
+        url: getPinIconUrl(bucket),
+        width: ICON_RES,
+        height: ICON_RES,
+        mask: true,
+      };
+    },
+
+    // Tints the white SVG mask → becomes the availability color.
+    // deck.gl interpolates RGBA channels during transitions,
+    // so a station going from 60 % → 30 % will smoothly shift
+    // from teal through amber — no hard color jumps.
+    getColor: (s) => availabilityColor(availabilityRatio(s), isActive(s)),
+
+    // Area ∝ capacity (sqrt-scaled in pinSize).
+    getSize: (s) => pinSize(s.capacity ?? 0),
+
+    sizeUnits: "pixels",
+    sizeMinPixels: 16,
+    sizeMaxPixels: 30,
+
+    // ── Transitions ────────────────────────────────────────
+    // Smooth 800 ms color fade + 600 ms size morph on data refresh.
+    // The easing mirrors Emil's "ease-out" principle: the visual
+    // response starts immediately, then gently settles — so the
+    // map never feels laggy even on 15-second polling intervals.
+    transitions: {
+      getColor: { duration: 800, easing: easeOut },
+      getSize: { duration: 600, easing: easeOut },
+    },
+
+    updateTriggers: {
+      getIcon: stations,
+      getColor: stations,
+      getSize: stations,
+    },
+  });
 }

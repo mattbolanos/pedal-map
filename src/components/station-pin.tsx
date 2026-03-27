@@ -1,122 +1,144 @@
-import { memo, useMemo } from "react";
-import type { CitiBikeStation } from "#/lib/citibike";
-
 /**
- * Four-state pin palette driven by oklch CSS custom properties.
+ * Station pin icon generation for deck.gl IconLayer.
  *
- * Tokens live in styles.css under `.dark`:
- *   --pin-high          teal-cyan     (≥ 50 % bikes)
- *   --pin-avg           amber-gold    (25–49 %)
- *   --pin-low           warm coral    (< 25 %)
- *   --pin-inactive      muted slate   (offline)
+ * Each pin is an SVG with three visual layers:
+ *   1. A muted track ring (full circle — the "empty" state)
+ *   2. A progress arc showing % bikes available (starts from 12 o'clock)
+ *   3. A filled center dot for quick color identification at small sizes
+ *
+ * The SVGs are white (used as alpha masks via deck.gl's `mask: true`)
+ * so the layer's `getColor` accessor tints them — enabling smooth
+ * color transitions when availability data refreshes.
  */
-type PinVariant = "high" | "avg" | "low" | "inactive";
 
-const PIN_STYLES: Record<
-  PinVariant,
-  { fill: string; stroke: string; glow: string; glowOuter: string }
-> = {
-  high: {
-    fill: "var(--pin-high)",
-    stroke: "var(--pin-high-stroke)",
-    glow: "oklch(0.82 0.155 170 / 0.45)",
-    glowOuter: "oklch(0.82 0.155 170 / 0.12)",
-  },
-  avg: {
-    fill: "var(--pin-avg)",
-    stroke: "var(--pin-avg-stroke)",
-    glow: "oklch(0.82 0.165 80 / 0.40)",
-    glowOuter: "oklch(0.82 0.165 80 / 0.10)",
-  },
-  low: {
-    fill: "var(--pin-low)",
-    stroke: "var(--pin-low-stroke)",
-    glow: "oklch(0.72 0.19 25 / 0.40)",
-    glowOuter: "oklch(0.72 0.19 25 / 0.10)",
-  },
-  inactive: {
-    fill: "var(--pin-inactive)",
-    stroke: "var(--pin-inactive-stroke)",
-    glow: "oklch(0.35 0.015 250 / 0.08)",
-    glowOuter: "oklch(0.35 0.015 250 / 0.02)",
-  },
-};
+// ── Icon geometry ──────────────────────────────────────────────
 
-function getAvailabilityRatio(station: CitiBikeStation): number {
-  const bikes = station.num_bikes_available ?? 0;
-  const docks = station.num_docks_available ?? 0;
-  const total = bikes + docks;
-  if (total === 0) return 0;
-  return bikes / total;
+const RES = 64;
+const CX = RES / 2;
+const CY = RES / 2;
+const RING_R = 24;
+const RING_W = 5.5;
+const DOT_R = 11;
+const BUCKET_STEP = 0.05; // 5 % increments → 21 unique icons
+
+export const ICON_RES = RES;
+
+// ── Arc helpers ────────────────────────────────────────────────
+
+function polar(cx: number, cy: number, r: number, deg: number) {
+  const rad = ((deg - 90) * Math.PI) / 180;
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
 }
 
-function isStationActive(station: CitiBikeStation): boolean {
-  return station.is_renting === 1 && station.is_installed === 1;
+function arcD(ratio: number): string {
+  if (ratio <= 0) return "";
+  if (ratio >= 1) {
+    // Two semicircles — SVG arcs can't express a full circle in one command
+    const a = polar(CX, CY, RING_R, 0);
+    const b = polar(CX, CY, RING_R, 180);
+    return [
+      `M${a.x},${a.y}`,
+      `A${RING_R},${RING_R} 0 1 1 ${b.x},${b.y}`,
+      `A${RING_R},${RING_R} 0 1 1 ${a.x},${a.y}`,
+    ].join(" ");
+  }
+  const endDeg = ratio * 360;
+  const s = polar(CX, CY, RING_R, 0);
+  const e = polar(CX, CY, RING_R, endDeg);
+  const large = endDeg > 180 ? 1 : 0;
+  return `M${s.x},${s.y} A${RING_R},${RING_R} 0 ${large} 1 ${e.x},${e.y}`;
 }
 
-function getVariant(ratio: number, isActive: boolean): PinVariant {
-  if (!isActive) return "inactive";
-  if (ratio < 0.25) return "low";
-  if (ratio < 0.5) return "avg";
-  return "high";
+// ── SVG data-URL cache ─────────────────────────────────────────
+
+const urlCache = new Map<number, string>();
+
+export function getPinIconUrl(bucket: number): string {
+  const cached = urlCache.get(bucket);
+  if (cached) return cached;
+
+  const progress =
+    bucket > 0
+      ? `<path d="${arcD(bucket)}" fill="none" stroke="white" stroke-width="${RING_W}" stroke-linecap="round"/>`
+      : "";
+
+  const svg = [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${RES}" height="${RES}">`,
+    // Track ring — low-alpha white; becomes a ghost of the tint color
+    `<circle cx="${CX}" cy="${CY}" r="${RING_R}" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="${RING_W}"/>`,
+    // Progress arc — full white; becomes the vibrant tint color
+    progress,
+    // Center dot — slightly below full opacity for depth
+    `<circle cx="${CX}" cy="${CY}" r="${DOT_R}" fill="white" opacity="0.92"/>`,
+    `</svg>`,
+  ].join("");
+
+  const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  urlCache.set(bucket, url);
+  return url;
 }
 
-function buildGlowFilter(glow: string, glowOuter: string): string {
-  return `drop-shadow(0 0 1px ${glow}) drop-shadow(0 0 3px ${glowOuter})`;
-}
-
-interface StationPinProps {
-  station: CitiBikeStation;
-}
-
-function areStationPinPropsEqual(prev: StationPinProps, next: StationPinProps) {
-  if (prev.station === next.station) return true;
-
+/** Round a 0–1 ratio to the nearest BUCKET_STEP (e.g. 0.05). */
+export function bucketRatio(ratio: number): number {
   return (
-    prev.station.station_id === next.station.station_id &&
-    prev.station.num_bikes_available === next.station.num_bikes_available &&
-    prev.station.num_docks_available === next.station.num_docks_available &&
-    prev.station.num_ebikes_available === next.station.num_ebikes_available &&
-    prev.station.is_renting === next.station.is_renting &&
-    prev.station.is_installed === next.station.is_installed
+    Math.round(Math.max(0, Math.min(1, ratio)) / BUCKET_STEP) * BUCKET_STEP
   );
 }
 
-export const StationPin = memo(function StationPin({
-  station,
-}: StationPinProps) {
-  const isActive = isStationActive(station);
-  const ratio = getAvailabilityRatio(station);
-  const variant = getVariant(ratio, isActive);
-  const colors = PIN_STYLES[variant];
+// ── Continuous color scale ─────────────────────────────────────
+//
+// Three-stop gradient optimised for a dark map:
+//   coral-red  →  amber-gold  →  teal-cyan
+//
+// Interpolated in sRGB. The stops are spaced so the "danger zone"
+// (< 25 %) occupies more visual range, making low-stock stations
+// pop even when surrounded by healthy ones.
 
-  const glowFilter = useMemo(
-    () => buildGlowFilter(colors.glow, colors.glowOuter),
-    [colors.glow, colors.glowOuter],
-  );
+type RGBA = [number, number, number, number];
 
-  return (
-    <svg
-      aria-hidden="true"
-      width="14"
-      height="20"
-      viewBox="0 0 14 20"
-      fill="none"
-      className="pointer-events-none block"
-      style={{
-        filter: glowFilter,
-        opacity: isActive ? 0.88 : 0.15,
-      }}
-    >
-      {/* Teardrop pin silhouette */}
-      <path
-        d="M7 0C3.13 0 0 3.13 0 7c0 4.88 6.35 11.8 6.62 12.1a.52.52 0 0 0 .76 0C7.65 18.8 14 11.88 14 7c0-3.87-3.13-7-7-7Z"
-        fill={colors.fill}
-        stroke={colors.stroke}
-        strokeWidth="0.6"
-      />
-      {/* Inner circle — dark center for depth */}
-      <circle cx="7" cy="7" r="2.6" fill="oklch(0 0 0 / 0.2)" />
-    </svg>
-  );
-}, areStationPinPropsEqual);
+const COLOR_STOPS: { t: number; c: RGBA }[] = [
+  { t: 0, c: [218, 82, 60, 225] }, // warm coral — empty
+  { t: 0.32, c: [242, 178, 68, 225] }, // amber gold — getting low
+  { t: 0.68, c: [52, 172, 120, 225] }, // emerald — healthy
+  { t: 1, c: [38, 158, 108, 225] }, // deep emerald — fully stocked
+];
+
+const INACTIVE_COLOR: RGBA = [78, 88, 110, 50];
+
+function mix(a: number, b: number, t: number) {
+  return Math.round(a + (b - a) * t);
+}
+
+export function availabilityColor(ratio: number, active: boolean): RGBA {
+  if (!active) return INACTIVE_COLOR;
+
+  const r = Math.max(0, Math.min(1, ratio));
+
+  for (let i = 0; i < COLOR_STOPS.length - 1; i++) {
+    if (r <= COLOR_STOPS[i + 1].t) {
+      const localT =
+        (r - COLOR_STOPS[i].t) / (COLOR_STOPS[i + 1].t - COLOR_STOPS[i].t);
+      const a = COLOR_STOPS[i].c;
+      const b = COLOR_STOPS[i + 1].c;
+      return [
+        mix(a[0], b[0], localT),
+        mix(a[1], b[1], localT),
+        mix(a[2], b[2], localT),
+        mix(a[3], b[3], localT),
+      ];
+    }
+  }
+
+  return COLOR_STOPS[COLOR_STOPS.length - 1].c;
+}
+
+// ── Size scale ─────────────────────────────────────────────────
+//
+// sqrt-scaled so the *area* of the pin is proportional to capacity.
+// This is perceptually honest — a station with 4× the capacity
+// produces a pin with 4× the area, not 4× the diameter.
+
+export function pinSize(capacity: number): number {
+  const clamped = Math.max(10, Math.min(80, capacity));
+  return 14 + Math.sqrt(clamped) * 2.8;
+}

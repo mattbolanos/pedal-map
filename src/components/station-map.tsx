@@ -1,8 +1,8 @@
-import type { PickingInfo } from "@deck.gl/core";
+import type { MapViewState, PickingInfo } from "@deck.gl/core";
 import { DeckGL } from "@deck.gl/react";
 import { useQuery } from "@tanstack/react-query";
 import type { LngLatBoundsLike } from "mapbox-gl";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Map as MapView } from "react-map-gl/mapbox";
 import { createStationPinsLayer } from "#/components/station-pins-layer";
 import type { CitiBikeStation } from "#/lib/citibike";
@@ -11,21 +11,46 @@ import { citiBikeStationsQueryOptions } from "#/lib/citibike";
 const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 const MAP_STYLE_URL = "mapbox://styles/mapbox/dark-v11";
 
-const INITIAL_VIEW_STATE = {
+const INITIAL_VIEW_STATE: MapViewState = {
   longitude: -73.9651,
   latitude: 40.6917,
-  zoom: 13.03,
+  zoom: 13.5,
   bearing: 0,
   pitch: 0,
 };
-const MIN_ZOOM = 9.5;
+
 const NYC_METRO_BOUNDS: LngLatBoundsLike = [
   [-74.65, 40.3],
   [-73.3, 41.1],
 ];
 
+const MIN_ZOOM = 9.75;
+const MAX_ZOOM = 16;
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function clampViewState(viewState: MapViewState): MapViewState {
+  const [[minLon, minLat], [maxLon, maxLat]] = NYC_METRO_BOUNDS as [
+    [number, number],
+    [number, number],
+  ];
+
+  return {
+    ...viewState,
+    longitude: clamp(viewState.longitude, minLon, maxLon),
+    latitude: clamp(viewState.latitude, minLat, maxLat),
+    zoom: clamp(viewState.zoom, MIN_ZOOM, MAX_ZOOM),
+  };
+}
+
 export function StationMap() {
   const { data: citiBikeStations } = useQuery(citiBikeStationsQueryOptions);
+  const [viewState, setViewState] = useState(() =>
+    clampViewState(INITIAL_VIEW_STATE),
+  );
+
   const layers = useMemo(() => {
     if (!citiBikeStations) {
       return [];
@@ -64,13 +89,17 @@ E-bikes: ${ebikes}`,
     <DeckGL
       controller
       getTooltip={getTooltip}
-      initialViewState={INITIAL_VIEW_STATE}
       layers={layers}
+      onViewStateChange={({ viewState: nextViewState }) =>
+        setViewState(clampViewState(nextViewState as MapViewState))
+      }
+      viewState={viewState}
     >
       <MapView
         mapStyle={MAP_STYLE_URL}
         mapboxAccessToken={MAPBOX_ACCESS_TOKEN}
         maxBounds={NYC_METRO_BOUNDS}
+        maxZoom={MAX_ZOOM}
         minZoom={MIN_ZOOM}
         renderWorldCopies={false}
         reuseMaps
