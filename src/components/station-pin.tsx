@@ -1,40 +1,46 @@
-import { MapPin } from "@phosphor-icons/react";
 import { memo, useMemo } from "react";
 import type { CitiBikeStation } from "#/lib/citibike";
-import { cn } from "#/lib/utils";
 
-const STATUS_COLORS = {
-  /** ≥ 50 % — pale steel. Moonlight on water. */
-  healthy: {
-    accent: "#94b4d4",
-    glowInner: "rgba(148, 180, 212, 0.65)",
-    glowOuter: "rgba(148, 180, 212, 0.22)",
+/**
+ * Four-state pin palette driven by oklch CSS custom properties.
+ *
+ * Tokens live in styles.css under `.dark`:
+ *   --pin-high          teal-cyan     (≥ 50 % bikes)
+ *   --pin-avg           amber-gold    (25–49 %)
+ *   --pin-low           warm coral    (< 25 %)
+ *   --pin-inactive      muted slate   (offline)
+ */
+type PinVariant = "high" | "avg" | "low" | "inactive";
+
+const PIN_STYLES: Record<
+  PinVariant,
+  { fill: string; stroke: string; glow: string; glowOuter: string }
+> = {
+  high: {
+    fill: "var(--pin-high)",
+    stroke: "var(--pin-high-stroke)",
+    glow: "oklch(0.82 0.155 170 / 0.45)",
+    glowOuter: "oklch(0.82 0.155 170 / 0.12)",
   },
-  /** 25–50 % — grey teal. Cool, muted, still calm. */
-  moderate: {
-    accent: "#7aa3b0",
-    glowInner: "rgba(122, 163, 176, 0.55)",
-    glowOuter: "rgba(122, 163, 176, 0.18)",
+  avg: {
+    fill: "var(--pin-avg)",
+    stroke: "var(--pin-avg-stroke)",
+    glow: "oklch(0.82 0.165 80 / 0.40)",
+    glowOuter: "oklch(0.82 0.165 80 / 0.10)",
   },
-  /** 1–24 % — aged brass. Warm but restrained. */
   low: {
-    accent: "#c4a054",
-    glowInner: "rgba(196, 160, 84, 0.55)",
-    glowOuter: "rgba(196, 160, 84, 0.18)",
+    fill: "var(--pin-low)",
+    stroke: "var(--pin-low-stroke)",
+    glow: "oklch(0.72 0.19 25 / 0.40)",
+    glowOuter: "oklch(0.72 0.19 25 / 0.10)",
   },
-  /** 0 % — dusty wine. Quiet urgency. */
-  empty: {
-    accent: "#b07278",
-    glowInner: "rgba(176, 114, 120, 0.50)",
-    glowOuter: "rgba(176, 114, 120, 0.16)",
+  inactive: {
+    fill: "var(--pin-inactive)",
+    stroke: "var(--pin-inactive-stroke)",
+    glow: "oklch(0.35 0.015 250 / 0.08)",
+    glowOuter: "oklch(0.35 0.015 250 / 0.02)",
   },
-  /** Offline — map-colored. Nearly invisible. */
-  offline: {
-    accent: "#384558",
-    glowInner: "rgba(56, 69, 88, 0.15)",
-    glowOuter: "rgba(56, 69, 88, 0.04)",
-  },
-} as const;
+};
 
 function getAvailabilityRatio(station: CitiBikeStation): number {
   const bikes = station.num_bikes_available ?? 0;
@@ -44,24 +50,19 @@ function getAvailabilityRatio(station: CitiBikeStation): number {
   return bikes / total;
 }
 
-function getStatusColors(ratio: number, isActive: boolean) {
-  if (!isActive) return STATUS_COLORS.offline;
-  if (ratio === 0) return STATUS_COLORS.empty;
-  if (ratio < 0.25) return STATUS_COLORS.low;
-  if (ratio < 0.5) return STATUS_COLORS.moderate;
-  return STATUS_COLORS.healthy;
-}
-
 function isStationActive(station: CitiBikeStation): boolean {
   return station.is_renting === 1 && station.is_installed === 1;
 }
 
-function buildGlowFilter(glowInner: string, glowOuter: string): string {
-  return [
-    `drop-shadow(0 0 1px ${glowInner})`,
-    `drop-shadow(0 0 3px ${glowInner})`,
-    `drop-shadow(0 0 7px ${glowOuter})`,
-  ].join(" ");
+function getVariant(ratio: number, isActive: boolean): PinVariant {
+  if (!isActive) return "inactive";
+  if (ratio < 0.25) return "low";
+  if (ratio < 0.5) return "avg";
+  return "high";
+}
+
+function buildGlowFilter(glow: string, glowOuter: string): string {
+  return `drop-shadow(0 0 1px ${glow}) drop-shadow(0 0 3px ${glowOuter})`;
 }
 
 interface StationPinProps {
@@ -86,23 +87,36 @@ export const StationPin = memo(function StationPin({
 }: StationPinProps) {
   const isActive = isStationActive(station);
   const ratio = getAvailabilityRatio(station);
-  const colors = getStatusColors(ratio, isActive);
+  const variant = getVariant(ratio, isActive);
+  const colors = PIN_STYLES[variant];
 
   const glowFilter = useMemo(
-    () => buildGlowFilter(colors.glowInner, colors.glowOuter),
-    [colors.glowInner, colors.glowOuter],
+    () => buildGlowFilter(colors.glow, colors.glowOuter),
+    [colors.glow, colors.glowOuter],
   );
 
   return (
-    <MapPin
+    <svg
       aria-hidden="true"
-      className={cn(
-        "pointer-events-none block size-6",
-        isActive ? "opacity-90" : "opacity-20",
-      )}
-      style={{ filter: glowFilter }}
-      color={colors.accent}
-      weight="fill"
-    />
+      width="14"
+      height="20"
+      viewBox="0 0 14 20"
+      fill="none"
+      className="pointer-events-none block"
+      style={{
+        filter: glowFilter,
+        opacity: isActive ? 0.88 : 0.15,
+      }}
+    >
+      {/* Teardrop pin silhouette */}
+      <path
+        d="M7 0C3.13 0 0 3.13 0 7c0 4.88 6.35 11.8 6.62 12.1a.52.52 0 0 0 .76 0C7.65 18.8 14 11.88 14 7c0-3.87-3.13-7-7-7Z"
+        fill={colors.fill}
+        stroke={colors.stroke}
+        strokeWidth="0.6"
+      />
+      {/* Inner circle — dark center for depth */}
+      <circle cx="7" cy="7" r="2.6" fill="oklch(0 0 0 / 0.2)" />
+    </svg>
   );
 }, areStationPinPropsEqual);

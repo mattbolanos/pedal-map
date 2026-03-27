@@ -1,9 +1,8 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import type { LngLatBoundsLike } from "maplibre-gl";
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import type { MapRef } from "react-map-gl/maplibre";
 import MapView from "react-map-gl/maplibre";
-import type { MapViewportBounds } from "#/components/station-pins-layer";
 import { StationPinsLayer } from "#/components/station-pins-layer";
 import { citiBikeStationsQueryOptions } from "#/lib/citibike";
 
@@ -19,59 +18,12 @@ const NYC_METRO_BOUNDS: LngLatBoundsLike = [
   [-73.3, 41.1],
 ];
 
-function areBoundsEqual(
-  a: MapViewportBounds | null,
-  b: MapViewportBounds | null,
-): boolean {
-  if (a === b) {
-    return true;
-  }
-
-  if (!a || !b) {
-    return false;
-  }
-
-  return (
-    a.west === b.west &&
-    a.south === b.south &&
-    a.east === b.east &&
-    a.north === b.north
-  );
-}
-
 export function StationMap() {
   const mapRef = useRef<MapRef | null>(null);
-  const [viewportBounds, setViewportBounds] =
-    useState<MapViewportBounds | null>(null);
-  const lastViewportBoundsRef = useRef<MapViewportBounds | null>(null);
 
   const { data: citiBikeStations } = useSuspenseQuery(
     citiBikeStationsQueryOptions,
   );
-
-  function syncViewportBounds() {
-    const map = mapRef.current;
-
-    if (!map) {
-      return;
-    }
-
-    const bounds = map.getBounds();
-
-    const nextBounds = {
-      west: bounds.getWest(),
-      south: bounds.getSouth(),
-      east: bounds.getEast(),
-      north: bounds.getNorth(),
-    };
-
-    if (areBoundsEqual(lastViewportBoundsRef.current, nextBounds)) {
-      return;
-    }
-
-    lastViewportBoundsRef.current = nextBounds;
-    setViewportBounds(nextBounds);
-  }
 
   return (
     <MapView
@@ -79,17 +31,11 @@ export function StationMap() {
       mapStyle={MAP_STYLE_URL}
       maxBounds={NYC_METRO_BOUNDS}
       minZoom={MIN_ZOOM}
-      onLoad={syncViewportBounds}
-      onMoveEnd={syncViewportBounds}
-      onResize={syncViewportBounds}
       ref={mapRef}
       renderWorldCopies={false}
       reuseMaps
     >
-      <StationPinsLayer
-        stations={citiBikeStations.stations}
-        viewportBounds={viewportBounds}
-      />
+      <StationPinsLayer stations={citiBikeStations.stations} />
     </MapView>
   );
 }
