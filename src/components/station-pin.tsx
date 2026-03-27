@@ -16,9 +16,9 @@
 const RES = 64;
 const CX = RES / 2;
 const CY = RES / 2;
-const RING_R = 24;
-const RING_W = 5.5;
-const DOT_R = 11;
+const RING_R = 28;
+const RING_W = 7;
+const DOT_R = 19;
 const BUCKET_STEP = 0.05; // 5 % increments → 21 unique icons
 
 export const ICON_RES = RES;
