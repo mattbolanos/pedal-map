@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import TanStackQueryDevtools from "#/integrations/tanstack-query/devtools";
+import { MAP_STYLE_URL } from "#/lib/map";
 import TanStackQueryProvider from "#/integrations/tanstack-query/root-provider";
 import appCss from "#/styles.css?url";
 
@@ -34,6 +35,20 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
       {
         rel: "stylesheet",
         href: appCss,
+      },
+      {
+        rel: "preconnect",
+        href: "https://api.maptiler.com",
+      },
+      {
+        rel: "dns-prefetch",
+        href: "https://api.maptiler.com",
+      },
+      {
+        rel: "preload",
+        href: MAP_STYLE_URL,
+        as: "fetch",
+        crossOrigin: "anonymous",
       },
     ],
   }),

@@ -1,12 +1,12 @@
-import { useSuspenseQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import type { LngLatBoundsLike } from "maplibre-gl";
 import { useRef } from "react";
 import type { MapRef } from "react-map-gl/maplibre";
 import MapView from "react-map-gl/maplibre";
 import { StationPinsLayer } from "#/components/station-pins-layer";
 import { citiBikeStationsQueryOptions } from "#/lib/citibike";
+import { MAP_STYLE_URL } from "#/lib/map";
 
-const MAP_STYLE_URL = `https://api.maptiler.com/maps/streets-v2-dark/style.json?key=${import.meta.env.VITE_MAPTILER_KEY}`;
 const INITIAL_VIEW_STATE = {
   longitude: -73.9651,
   latitude: 40.6917,
@@ -21,9 +21,7 @@ const NYC_METRO_BOUNDS: LngLatBoundsLike = [
 export function StationMap() {
   const mapRef = useRef<MapRef | null>(null);
 
-  const { data: citiBikeStations } = useSuspenseQuery(
-    citiBikeStationsQueryOptions,
-  );
+  const { data: citiBikeStations } = useQuery(citiBikeStationsQueryOptions);
 
   return (
     <MapView
@@ -35,7 +33,9 @@ export function StationMap() {
       renderWorldCopies={false}
       reuseMaps
     >
-      <StationPinsLayer stations={citiBikeStations.stations} />
+      {citiBikeStations ? (
+        <StationPinsLayer stations={citiBikeStations.stations} />
+      ) : null}
     </MapView>
   );
 }
