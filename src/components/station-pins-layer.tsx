@@ -1,14 +1,14 @@
 import { IconLayer, ScatterplotLayer } from "@deck.gl/layers";
+import type { CitiBikeStation } from "#/lib/citibike";
 import {
   availabilityColor,
   bucketRatio,
   getPinIconUrl,
   ICON_RES,
   pinSize,
-} from "#/components/station-pin";
-import type { CitiBikeStation } from "#/lib/citibike";
+} from "#/lib/station-pin";
 
-const SMALL_TO_MEDIUM_DOTS_ZOOM = 11;
+export const SMALL_TO_MEDIUM_DOTS_ZOOM = 12;
 const DOTS_TO_PINS_ZOOM = 13.75;
 
 function hasValidCoordinates(s: CitiBikeStation) {
@@ -198,8 +198,8 @@ export function createStationPinsLayer(
     getSize: (s) => scaledPinSize(s.capacity ?? 0, zoom),
 
     sizeUnits: "pixels",
-    sizeMinPixels: 16,
-    sizeMaxPixels: 30,
+    sizeMinPixels: 18,
+    sizeMaxPixels: 36,
 
     transitions: {
       getColor: { duration: 800, easing: easeOut },
