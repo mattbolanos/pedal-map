@@ -14,17 +14,17 @@ const MAP_STYLE_URL = "mapbox://styles/mapbox/dark-v11";
 const INITIAL_VIEW_STATE: MapViewState = {
   longitude: -73.9651,
   latitude: 40.6917,
-  zoom: 13.5,
+  zoom: 13.75,
   bearing: 0,
   pitch: 0,
 };
 
 const NYC_METRO_BOUNDS: LngLatBoundsLike = [
-  [-74.65, 40.3],
-  [-73.3, 41.1],
+  [-74.3, 40.5],
+  [-73.7, 40.95],
 ];
 
-const MIN_ZOOM = 9.75;
+const MIN_ZOOM = 10.65;
 const MAX_ZOOM = 16;
 
 function clamp(value: number, min: number, max: number) {
@@ -56,10 +56,17 @@ export function StationMap() {
       return [];
     }
 
-    const layer = createStationPinsLayer(citiBikeStations.stations);
+    const layer = createStationPinsLayer(
+      citiBikeStations.stations,
+      viewState.zoom,
+    );
 
-    return layer ? [layer] : [];
-  }, [citiBikeStations]);
+    if (!layer) {
+      return [];
+    }
+
+    return Array.isArray(layer) ? layer : [layer];
+  }, [citiBikeStations, viewState.zoom]);
 
   const getTooltip = (info: PickingInfo<CitiBikeStation>) => {
     const station = info.object;

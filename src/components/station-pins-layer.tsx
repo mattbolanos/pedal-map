@@ -1,4 +1,4 @@
-import { IconLayer } from "@deck.gl/layers";
+import { IconLayer, ScatterplotLayer } from "@deck.gl/layers";
 import {
   availabilityColor,
   bucketRatio,
@@ -8,7 +8,8 @@ import {
 } from "#/components/station-pin";
 import type { CitiBikeStation } from "#/lib/citibike";
 
-// ── Helpers ────────────────────────────────────────────────────
+const SMALL_TO_MEDIUM_DOTS_ZOOM = 11;
+const DOTS_TO_PINS_ZOOM = 13.75;
 
 function hasValidCoordinates(s: CitiBikeStation) {
   return (
@@ -32,17 +33,149 @@ function isActive(s: CitiBikeStation): boolean {
   return s.is_renting === 1 && s.is_installed === 1;
 }
 
-// ── Easing ─────────────────────────────────────────────────────
-// Quadratic ease-out: fast initial response, gentle settle.
-// Matches the "ease-out" principle — the user sees movement immediately.
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function scaledPinSize(capacity: number, zoom: number) {
+  const zoomScale = clamp(0.9 + (zoom - DOTS_TO_PINS_ZOOM) * 0.18, 0.9, 1.3);
+  return pinSize(capacity) * zoomScale;
+}
+
+function mixColor(
+  color: [number, number, number, number],
+  target: [number, number, number],
+  amount: number,
+  alpha = color[3],
+) {
+  return [
+    Math.round(color[0] + (target[0] - color[0]) * amount),
+    Math.round(color[1] + (target[1] - color[1]) * amount),
+    Math.round(color[2] + (target[2] - color[2]) * amount),
+    alpha,
+  ] as const;
+}
+
+function dotGlowColor(station: CitiBikeStation) {
+  const color = availabilityColor(
+    availabilityRatio(station),
+    isActive(station),
+  );
+  return mixColor(color, [255, 255, 255], 0.08, 52);
+}
+
+function dotFieldColor(station: CitiBikeStation) {
+  const color = availabilityColor(
+    availabilityRatio(station),
+    isActive(station),
+  );
+  return mixColor(color, [255, 255, 255], 0.14, 92);
+}
+
+function dotCoreColor(station: CitiBikeStation) {
+  const color = availabilityColor(
+    availabilityRatio(station),
+    isActive(station),
+  );
+  return mixColor(color, [255, 255, 255], 0.1, 210);
+}
+
+function dotFieldRadius(capacity: number, zoom: number) {
+  const zoomScale = clamp(0.9 + (zoom - 9.75) * 0.06, 0.9, 1.08);
+  const capacityScale = 2.8 + Math.sqrt(Math.max(0, capacity)) * 0.22;
+  return clamp(capacityScale * zoomScale, 3, 6);
+}
+
+function dotCoreRadius(capacity: number, zoom: number) {
+  const zoomScale = clamp(0.95 + (zoom - 9.75) * 0.05, 0.95, 1.12);
+  const capacityScale = 1.2 + Math.sqrt(Math.max(0, capacity)) * 0.08;
+  return clamp(capacityScale * zoomScale, 1.4, 3.2);
+}
+
+function dotZoomTierScale(zoom: number) {
+  return zoom < SMALL_TO_MEDIUM_DOTS_ZOOM ? 1 : 1.5;
+}
 
 const easeOut = (t: number) => t * (2 - t);
 
-// ── Layer factory ──────────────────────────────────────────────
-
-export function createStationPinsLayer(stations: CitiBikeStation[]) {
+export function createStationPinsLayer(
+  stations: CitiBikeStation[],
+  zoom: number,
+) {
   const valid = stations.filter(hasValidCoordinates);
   if (valid.length === 0) return null;
+  const dotScale = dotZoomTierScale(zoom);
+
+  if (zoom < DOTS_TO_PINS_ZOOM) {
+    return [
+      new ScatterplotLayer<CitiBikeStation>({
+        id: "station-pins-dot-field",
+        data: valid,
+        filled: true,
+        pickable: false,
+        stroked: false,
+        getPosition: (station) => [station.lon, station.lat],
+        getRadius: (station) =>
+          dotFieldRadius(station.capacity ?? 0, zoom) * dotScale + 2.5,
+        getFillColor: dotGlowColor,
+        radiusUnits: "pixels",
+        radiusMinPixels: 5 * dotScale,
+        radiusMaxPixels: 8.5 * dotScale,
+        transitions: {
+          getFillColor: { duration: 800, easing: easeOut },
+          getRadius: { duration: 600, easing: easeOut },
+        },
+        updateTriggers: {
+          getFillColor: [stations, zoom],
+          getRadius: [stations, zoom],
+        },
+      }),
+      new ScatterplotLayer<CitiBikeStation>({
+        id: "station-pins-dot-density",
+        data: valid,
+        filled: true,
+        pickable: false,
+        stroked: false,
+        getPosition: (station) => [station.lon, station.lat],
+        getRadius: (station) =>
+          dotFieldRadius(station.capacity ?? 0, zoom) * dotScale,
+        getFillColor: dotFieldColor,
+        radiusUnits: "pixels",
+        radiusMinPixels: 3 * dotScale,
+        radiusMaxPixels: 6 * dotScale,
+        transitions: {
+          getFillColor: { duration: 800, easing: easeOut },
+          getRadius: { duration: 600, easing: easeOut },
+        },
+        updateTriggers: {
+          getFillColor: [stations, zoom],
+          getRadius: [stations, zoom],
+        },
+      }),
+      new ScatterplotLayer<CitiBikeStation>({
+        id: "station-pins-dot-core",
+        data: valid,
+        filled: true,
+        pickable: true,
+        stroked: false,
+        getPosition: (station) => [station.lon, station.lat],
+        getRadius: (station) =>
+          dotCoreRadius(station.capacity ?? 0, zoom) * dotScale,
+        getFillColor: dotCoreColor,
+        radiusUnits: "pixels",
+        radiusMinPixels: 1.5 * dotScale,
+        radiusMaxPixels: 3.5 * dotScale,
+        transitions: {
+          getFillColor: { duration: 800, easing: easeOut },
+          getRadius: { duration: 600, easing: easeOut },
+        },
+        updateTriggers: {
+          getFillColor: [stations, zoom],
+          getRadius: [stations, zoom],
+        },
+      }),
+    ];
+  }
 
   return new IconLayer<CitiBikeStation>({
     id: "station-pins",
@@ -61,24 +194,13 @@ export function createStationPinsLayer(stations: CitiBikeStation[]) {
       };
     },
 
-    // Tints the white SVG mask → becomes the availability color.
-    // deck.gl interpolates RGBA channels during transitions,
-    // so a station going from 60 % → 30 % will smoothly shift
-    // from teal through amber — no hard color jumps.
     getColor: (s) => availabilityColor(availabilityRatio(s), isActive(s)),
-
-    // Area ∝ capacity (sqrt-scaled in pinSize).
-    getSize: (s) => pinSize(s.capacity ?? 0),
+    getSize: (s) => scaledPinSize(s.capacity ?? 0, zoom),
 
     sizeUnits: "pixels",
     sizeMinPixels: 16,
     sizeMaxPixels: 30,
 
-    // ── Transitions ────────────────────────────────────────
-    // Smooth 800 ms color fade + 600 ms size morph on data refresh.
-    // The easing mirrors Emil's "ease-out" principle: the visual
-    // response starts immediately, then gently settles — so the
-    // map never feels laggy even on 15-second polling intervals.
     transitions: {
       getColor: { duration: 800, easing: easeOut },
       getSize: { duration: 600, easing: easeOut },
@@ -87,7 +209,7 @@ export function createStationPinsLayer(stations: CitiBikeStation[]) {
     updateTriggers: {
       getIcon: stations,
       getColor: stations,
-      getSize: stations,
+      getSize: [stations, zoom],
     },
   });
 }

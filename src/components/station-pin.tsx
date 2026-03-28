@@ -1,29 +1,12 @@
-/**
- * Station pin icon generation for deck.gl IconLayer.
- *
- * Each pin is an SVG with three visual layers:
- *   1. A muted track ring (full circle — the "empty" state)
- *   2. A progress arc showing % bikes available (starts from 12 o'clock)
- *   3. A filled center dot for quick color identification at small sizes
- *
- * The SVGs are white (used as alpha masks via deck.gl's `mask: true`)
- * so the layer's `getColor` accessor tints them — enabling smooth
- * color transitions when availability data refreshes.
- */
-
-// ── Icon geometry ──────────────────────────────────────────────
-
 const RES = 64;
 const CX = RES / 2;
 const CY = RES / 2;
-const RING_R = 28;
-const RING_W = 7;
-const DOT_R = 19;
-const BUCKET_STEP = 0.05; // 5 % increments → 21 unique icons
+const RING_R = 24;
+const RING_W = 6;
+const DOT_R = 12;
+const BUCKET_STEP = 0.05;
 
 export const ICON_RES = RES;
-
-// ── Arc helpers ────────────────────────────────────────────────
 
 function polar(cx: number, cy: number, r: number, deg: number) {
   const rad = ((deg - 90) * Math.PI) / 180;
@@ -33,7 +16,6 @@ function polar(cx: number, cy: number, r: number, deg: number) {
 function arcD(ratio: number): string {
   if (ratio <= 0) return "";
   if (ratio >= 1) {
-    // Two semicircles — SVG arcs can't express a full circle in one command
     const a = polar(CX, CY, RING_R, 0);
     const b = polar(CX, CY, RING_R, 180);
     return [
@@ -49,8 +31,6 @@ function arcD(ratio: number): string {
   return `M${s.x},${s.y} A${RING_R},${RING_R} 0 ${large} 1 ${e.x},${e.y}`;
 }
 
-// ── SVG data-URL cache ─────────────────────────────────────────
-
 const urlCache = new Map<number, string>();
 
 export function getPinIconUrl(bucket: number): string {
@@ -64,11 +44,8 @@ export function getPinIconUrl(bucket: number): string {
 
   const svg = [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${RES}" height="${RES}">`,
-    // Track ring — low-alpha white; becomes a ghost of the tint color
     `<circle cx="${CX}" cy="${CY}" r="${RING_R}" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="${RING_W}"/>`,
-    // Progress arc — full white; becomes the vibrant tint color
     progress,
-    // Center dot — slightly below full opacity for depth
     `<circle cx="${CX}" cy="${CY}" r="${DOT_R}" fill="white" opacity="0.92"/>`,
     `</svg>`,
   ].join("");
@@ -78,29 +55,19 @@ export function getPinIconUrl(bucket: number): string {
   return url;
 }
 
-/** Round a 0–1 ratio to the nearest BUCKET_STEP (e.g. 0.05). */
 export function bucketRatio(ratio: number): number {
   return (
     Math.round(Math.max(0, Math.min(1, ratio)) / BUCKET_STEP) * BUCKET_STEP
   );
 }
 
-// ── Continuous color scale ─────────────────────────────────────
-//
-// Three-stop gradient optimised for a dark map:
-//   coral-red  →  amber-gold  →  teal-cyan
-//
-// Interpolated in sRGB. The stops are spaced so the "danger zone"
-// (< 25 %) occupies more visual range, making low-stock stations
-// pop even when surrounded by healthy ones.
-
 type RGBA = [number, number, number, number];
 
 const COLOR_STOPS: { t: number; c: RGBA }[] = [
-  { t: 0, c: [218, 82, 60, 225] }, // warm coral — empty
-  { t: 0.32, c: [242, 178, 68, 225] }, // amber gold — getting low
-  { t: 0.68, c: [52, 172, 120, 225] }, // emerald — healthy
-  { t: 1, c: [38, 158, 108, 225] }, // deep emerald — fully stocked
+  { t: 0, c: [218, 82, 60, 225] },
+  { t: 0.32, c: [242, 178, 68, 225] },
+  { t: 0.68, c: [52, 172, 120, 225] },
+  { t: 1, c: [38, 158, 108, 225] },
 ];
 
 const INACTIVE_COLOR: RGBA = [78, 88, 110, 50];
@@ -131,12 +98,6 @@ export function availabilityColor(ratio: number, active: boolean): RGBA {
 
   return COLOR_STOPS[COLOR_STOPS.length - 1].c;
 }
-
-// ── Size scale ─────────────────────────────────────────────────
-//
-// sqrt-scaled so the *area* of the pin is proportional to capacity.
-// This is perceptually honest — a station with 4× the capacity
-// produces a pin with 4× the area, not 4× the diameter.
 
 export function pinSize(capacity: number): number {
   const clamped = Math.max(10, Math.min(80, capacity));
