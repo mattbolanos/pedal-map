@@ -22,6 +22,13 @@ interface StationTooltipProps {
   station: CitiBikeStation;
 }
 
+interface StationItem {
+  icon: React.ReactNode;
+  title: string;
+  value: number;
+  child?: boolean;
+}
+
 function count(value: number | undefined): number {
   return value ?? 0;
 }
@@ -30,38 +37,16 @@ function getIsActive(station: CitiBikeStation): boolean {
   return station.is_renting === 1 && station.is_installed === 1;
 }
 
-function getAvailabilityLevel(
-  available: number,
-  capacity: number,
-): "empty" | "low" | "moderate" | "good" | "full" {
-  if (capacity === 0) return "empty";
-  const ratio = available / capacity;
-  if (ratio === 0) return "empty";
-  if (ratio <= 0.15) return "low";
-  if (ratio <= 0.4) return "moderate";
-  if (ratio >= 0.95) return "full";
-  return "good";
-}
-
-const levelColors = {
-  empty: "text-red-400",
-  low: "text-amber-400",
-  moderate: "text-white",
-  good: "text-emerald-400",
-  full: "text-emerald-400",
-} as const;
-
 export function StationTooltip({ station }: StationTooltipProps) {
   const bikes = count(station.num_bikes_available);
   const docks = count(station.num_docks_available);
   const ebikes = count(station.num_ebikes_available);
   const classicBikes = bikes - ebikes;
   const capacity = count(station.capacity);
-  const disabled = count(station.num_bikes_disabled);
+  const disabledBikes = count(station.num_bikes_disabled);
   const isActive = getIsActive(station);
   const lastReported = getRelativeTime(station.last_reported);
-  const bikeLevel = getAvailabilityLevel(bikes, capacity);
-  const dockLevel = getAvailabilityLevel(docks, capacity);
+
   const fillPct = capacity > 0 ? Math.round((bikes / capacity) * 100) : 0;
   const bikeRatio = capacity > 0 ? bikes / capacity : 0;
   const availabilityTone = stationAvailabilityTone(bikeRatio, isActive);
@@ -69,8 +54,38 @@ export function StationTooltip({ station }: StationTooltipProps) {
     "--station-availability": availabilityTone.css,
   } as CSSProperties;
 
+  const STATION_ITEMS: StationItem[] = [
+    {
+      icon: <BicycleIcon className="text-muted-foreground size-5" />,
+      title: "Available",
+      value: bikes,
+    },
+    {
+      icon: <LightningIcon className="text-muted-foreground size-5" />,
+      title: "Electric",
+      value: ebikes,
+      child: true,
+    },
+    {
+      icon: <GearSixIcon className="text-muted-foreground size-5" />,
+      title: "Classic",
+      value: classicBikes,
+      child: true,
+    },
+    {
+      icon: <LetterCirclePIcon className="text-muted-foreground size-5" />,
+      title: "Docks Open",
+      value: docks,
+    },
+    {
+      icon: <WrenchIcon className="text-muted-foreground size-5" />,
+      title: "Disabled",
+      value: disabledBikes,
+    },
+  ];
+
   return (
-    <Card className="w-68" style={availabilityVars}>
+    <Card className="bg-popover w-68" style={availabilityVars}>
       <CardHeader>
         <CardTitle>{station.name}</CardTitle>
         {isActive && (
@@ -86,43 +101,17 @@ export function StationTooltip({ station }: StationTooltipProps) {
         )}
       </CardHeader>
       <CardContent className="space-y-2 tabular-nums">
-        {isActive && (
-          <div className="flex items-center gap-x-1.5">
-            <BicycleIcon className="text-muted-foreground size-5" />
-            <span className="text-muted-foreground">Available</span>
-            <span className="ml-auto font-medium">{bikes}</span>
-          </div>
-        )}
-        {isActive && (
-          <div className="flex items-center gap-x-1.5">
-            <ArrowBendDownRightIcon className="text-muted-foreground ml-2 size-5" />
-            <LightningIcon className="text-muted-foreground size-5" />
-            <span className="text-muted-foreground">Electric</span>
-            <span className="ml-auto font-medium">{ebikes}</span>
-          </div>
-        )}
-        {isActive && (
-          <div className="flex items-center gap-x-1.5">
-            <ArrowBendDownRightIcon className="text-muted-foreground ml-2 size-5" />
-            <GearSixIcon className="text-muted-foreground size-5" />
-            <span className="text-muted-foreground">Classic</span>
-            <span className="ml-auto font-medium">{classicBikes}</span>
-          </div>
-        )}
-        {isActive && (
-          <div className="flex items-center gap-x-1.5">
-            <LetterCirclePIcon className="text-muted-foreground size-5" />
-            <span className="text-muted-foreground">Docks Open</span>
-            <span className="ml-auto font-medium">{docks}</span>
-          </div>
-        )}
-        {isActive && (
-          <div className="flex items-center gap-x-1.5">
-            <WrenchIcon className="text-muted-foreground size-5" />
-            <span className="text-muted-foreground">Disabled</span>
-            <span className="ml-auto font-medium">{disabled}</span>
-          </div>
-        )}
+        {isActive &&
+          STATION_ITEMS.map((item) => (
+            <div key={item.title} className="flex items-center gap-x-1.5">
+              {item.child && (
+                <ArrowBendDownRightIcon className="text-muted-foreground size-5" />
+              )}
+              {item.icon}
+              <span className="text-muted-foreground">{item.title}</span>
+              <span className="ml-auto font-medium">{item.value}</span>
+            </div>
+          ))}
         <div
           className={cn(
             "flex items-center gap-x-1.5",
