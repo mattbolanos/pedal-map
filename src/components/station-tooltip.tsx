@@ -7,6 +7,7 @@ import { WrenchIcon } from "@phosphor-icons/react/dist/csr/Wrench";
 import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import type { CitiBikeStation } from "#/lib/citibike";
 import { getNeighborhoodBucketMeta } from "#/lib/neighborhood-bucket";
+import { availabilityColorCss } from "#/lib/station-pin";
 import { cn, getRelativeTime } from "#/lib/utils";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -114,17 +115,28 @@ function StationDetails({ station }: StationTooltipProps) {
   const disabledBikes = count(station.num_bikes_disabled);
   const isActive = getIsActive(station);
   const lastReported = getRelativeTime(station.last_reported);
+  const ratio = capacity > 0 ? bikes / capacity : 0;
+  const pct = Math.round(ratio * 100);
 
   return (
-    <div className="space-y-3 px-4 pb-3 text-sm tabular-nums">
+    <div className="space-y-3 px-4 text-sm tabular-nums">
       {isActive ? (
         <>
           <div className="space-y-1.5">
             <div className="flex items-center gap-x-1.5">
               <BicycleIcon className="text-muted-foreground size-4" />
+              {bikes > 0 && (
+                <span
+                  className="tabular-nums"
+                  style={{ color: availabilityColorCss(ratio, isActive) }}
+                >
+                  {pct}%
+                </span>
+              )}
               <span className="text-muted-foreground font-medium">
                 Available
               </span>
+
               <span className="ml-auto tabular-nums">{bikes}</span>
             </div>
             <BikeBreakdownBar
@@ -198,14 +210,14 @@ export const StationTooltip = ({ station }: StationTooltipProps) => (
 );
 
 export const StationDrawer = ({ station }: StationTooltipProps) => (
-  <DrawerContent className="pb-2">
+  <DrawerContent className="pb-5">
     <DrawerHeader className="gap-1.5">
       <div className="flex items-center justify-between gap-2">
         <DrawerTitle className="line-clamp-1 text-left text-base text-pretty">
           {station.name}
         </DrawerTitle>
         <DrawerClose asChild>
-          <Button size="icon-sm" variant="secondary" className="-mr-1.5">
+          <Button size="icon-sm" variant="secondary" className="-mr-1">
             <XIcon />
           </Button>
         </DrawerClose>

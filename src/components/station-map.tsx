@@ -84,6 +84,7 @@ export function StationMap() {
   const [selectedStation, setSelectedStation] = useState<HoveredStation | null>(
     null,
   );
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [isNeighborhoodsVisible, setIsNeighborhoodsVisible] = useState(false);
   const isMobile = useIsMobile();
   const [tooltipPosition, setTooltipPosition] =
@@ -93,7 +94,6 @@ export function StationMap() {
   const tooltipRef = useRef<HTMLDivElement | null>(null);
   const tooltipPositionFrameRef = useRef<number | null>(null);
   const canHover = viewState.zoom >= SMALL_TO_MEDIUM_DOTS_ZOOM;
-  const isMobileDrawerOpen = isMobile && Boolean(selectedStation);
 
   const clearHoveredStation = () => {
     if (tooltipPositionFrameRef.current !== null) {
@@ -237,6 +237,7 @@ export function StationMap() {
     }
 
     hoveredStationIdRef.current = station.station_id;
+    setIsMobileDrawerOpen(true);
     setSelectedStation((current) => {
       if (current?.station === station) {
         return current;
@@ -250,12 +251,12 @@ export function StationMap() {
 
   // Vaul not respecting modal with controlled open :/
   useEffect(() => {
-    if (isMobileDrawerOpen) {
+    if (isMobile && isMobileDrawerOpen) {
       window.requestAnimationFrame(() => {
         document.body.style.pointerEvents = "auto";
       });
     }
-  }, [isMobileDrawerOpen]);
+  }, [isMobile, isMobileDrawerOpen]);
 
   return (
     <div className="relative h-full w-full" ref={containerRef}>
@@ -327,11 +328,12 @@ export function StationMap() {
       ) : null}
 
       <Drawer
-        open={isMobileDrawerOpen}
+        open={isMobile && isMobileDrawerOpen}
         noBodyStyles={true}
         modal={false}
         setBackgroundColorOnScale={false}
-        onOpenChange={(open) => {
+        onOpenChange={setIsMobileDrawerOpen}
+        onAnimationEnd={(open) => {
           if (!open) {
             setSelectedStation(null);
           }
