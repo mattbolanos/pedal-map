@@ -1,4 +1,5 @@
 import {
+  type Layer,
   type MapViewState,
   type PickingInfo,
   WebMercatorViewport,
@@ -17,6 +18,7 @@ import { Drawer } from "#/components/ui/drawer";
 import { useIsMobile } from "#/hooks/use-mobile";
 import type { CitiBikeStation } from "#/lib/citibike";
 import { citiBikeStationsQueryOptions } from "#/lib/citibike";
+import { createNeighborhoodPolygonsLayer } from "#/lib/neighborhood-bucket";
 import { NeighborhoodToggle } from "./neighborhood-toggle";
 
 const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
@@ -37,7 +39,7 @@ const NYC_METRO_BOUNDS: LngLatBoundsLike = [
 
 const MIN_ZOOM = 10.65;
 const MAX_ZOOM = 16;
-const STATION_HIT_SLOP = 8;
+const STATION_HIT_AREA = 10;
 const TOOLTIP_GAP = 18;
 const TOOLTIP_VIEWPORT_PADDING = 20;
 
@@ -53,6 +55,15 @@ interface CursorState {
 interface TooltipPosition {
   left: number;
   top: number;
+}
+
+interface CursorCoordinates {
+  lat: number;
+  lon: number;
+}
+
+interface ClickedCoordinate extends CursorCoordinates {
+  id: number;
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -89,7 +100,15 @@ export function StationMap() {
   const isMobile = useIsMobile();
   const [tooltipPosition, setTooltipPosition] =
     useState<TooltipPosition | null>(null);
+  const [cursorCoordinates, setCursorCoordinates] =
+    useState<CursorCoordinates | null>(null);
+  const [clickedCoordinates, setClickedCoordinates] = useState<
+    ClickedCoordinate[]
+  >([]);
+  const [copyButtonLabel, setCopyButtonLabel] = useState("Copy GPT Prompt");
   const hoveredStationIdRef = useRef<string | null>(null);
+  const clickedCoordinateIdRef = useRef(0);
+  const copyFeedbackTimeoutRef = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
   const tooltipPositionFrameRef = useRef<number | null>(null);
@@ -183,8 +202,10 @@ export function StationMap() {
   };
 
   const layers = useMemo(() => {
+    const nextLayers: Layer[] = [];
+
     if (!citiBikeStations) {
-      return [];
+      return nextLayers;
     }
 
     const layer = createStationPinsLayer(
@@ -193,13 +214,67 @@ export function StationMap() {
     );
 
     if (!layer) {
-      return [];
+      return nextLayers;
     }
 
-    return Array.isArray(layer) ? layer : [layer];
-  }, [citiBikeStations, viewState.zoom]);
+    nextLayers.push(...(Array.isArray(layer) ? layer : [layer]));
+
+    if (isNeighborhoodsVisible) {
+      nextLayers.push(
+        ...createNeighborhoodPolygonsLayer({
+          showLabels: viewState.zoom >= SMALL_TO_MEDIUM_DOTS_ZOOM,
+        }),
+      );
+    }
+
+    return nextLayers;
+  }, [citiBikeStations, isNeighborhoodsVisible, viewState.zoom]);
+
+  const clickedPointScreenPositions = useMemo(() => {
+    if (clickedCoordinates.length === 0 || !containerRef.current) {
+      return null;
+    }
+
+    const { width, height } = containerRef.current.getBoundingClientRect();
+
+    if (width === 0 || height === 0) {
+      return null;
+    }
+
+    const viewport = new WebMercatorViewport({
+      ...viewState,
+      width,
+      height,
+    });
+    return clickedCoordinates.map((coordinate) => {
+      const [left, top] = viewport.project([coordinate.lon, coordinate.lat]);
+
+      return {
+        ...coordinate,
+        left,
+        top,
+      };
+    });
+  }, [clickedCoordinates, viewState]);
+
+  const polygonPrompt = useMemo(() => {
+    const points = clickedCoordinates
+      .map(
+        (coordinate, index) =>
+          `point ${index + 1}: { lat: ${coordinate.lat.toFixed(6)}, lon: ${coordinate.lon.toFixed(6)} }`,
+      )
+      .join(", ");
+
+    return `create a new file in src/lib/neighborhood-regions/ called {INSERT NAME} with a deck.gl polygon coordinate array based off the following lat/lon coords. follow other files in directory for pattern. make edges smooth: [${points}]`;
+  }, [clickedCoordinates]);
 
   const handleHover = (info: PickingInfo<CitiBikeStation>) => {
+    const [lon, lat] = info.coordinate ?? [];
+
+    setCursorCoordinates(
+      typeof lat === "number" && typeof lon === "number" ? { lat, lon } : null,
+    );
+
     if (!canHover || isMobile) {
       return;
     }
@@ -224,7 +299,20 @@ export function StationMap() {
     });
   };
 
-  const handleSelectStation = (info: PickingInfo<CitiBikeStation>) => {
+  const handleMapClick = (info: PickingInfo<CitiBikeStation>) => {
+    const [lon, lat] = info.coordinate ?? [];
+
+    if (typeof lat === "number" && typeof lon === "number") {
+      setClickedCoordinates((current) => [
+        ...current,
+        {
+          id: clickedCoordinateIdRef.current++,
+          lat,
+          lon,
+        },
+      ]);
+    }
+
     if (!isMobile) {
       return;
     }
@@ -249,7 +337,35 @@ export function StationMap() {
     });
   };
 
-  // Vaul not respecting modal with controlled open :/
+  const handleDeletePoint = (pointId: number) => {
+    setClickedCoordinates((current) =>
+      current.filter((coordinate) => coordinate.id !== pointId),
+    );
+  };
+
+  const handleCopyPolygonPrompt = async () => {
+    if (clickedCoordinates.length === 0) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(polygonPrompt);
+      setCopyButtonLabel("Copied");
+    } catch {
+      setCopyButtonLabel("Copy Failed");
+    }
+
+    if (copyFeedbackTimeoutRef.current !== null) {
+      window.clearTimeout(copyFeedbackTimeoutRef.current);
+    }
+
+    copyFeedbackTimeoutRef.current = window.setTimeout(() => {
+      setCopyButtonLabel("Copy GPT Prompt");
+      copyFeedbackTimeoutRef.current = null;
+    }, 2000);
+  };
+
+  // Vaul not respecting modal b/c of controlled open :/
   useEffect(() => {
     if (isMobile && isMobileDrawerOpen) {
       window.requestAnimationFrame(() => {
@@ -258,22 +374,30 @@ export function StationMap() {
     }
   }, [isMobile, isMobileDrawerOpen]);
 
+  useEffect(() => {
+    return () => {
+      if (copyFeedbackTimeoutRef.current !== null) {
+        window.clearTimeout(copyFeedbackTimeoutRef.current);
+      }
+    };
+  }, []);
+
   return (
-    <div className="relative h-full w-full" ref={containerRef}>
+    <div className="relative size-full" ref={containerRef}>
       <DeckGL
         controller
         getCursor={({ isDragging, isHovering }: CursorState) =>
           isDragging ? "grabbing" : canHover && isHovering ? "pointer" : "grab"
         }
         layers={layers}
-        onClick={handleSelectStation}
+        onClick={handleMapClick}
         onDragStart={() => {
           if (!isMobile) {
             clearHoveredStation();
           }
         }}
         onHover={handleHover}
-        pickingRadius={STATION_HIT_SLOP}
+        pickingRadius={STATION_HIT_AREA}
         onViewStateChange={({ viewState: nextViewState }) => {
           if (!isMobile) {
             clearHoveredStation();
@@ -299,6 +423,52 @@ export function StationMap() {
           onVisibilityChange={setIsNeighborhoodsVisible}
         />
       </div>
+
+      <div className="absolute top-4 right-4 z-20 flex flex-col items-end gap-2">
+        <div className="rounded-md border border-white/10 bg-black/70 px-3 py-2 font-mono text-[11px] text-white shadow-lg backdrop-blur-sm">
+          <div>lat: {cursorCoordinates?.lat.toFixed(6) ?? "--"}</div>
+          <div>lon: {cursorCoordinates?.lon.toFixed(6) ?? "--"}</div>
+        </div>
+        <button
+          className="pointer-events-auto rounded-md border border-cyan-300/35 bg-slate-950/90 px-3 py-2 font-mono text-[11px] text-cyan-100 shadow-lg transition hover:border-cyan-200/60 hover:text-cyan-50 disabled:cursor-not-allowed disabled:opacity-40"
+          disabled={clickedCoordinates.length === 0}
+          onClick={handleCopyPolygonPrompt}
+          type="button"
+        >
+          {copyButtonLabel}
+        </button>
+        <button
+          className="pointer-events-auto rounded-md border border-cyan-300/35 bg-slate-950/90 px-3 py-2 font-mono text-[11px] text-cyan-100 shadow-lg transition hover:border-cyan-200/60 hover:text-cyan-50 disabled:cursor-not-allowed disabled:opacity-40"
+          onClick={() => setClickedCoordinates([])}
+          type="button"
+          disabled={clickedCoordinates.length === 0}
+        >
+          Clear
+        </button>
+      </div>
+
+      {clickedPointScreenPositions?.map((coordinate, index) => (
+        <div
+          className="absolute z-20"
+          key={coordinate.id}
+          style={{
+            left: coordinate.left,
+            top: coordinate.top,
+            transform: "translate(-50%, -50%)",
+          }}
+        >
+          <button
+            className="flex size-5 cursor-pointer items-center justify-center rounded-full border border-cyan-300/60 bg-slate-950/80 font-mono text-[9px] text-cyan-200 shadow-[0_0_10px_rgba(34,211,238,0.5)] transition-colors hover:border-red-400/80 hover:bg-red-950/80 hover:text-red-200 hover:shadow-[0_0_10px_rgba(248,113,113,0.5)]"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeletePoint(coordinate.id);
+            }}
+            type="button"
+          >
+            {index + 1}
+          </button>
+        </div>
+      ))}
 
       {hoveredStation ? (
         <div
