@@ -6,13 +6,15 @@ import {
 import { DeckGL } from "@deck.gl/react";
 import { useQuery } from "@tanstack/react-query";
 import type { LngLatBoundsLike } from "mapbox-gl";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Map as MapView } from "react-map-gl/mapbox";
 import {
   createStationPinsLayer,
   SMALL_TO_MEDIUM_DOTS_ZOOM,
 } from "#/components/station-pins-layer";
-import { StationTooltip } from "#/components/station-tooltip";
+import { StationDrawer, StationTooltip } from "#/components/station-tooltip";
+import { Drawer } from "#/components/ui/drawer";
+import { useIsMobile } from "#/hooks/use-mobile";
 import type { CitiBikeStation } from "#/lib/citibike";
 import { citiBikeStationsQueryOptions } from "#/lib/citibike";
 import { NeighborhoodToggle } from "./neighborhood-toggle";
@@ -79,7 +81,11 @@ export function StationMap() {
   const [hoveredStation, setHoveredStation] = useState<HoveredStation | null>(
     null,
   );
+  const [selectedStation, setSelectedStation] = useState<HoveredStation | null>(
+    null,
+  );
   const [isNeighborhoodsVisible, setIsNeighborhoodsVisible] = useState(false);
+  const isMobile = useIsMobile();
   const [tooltipPosition, setTooltipPosition] =
     useState<TooltipPosition | null>(null);
   const hoveredStationIdRef = useRef<string | null>(null);
@@ -87,6 +93,7 @@ export function StationMap() {
   const tooltipRef = useRef<HTMLDivElement | null>(null);
   const tooltipPositionFrameRef = useRef<number | null>(null);
   const canHover = viewState.zoom >= SMALL_TO_MEDIUM_DOTS_ZOOM;
+  const isMobileDrawerOpen = isMobile && Boolean(selectedStation);
 
   const clearHoveredStation = () => {
     if (tooltipPositionFrameRef.current !== null) {
@@ -193,8 +200,7 @@ export function StationMap() {
   }, [citiBikeStations, viewState.zoom]);
 
   const handleHover = (info: PickingInfo<CitiBikeStation>) => {
-    if (!canHover) {
-      clearHoveredStation();
+    if (!canHover || isMobile) {
       return;
     }
 
@@ -218,6 +224,39 @@ export function StationMap() {
     });
   };
 
+  const handleSelectStation = (info: PickingInfo<CitiBikeStation>) => {
+    if (!isMobile) {
+      return;
+    }
+
+    const station = info.object;
+
+    if (!station) {
+      clearHoveredStation();
+      return;
+    }
+
+    hoveredStationIdRef.current = station.station_id;
+    setSelectedStation((current) => {
+      if (current?.station === station) {
+        return current;
+      }
+
+      return {
+        station,
+      };
+    });
+  };
+
+  // Vaul not respecting modal with controlled open :/
+  useEffect(() => {
+    if (isMobileDrawerOpen) {
+      window.requestAnimationFrame(() => {
+        document.body.style.pointerEvents = "auto";
+      });
+    }
+  }, [isMobileDrawerOpen]);
+
   return (
     <div className="relative h-full w-full" ref={containerRef}>
       <DeckGL
@@ -226,11 +265,18 @@ export function StationMap() {
           isDragging ? "grabbing" : canHover && isHovering ? "pointer" : "grab"
         }
         layers={layers}
-        onDragStart={clearHoveredStation}
+        onClick={handleSelectStation}
+        onDragStart={() => {
+          if (!isMobile) {
+            clearHoveredStation();
+          }
+        }}
         onHover={handleHover}
         pickingRadius={STATION_HIT_SLOP}
         onViewStateChange={({ viewState: nextViewState }) => {
-          clearHoveredStation();
+          if (!isMobile) {
+            clearHoveredStation();
+          }
           setViewState(clampViewState(nextViewState as MapViewState));
         }}
         viewState={viewState}
@@ -255,7 +301,7 @@ export function StationMap() {
 
       {hoveredStation ? (
         <div
-          className="pointer-events-none absolute z-20"
+          className="pointer-events-none absolute z-20 hidden md:block"
           ref={(node) => {
             tooltipRef.current = node;
 
@@ -279,6 +325,22 @@ export function StationMap() {
           <StationTooltip station={hoveredStation.station} />
         </div>
       ) : null}
+
+      <Drawer
+        open={isMobileDrawerOpen}
+        noBodyStyles={true}
+        modal={false}
+        setBackgroundColorOnScale={false}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedStation(null);
+          }
+        }}
+      >
+        {isMobile && selectedStation ? (
+          <StationDrawer station={selectedStation.station} />
+        ) : null}
+      </Drawer>
     </div>
   );
 }

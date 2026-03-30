@@ -4,19 +4,20 @@ import { GearSixIcon } from "@phosphor-icons/react/dist/csr/GearSix";
 import { LetterCirclePIcon } from "@phosphor-icons/react/dist/csr/LetterCircleP";
 import { LightningIcon } from "@phosphor-icons/react/dist/csr/Lightning";
 import { WrenchIcon } from "@phosphor-icons/react/dist/csr/Wrench";
-import type { CSSProperties } from "react";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import type { CitiBikeStation } from "#/lib/citibike";
 import { getNeighborhoodBucketMeta } from "#/lib/neighborhood-bucket";
-import { stationAvailabilityTone } from "#/lib/station-pin";
 import { cn, getRelativeTime } from "#/lib/utils";
 import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "./ui/card";
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from "./ui/drawer";
 import { Progress } from "./ui/progress";
 
 interface StationTooltipProps {
@@ -104,7 +105,7 @@ function StatRow({
   );
 }
 
-export function StationTooltip({ station }: StationTooltipProps) {
+function StationDetails({ station }: StationTooltipProps) {
   const bikes = count(station.num_bikes_available);
   const docks = count(station.num_docks_available);
   const ebikes = count(station.num_ebikes_available);
@@ -114,62 +115,44 @@ export function StationTooltip({ station }: StationTooltipProps) {
   const isActive = getIsActive(station);
   const lastReported = getRelativeTime(station.last_reported);
 
-  const bikeRatio = capacity > 0 ? bikes / capacity : 0;
-  const availabilityTone = stationAvailabilityTone(bikeRatio, isActive);
-  const availabilityVars = {
-    "--station-availability": availabilityTone.css,
-  } as CSSProperties;
-  const neighborhood = getNeighborhoodBucketMeta(station.neighborhoodBucket);
-
   return (
-    <Card
-      className={cn("bg-popover w-60 md:w-72", !isActive && "bg-mist-800")}
-      style={availabilityVars}
-    >
-      <CardHeader className="gap-1">
-        <CardTitle className="min-w-0 text-balance">{station.name}</CardTitle>
-      </CardHeader>
-
-      <CardContent className="space-y-3 text-sm tabular-nums">
-        {isActive && (
-          <>
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-x-1.5">
-                <BicycleIcon className="text-muted-foreground size-4" />
-                <span className="text-muted-foreground font-medium">
-                  Available
-                </span>
-                <span className="ml-auto tabular-nums">{bikes}</span>
-              </div>
-              <BikeBreakdownBar
-                electric={ebikes}
-                classic={classicBikes}
-                total={bikes}
-              />
+    <div className="space-y-3 px-4 pb-3 text-sm tabular-nums">
+      {isActive ? (
+        <>
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-x-1.5">
+              <BicycleIcon className="text-muted-foreground size-4" />
+              <span className="text-muted-foreground font-medium">
+                Available
+              </span>
+              <span className="ml-auto tabular-nums">{bikes}</span>
             </div>
+            <BikeBreakdownBar
+              electric={ebikes}
+              classic={classicBikes}
+              total={bikes}
+            />
+          </div>
 
-            <div className="space-y-1.5">
+          <div className="space-y-1.5">
+            <StatRow
+              icon={
+                <LetterCirclePIcon className="text-muted-foreground size-4" />
+              }
+              label="Open Docks"
+              value={docks}
+            />
+            {disabledBikes > 0 && (
               <StatRow
-                icon={
-                  <LetterCirclePIcon className="text-muted-foreground size-4" />
-                }
-                label="Open Docks"
-                value={docks}
-                className="hover:bg-muted/30"
+                icon={<WrenchIcon className="text-muted-foreground size-4" />}
+                label="Disabled"
+                value={disabledBikes}
               />
-              {disabledBikes > 0 && (
-                <StatRow
-                  icon={<WrenchIcon className="text-muted-foreground size-4" />}
-                  label="Disabled"
-                  value={disabledBikes}
-                  className="hover:bg-muted/30"
-                />
-              )}
-            </div>
-          </>
-        )}
-
-        {!isActive && capacity > 0 && (
+            )}
+          </div>
+        </>
+      ) : (
+        capacity > 0 && (
           <StatRow
             icon={
               <ChargingStationIcon className="text-muted-foreground size-4" />
@@ -177,21 +160,71 @@ export function StationTooltip({ station }: StationTooltipProps) {
             label="Capacity"
             value={capacity}
           />
-        )}
-      </CardContent>
+        )
+      )}
 
-      <CardFooter className="text-[11px] tabular-nums">
-        <time dateTime={station.last_reported?.toString()}>
-          Updated {lastReported}
-        </time>
-        <Badge
-          variant={station.neighborhoodBucket}
-          className="ml-auto"
-          aria-label={`Neighborhood: ${neighborhood.label}`}
-        >
-          {neighborhood.label}
-        </Badge>
-      </CardFooter>
-    </Card>
+      <time
+        dateTime={station.last_reported?.toString()}
+        className="text-[11px] tabular-nums"
+      >
+        Updated {lastReported}
+      </time>
+    </div>
   );
 }
+
+export const StationTooltip = ({ station }: StationTooltipProps) => (
+  <Card className="bg-popover md:w-72">
+    <CardHeader className="gap-1.5">
+      <CardTitle className="min-w-0 text-balance">{station.name}</CardTitle>
+      <div className="flex items-center gap-2">
+        <Badge
+          variant={station.neighborhoodBucket}
+          aria-label={`Neighborhood: ${station.neighborhoodBucket}`}
+        >
+          {getNeighborhoodBucketMeta(station.neighborhoodBucket).label}
+        </Badge>
+        {!getIsActive(station) && (
+          <Badge variant="offline" aria-label="Offline">
+            Offline
+          </Badge>
+        )}
+      </div>
+    </CardHeader>
+    <CardContent className="p-0">
+      <StationDetails station={station} />
+    </CardContent>
+  </Card>
+);
+
+export const StationDrawer = ({ station }: StationTooltipProps) => (
+  <DrawerContent className="pb-2">
+    <DrawerHeader className="gap-1.5">
+      <div className="flex items-center justify-between gap-2">
+        <DrawerTitle className="line-clamp-1 text-left text-base text-pretty">
+          {station.name}
+        </DrawerTitle>
+        <DrawerClose asChild>
+          <Button size="icon-sm" variant="secondary" className="-mr-1.5">
+            <XIcon />
+          </Button>
+        </DrawerClose>
+      </div>
+      <DrawerDescription className="text-left">
+        <span className="sr-only">Station details</span>
+        <Badge
+          variant={station.neighborhoodBucket}
+          aria-label={`Neighborhood: ${station.neighborhoodBucket}`}
+        >
+          {getNeighborhoodBucketMeta(station.neighborhoodBucket).label}
+        </Badge>
+        {!getIsActive(station) && (
+          <Badge variant="offline" aria-label="Offline" className="ml-2">
+            Offline
+          </Badge>
+        )}
+      </DrawerDescription>
+    </DrawerHeader>
+    <StationDetails station={station} />
+  </DrawerContent>
+);
