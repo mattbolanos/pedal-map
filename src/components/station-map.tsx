@@ -15,6 +15,7 @@ import {
 import { StationTooltip } from "#/components/station-tooltip";
 import type { CitiBikeStation } from "#/lib/citibike";
 import { citiBikeStationsQueryOptions } from "#/lib/citibike";
+import { NeighborhoodToggle } from "./neighborhood-toggle";
 
 const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 const MAP_STYLE_URL = "mapbox://styles/mapbox/dark-v11";
@@ -22,7 +23,7 @@ const MAP_STYLE_URL = "mapbox://styles/mapbox/dark-v11";
 const INITIAL_VIEW_STATE: MapViewState = {
   longitude: -73.9651,
   latitude: 40.6917,
-  zoom: 13.75,
+  zoom: 13,
   bearing: 0,
   pitch: 0,
 };
@@ -78,6 +79,7 @@ export function StationMap() {
   const [hoveredStation, setHoveredStation] = useState<HoveredStation | null>(
     null,
   );
+  const [isNeighborhoodsVisible, setIsNeighborhoodsVisible] = useState(false);
   const [tooltipPosition, setTooltipPosition] =
     useState<TooltipPosition | null>(null);
   const hoveredStationIdRef = useRef<string | null>(null);
@@ -222,6 +224,13 @@ export function StationMap() {
           reuseMaps
         />
       </DeckGL>
+
+      <div className="absolute top-4 left-4">
+        <NeighborhoodToggle
+          isVisible={isNeighborhoodsVisible}
+          onVisibilityChange={setIsNeighborhoodsVisible}
+        />
+      </div>
 
       {hoveredStation ? (
         <div

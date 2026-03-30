@@ -1,4 +1,8 @@
 import { keepPreviousData, queryOptions } from "@tanstack/react-query";
+import {
+	assignNeighborhoodBucket,
+	type NeighborhoodBucket,
+} from "#/lib/neighborhood-bucket";
 
 const STATION_INFORMATION_URL =
 	"https://gbfs.citibikenyc.com/gbfs/en/station_information.json";
@@ -64,7 +68,9 @@ type StationStatusResponse = GbfsResponse<{
 }>;
 
 export type CitiBikeStation = CitiBikeStationInformation &
-	Partial<Omit<CitiBikeStationStatus, "station_id">>;
+	Partial<Omit<CitiBikeStationStatus, "station_id">> & {
+		neighborhoodBucket: NeighborhoodBucket;
+	};
 
 export interface CitiBikeStationsData {
 	lastUpdated: number;
@@ -115,7 +121,11 @@ function mergeStations(
 	const stations = stationInformation.data.stations.map((station) => {
 		const { station_id: _, ...status } =
 			statusesByStationId.get(station.station_id) ?? {};
-		const nextStation = { ...station, ...status };
+		const nextStation = {
+			...station,
+			...status,
+			neighborhoodBucket: assignNeighborhoodBucket(station.lat, station.lon),
+		};
 		const previousStation = previousStationsByStationId.get(station.station_id);
 
 		if (previousStation && areStationsEqual(previousStation, nextStation)) {
@@ -155,6 +165,7 @@ function areStationsEqual(a: CitiBikeStation, b: CitiBikeStation): boolean {
 		a.has_kiosk === b.has_kiosk &&
 		a.region_id === b.region_id &&
 		a.short_name === b.short_name &&
+		a.neighborhoodBucket === b.neighborhoodBucket &&
 		a.is_charging_station === b.is_charging_station &&
 		a.is_installed === b.is_installed &&
 		a.is_renting === b.is_renting &&

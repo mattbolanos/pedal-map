@@ -6,6 +6,7 @@ import { LightningIcon } from "@phosphor-icons/react/dist/csr/Lightning";
 import { WrenchIcon } from "@phosphor-icons/react/dist/csr/Wrench";
 import type { CSSProperties } from "react";
 import type { CitiBikeStation } from "#/lib/citibike";
+import { getNeighborhoodBucketMeta } from "#/lib/neighborhood-bucket";
 import { stationAvailabilityTone } from "#/lib/station-pin";
 import { cn, getRelativeTime } from "#/lib/utils";
 import { Badge } from "./ui/badge";
@@ -28,37 +29,6 @@ function count(value: number | undefined): number {
 
 function getIsActive(station: CitiBikeStation): boolean {
   return station.is_renting === 1 && station.is_installed === 1;
-}
-
-function getRegionBadge(station: CitiBikeStation): {
-  label: string;
-  className: string;
-} {
-  switch (station.region_id) {
-    case "70":
-      return {
-        label: "Jersey City",
-        className:
-          "border-emerald-500/25 bg-emerald-500/12 text-emerald-700 dark:text-emerald-300",
-      };
-    case "311":
-      return {
-        label: "Hoboken",
-        className:
-          "border-amber-500/25 bg-amber-500/12 text-amber-700 dark:text-amber-300",
-      };
-    case "71":
-      return {
-        label: "NYC",
-        className:
-          "border-sky-500/25 bg-sky-500/12 text-sky-700 dark:text-sky-300",
-      };
-    default:
-      return {
-        label: "Region Unassigned",
-        className: "border-border bg-muted text-muted-foreground",
-      };
-  }
 }
 
 function BikeBreakdownBar({
@@ -149,11 +119,11 @@ export function StationTooltip({ station }: StationTooltipProps) {
   const availabilityVars = {
     "--station-availability": availabilityTone.css,
   } as CSSProperties;
-  const regionBadge = getRegionBadge(station);
+  const neighborhood = getNeighborhoodBucketMeta(station.neighborhoodBucket);
 
   return (
     <Card
-      className={cn("bg-popover w-72", !isActive && "bg-mist-800")}
+      className={cn("bg-popover w-60 md:w-72", !isActive && "bg-mist-800")}
       style={availabilityVars}
     >
       <CardHeader className="gap-1">
@@ -163,16 +133,13 @@ export function StationTooltip({ station }: StationTooltipProps) {
       <CardContent className="space-y-3 text-sm tabular-nums">
         {isActive && (
           <>
-            {/* Available bikes — primary stat with breakdown */}
-            <div>
+            <div className="space-y-1.5">
               <div className="flex items-center gap-x-1.5">
                 <BicycleIcon className="text-muted-foreground size-4" />
                 <span className="text-muted-foreground font-medium">
                   Available
                 </span>
-                <span className="ml-auto text-base font-bold tabular-nums">
-                  {bikes}
-                </span>
+                <span className="ml-auto tabular-nums">{bikes}</span>
               </div>
               <BikeBreakdownBar
                 electric={ebikes}
@@ -218,11 +185,11 @@ export function StationTooltip({ station }: StationTooltipProps) {
           Updated {lastReported}
         </time>
         <Badge
-          variant="outline"
-          className={cn(regionBadge.className, "ml-auto")}
-          aria-label={`Region: ${regionBadge.label}`}
+          variant={station.neighborhoodBucket}
+          className="ml-auto"
+          aria-label={`Neighborhood: ${neighborhood.label}`}
         >
-          {regionBadge.label}
+          {neighborhood.label}
         </Badge>
       </CardFooter>
     </Card>
