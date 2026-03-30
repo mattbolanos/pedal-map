@@ -6,7 +6,7 @@ import {
 import { DeckGL } from "@deck.gl/react";
 import { useQuery } from "@tanstack/react-query";
 import type { LngLatBoundsLike } from "mapbox-gl";
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Map as MapView } from "react-map-gl/mapbox";
 import {
   createStationPinsLayer,
@@ -37,7 +37,7 @@ const MIN_ZOOM = 10.65;
 const MAX_ZOOM = 16;
 const STATION_HIT_SLOP = 8;
 const TOOLTIP_GAP = 18;
-const TOOLTIP_VIEWPORT_PADDING = 12;
+const TOOLTIP_VIEWPORT_PADDING = 20;
 
 interface HoveredStation {
   station: CitiBikeStation;
@@ -85,14 +85,94 @@ export function StationMap() {
   const hoveredStationIdRef = useRef<string | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
+  const tooltipPositionFrameRef = useRef<number | null>(null);
   const canHover = viewState.zoom >= SMALL_TO_MEDIUM_DOTS_ZOOM;
 
   const clearHoveredStation = () => {
+    if (tooltipPositionFrameRef.current !== null) {
+      cancelAnimationFrame(tooltipPositionFrameRef.current);
+      tooltipPositionFrameRef.current = null;
+    }
+
     if (hoveredStationIdRef.current !== null) {
       hoveredStationIdRef.current = null;
       setHoveredStation(null);
       setTooltipPosition(null);
     }
+  };
+
+  const updateTooltipPosition = (
+    station: CitiBikeStation,
+    nextViewState: MapViewState,
+  ) => {
+    if (!containerRef.current || !tooltipRef.current) {
+      setTooltipPosition(null);
+      return;
+    }
+
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const tooltipRect = tooltipRef.current.getBoundingClientRect();
+
+    if (
+      containerRect.width === 0 ||
+      containerRect.height === 0 ||
+      tooltipRect.width === 0 ||
+      tooltipRect.height === 0
+    ) {
+      setTooltipPosition(null);
+      return;
+    }
+
+    const viewport = new WebMercatorViewport({
+      ...nextViewState,
+      width: containerRect.width,
+      height: containerRect.height,
+    });
+    const [anchorX, anchorY] = viewport.project([station.lon, station.lat]);
+
+    const minLeft = TOOLTIP_VIEWPORT_PADDING;
+    const maxLeft = Math.max(
+      minLeft,
+      containerRect.width - tooltipRect.width - TOOLTIP_VIEWPORT_PADDING,
+    );
+    const left = clamp(anchorX - tooltipRect.width / 2, minLeft, maxLeft);
+
+    const aboveTop = anchorY - tooltipRect.height - TOOLTIP_GAP;
+    const belowTop = anchorY + TOOLTIP_GAP;
+    const canPlaceAbove = aboveTop >= TOOLTIP_VIEWPORT_PADDING;
+    const canPlaceBelow =
+      belowTop + tooltipRect.height <=
+      containerRect.height - TOOLTIP_VIEWPORT_PADDING;
+
+    const desiredTop = canPlaceAbove || !canPlaceBelow ? aboveTop : belowTop;
+    const minTop = TOOLTIP_VIEWPORT_PADDING;
+    const maxTop = Math.max(
+      minTop,
+      containerRect.height - tooltipRect.height - TOOLTIP_VIEWPORT_PADDING,
+    );
+    const top = clamp(desiredTop, minTop, maxTop);
+
+    setTooltipPosition((current) => {
+      if (current && current.left === left && current.top === top) {
+        return current;
+      }
+
+      return { left, top };
+    });
+  };
+
+  const scheduleTooltipPosition = (
+    station: CitiBikeStation,
+    nextViewState: MapViewState,
+  ) => {
+    if (tooltipPositionFrameRef.current !== null) {
+      cancelAnimationFrame(tooltipPositionFrameRef.current);
+    }
+
+    tooltipPositionFrameRef.current = requestAnimationFrame(() => {
+      tooltipPositionFrameRef.current = null;
+      updateTooltipPosition(station, nextViewState);
+    });
   };
 
   const layers = useMemo(() => {
@@ -126,6 +206,7 @@ export function StationMap() {
     }
 
     hoveredStationIdRef.current = station.station_id;
+    scheduleTooltipPosition(station, viewState);
     setHoveredStation((current) => {
       if (current?.station === station) {
         return current;
@@ -136,66 +217,6 @@ export function StationMap() {
       };
     });
   };
-
-  useLayoutEffect(() => {
-    if (!hoveredStation || !containerRef.current || !tooltipRef.current) {
-      setTooltipPosition(null);
-      return;
-    }
-
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const tooltipRect = tooltipRef.current.getBoundingClientRect();
-
-    if (
-      containerRect.width === 0 ||
-      containerRect.height === 0 ||
-      tooltipRect.width === 0 ||
-      tooltipRect.height === 0
-    ) {
-      setTooltipPosition(null);
-      return;
-    }
-
-    const viewport = new WebMercatorViewport({
-      ...viewState,
-      width: containerRect.width,
-      height: containerRect.height,
-    });
-    const [anchorX, anchorY] = viewport.project([
-      hoveredStation.station.lon,
-      hoveredStation.station.lat,
-    ]);
-
-    const minLeft = TOOLTIP_VIEWPORT_PADDING;
-    const maxLeft = Math.max(
-      minLeft,
-      containerRect.width - tooltipRect.width - TOOLTIP_VIEWPORT_PADDING,
-    );
-    const left = clamp(anchorX - tooltipRect.width / 2, minLeft, maxLeft);
-
-    const aboveTop = anchorY - tooltipRect.height - TOOLTIP_GAP;
-    const belowTop = anchorY + TOOLTIP_GAP;
-    const canPlaceAbove = aboveTop >= TOOLTIP_VIEWPORT_PADDING;
-    const canPlaceBelow =
-      belowTop + tooltipRect.height <=
-      containerRect.height - TOOLTIP_VIEWPORT_PADDING;
-
-    const desiredTop = canPlaceAbove || !canPlaceBelow ? aboveTop : belowTop;
-    const minTop = TOOLTIP_VIEWPORT_PADDING;
-    const maxTop = Math.max(
-      minTop,
-      containerRect.height - tooltipRect.height - TOOLTIP_VIEWPORT_PADDING,
-    );
-    const top = clamp(desiredTop, minTop, maxTop);
-
-    setTooltipPosition((current) => {
-      if (current && current.left === left && current.top === top) {
-        return current;
-      }
-
-      return { left, top };
-    });
-  }, [hoveredStation, viewState]);
 
   return (
     <div className="relative h-full w-full" ref={containerRef}>
@@ -235,7 +256,13 @@ export function StationMap() {
       {hoveredStation ? (
         <div
           className="pointer-events-none absolute z-20"
-          ref={tooltipRef}
+          ref={(node) => {
+            tooltipRef.current = node;
+
+            if (node && hoveredStation) {
+              scheduleTooltipPosition(hoveredStation.station, viewState);
+            }
+          }}
           style={
             tooltipPosition
               ? {
