@@ -1,10 +1,14 @@
 import type { Layer } from "@deck.gl/core";
 import { PolygonLayer, TextLayer } from "@deck.gl/layers";
-import * as neighborhoodRegions from "./neighborhood-regions";
+import {
+	type Coordinate,
+	type NeighborhoodRegion,
+	type NeighborhoodRegionBucket,
+	neighborhoodRegions,
+} from "./neighborhood-regions";
 
-export type NeighborhoodBucket = "nyc" | "jerseyCity" | "hoboken" | "bayRidge";
-
-type Coordinate = readonly [lon: number, lat: number];
+type MetroBucket = "nyc" | "jerseyCity" | "hoboken";
+export type NeighborhoodBucket = MetroBucket | NeighborhoodRegionBucket;
 
 interface Bounds {
 	minLat: number;
@@ -13,30 +17,52 @@ interface Bounds {
 	maxLon: number;
 }
 
-interface NeighborhoodPolygon {
-	bucket: Exclude<NeighborhoodBucket, "nyc" | "jerseyCity" | "hoboken">;
-	label: string;
-	coordinates: readonly Coordinate[];
-	labelCoordinate: Coordinate;
-	fillColor: readonly [number, number, number, number];
-	lineColor: readonly [number, number, number, number];
-}
-
 interface NeighborhoodBucketMeta {
 	label: string;
 }
 
-function chaikinSmoothPolygon(
-	points: readonly Coordinate[],
-	iterations: number,
-): Coordinate[] {
+type RenderableNeighborhoodRegion = NeighborhoodRegion & {
+	renderCoordinates: readonly Coordinate[];
+};
+
+const metroBucketMeta = {
+	nyc: { label: "NYC" },
+	jerseyCity: { label: "Jersey City" },
+	hoboken: { label: "Hoboken" },
+} satisfies Record<MetroBucket, NeighborhoodBucketMeta>;
+
+const metroBucketBounds = [
+	{
+		bucket: "hoboken",
+		bounds: {
+			minLat: 40.735,
+			maxLat: 40.756,
+			minLon: -74.045,
+			maxLon: -74.022,
+		},
+	},
+	{
+		bucket: "jerseyCity",
+		bounds: {
+			minLat: 40.69,
+			maxLat: 40.755,
+			minLon: -74.1,
+			maxLon: -74.032,
+		},
+	},
+] as const satisfies readonly {
+	bucket: Exclude<MetroBucket, "nyc">;
+	bounds: Bounds;
+}[];
+
+function smoothPolygonWithChaikin(points: readonly Coordinate[]): Coordinate[] {
 	if (points.length < 3) {
 		return [...points];
 	}
 
 	let smoothed = [...points];
 
-	for (let iteration = 0; iteration < iterations; iteration += 1) {
+	for (let iteration = 0; iteration < 1; iteration += 1) {
 		const next: Coordinate[] = [];
 
 		for (let index = 0; index < smoothed.length; index += 1) {
@@ -59,30 +85,29 @@ function chaikinSmoothPolygon(
 	return smoothed;
 }
 
-const bayRidgePolygon = chaikinSmoothPolygon(
-	neighborhoodRegions.bayRidgeCoordinates,
-	1,
+function prepareNeighborhoodRegion(
+	region: NeighborhoodRegion,
+): RenderableNeighborhoodRegion {
+	return {
+		...region,
+		renderCoordinates: smoothPolygonWithChaikin(region.coordinates),
+	};
+}
+
+const renderableNeighborhoodRegions = neighborhoodRegions.map(
+	prepareNeighborhoodRegion,
 );
 
-const neighborhoodPolygons: readonly NeighborhoodPolygon[] = [
-	{
-		bucket: "bayRidge",
-		label: "Bay Ridge",
-		coordinates: bayRidgePolygon,
-		labelCoordinate: neighborhoodRegions.bayRidgeLabelCoordinate,
-		fillColor: [43, 174, 227, 35],
-		lineColor: [117, 223, 255, 235],
-	},
-];
+const regionBucketMeta = Object.fromEntries(
+	neighborhoodRegions.map((region) => [region.bucket, { label: region.label }]),
+) as Record<NeighborhoodRegionBucket, NeighborhoodBucketMeta>;
 
 export const neighborhoodBucketMeta: Record<
 	NeighborhoodBucket,
 	NeighborhoodBucketMeta
 > = {
-	nyc: { label: "NYC" },
-	jerseyCity: { label: "Jersey City" },
-	hoboken: { label: "Hoboken" },
-	bayRidge: { label: "Bay Ridge" },
+	...metroBucketMeta,
+	...regionBucketMeta,
 };
 
 function isWithinBounds(lat: number, lon: number, bounds: Bounds): boolean {
@@ -158,27 +183,11 @@ function isWithinPolygon(
 	return isInside;
 }
 
-function getMetroBucket(lat: number, lon: number): NeighborhoodBucket {
-	if (
-		isWithinBounds(lat, lon, {
-			minLat: 40.735,
-			maxLat: 40.756,
-			minLon: -74.045,
-			maxLon: -74.022,
-		})
-	) {
-		return "hoboken";
-	}
-
-	if (
-		isWithinBounds(lat, lon, {
-			minLat: 40.69,
-			maxLat: 40.755,
-			minLon: -74.1,
-			maxLon: -74.032,
-		})
-	) {
-		return "jerseyCity";
+function getMetroBucket(lat: number, lon: number): MetroBucket {
+	for (const metroBucket of metroBucketBounds) {
+		if (isWithinBounds(lat, lon, metroBucket.bounds)) {
+			return metroBucket.bucket;
+		}
 	}
 
 	return "nyc";
@@ -194,9 +203,9 @@ export function assignNeighborhoodBucket(
 		return metroBucket;
 	}
 
-	for (const polygon of neighborhoodPolygons) {
-		if (isWithinPolygon(lat, lon, polygon.coordinates)) {
-			return polygon.bucket;
+	for (const region of renderableNeighborhoodRegions) {
+		if (isWithinPolygon(lat, lon, region.coordinates)) {
+			return region.bucket;
 		}
 	}
 
@@ -215,30 +224,30 @@ export function createNeighborhoodPolygonsLayer({
 	showLabels?: boolean;
 } = {}) {
 	const layers: Layer[] = [
-		new PolygonLayer<NeighborhoodPolygon>({
+		new PolygonLayer<RenderableNeighborhoodRegion>({
 			id: "neighborhood-polygons",
-			data: neighborhoodPolygons,
+			data: renderableNeighborhoodRegions,
 			filled: true,
 			stroked: true,
 			pickable: false,
 			wireframe: false,
-			getPolygon: (polygon) => polygon.coordinates,
-			getFillColor: (polygon) => polygon.fillColor,
-			getLineColor: (polygon) => polygon.lineColor,
+			getPolygon: (region) => region.renderCoordinates,
+			getFillColor: (region) => region.fillColor,
+			getLineColor: (region) => region.lineColor,
 			lineWidthMinPixels: 2,
 		}),
 	];
 
 	if (showLabels) {
 		layers.push(
-			new TextLayer<NeighborhoodPolygon>({
+			new TextLayer<RenderableNeighborhoodRegion>({
 				id: "neighborhood-polygon-labels",
-				data: neighborhoodPolygons,
+				data: renderableNeighborhoodRegions,
 				pickable: false,
 				billboard: true,
 				background: true,
-				getPosition: (polygon) => polygon.labelCoordinate,
-				getText: (polygon) => polygon.label,
+				getPosition: (region) => region.labelCoordinate,
+				getText: (region) => region.label,
 				getColor: () => [232, 248, 255, 255],
 				getSize: () => 12,
 				getTextAnchor: () => "middle",

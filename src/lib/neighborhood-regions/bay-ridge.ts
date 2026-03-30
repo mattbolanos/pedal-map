@@ -1,4 +1,6 @@
-export const bayRidgeCoordinates = [
+import type { NeighborhoodRegionDefinition } from "./types";
+
+const bayRidgeCoordinates = [
 	[-74.014695, 40.633977],
 	[-74.025848, 40.640456],
 	[-74.026097, 40.64024],
@@ -101,7 +103,14 @@ export const bayRidgeCoordinates = [
 	[-74.018021, 40.626751],
 	[-74.017225, 40.62899],
 	[-74.016733, 40.630471],
-	[-74.014706, 40.633935],
+	[-74.014695, 40.633977],
 ] as const;
 
-export const bayRidgeLabelCoordinate = [-74.0288, 40.6248] as const;
+export const bayRidgeRegion = {
+	bucket: "bayRidge",
+	label: "Bay Ridge",
+	coordinates: bayRidgeCoordinates,
+	labelCoordinate: [-74.0288, 40.6248] as const,
+	fillColor: [43, 174, 227, 35] as const,
+	lineColor: [117, 223, 255, 235] as const,
+} as const satisfies NeighborhoodRegionDefinition;

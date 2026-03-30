@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { assignNeighborhoodBucket } from "./neighborhood-bucket";
+import {
+	assignNeighborhoodBucket,
+	getNeighborhoodBucketMeta,
+} from "./neighborhood-bucket";
 
 describe("assignNeighborhoodBucket", () => {
 	it("returns Bay Ridge for points inside the new polygon", () => {
@@ -13,5 +16,11 @@ describe("assignNeighborhoodBucket", () => {
 		expect(assignNeighborhoodBucket(40.759, -73.8303)).toBe("nyc");
 		expect(assignNeighborhoodBucket(40.9312, -73.8988)).toBe("nyc");
 		expect(assignNeighborhoodBucket(40.6778, -73.9682)).toBe("nyc");
+	});
+
+	it("derives neighborhood labels from the region registry", () => {
+		expect(getNeighborhoodBucketMeta("bayRidge")).toEqual({
+			label: "Bay Ridge",
+		});
 	});
 });
