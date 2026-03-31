@@ -11,6 +11,7 @@ export const neighborhoodBadgeVariants = {
   hoboken:
     "border-amber-500/25 bg-amber-500/12 text-amber-700 dark:text-amber-300",
   bayRidge: "border-orange-400/30 bg-orange-400/15 text-orange-300",
+  kensington: "border-teal-400/30 bg-teal-400/15 text-teal-300",
   sunsetPark: "border-rose-400/30 bg-rose-400/15 text-rose-300",
 } as const;
 

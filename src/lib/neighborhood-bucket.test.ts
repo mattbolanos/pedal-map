@@ -150,6 +150,11 @@ describe("assignNeighborhoodBucket", () => {
 		expect(assignNeighborhoodBucket(40.6518, -74.0108)).toBe("sunsetPark");
 	});
 
+	it("returns Kensington for points inside the new polygon", () => {
+		expect(assignNeighborhoodBucket(40.646, -73.9756)).toBe("kensington");
+		expect(assignNeighborhoodBucket(40.6475, -73.9735)).toBe("kensington");
+	});
+
 	it("keeps the broad region labels as fallback buckets", () => {
 		expect(assignNeighborhoodBucket(40.719, -74.043)).toBe("jerseyCity");
 		expect(assignNeighborhoodBucket(40.7433, -74.0324)).toBe("hoboken");
@@ -164,6 +169,9 @@ describe("assignNeighborhoodBucket", () => {
 		});
 		expect(getNeighborhoodBucketMeta("sunsetPark")).toEqual({
 			label: "Sunset Park",
+		});
+		expect(getNeighborhoodBucketMeta("kensington")).toEqual({
+			label: "Kensington",
 		});
 	});
 
