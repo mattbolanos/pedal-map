@@ -1,4 +1,5 @@
 import { bayRidgeRegion } from "./bay-ridge";
+import { sunsetParkRegion } from "./sunset-park";
 import type { NeighborhoodRegionDefinition } from "./types";
 
 export type {
@@ -9,6 +10,7 @@ export type {
 
 export const neighborhoodRegions = [
 	bayRidgeRegion,
+	sunsetParkRegion,
 ] as const satisfies readonly NeighborhoodRegionDefinition[];
 
 export type NeighborhoodRegion = (typeof neighborhoodRegions)[number];

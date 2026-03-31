@@ -38,7 +38,7 @@ const NYC_METRO_BOUNDS: LngLatBoundsLike = [
 ];
 
 const MIN_ZOOM = 10.65;
-const MAX_ZOOM = 16;
+const MAX_ZOOM = process.env.NODE_ENV === "development" ? 22 : 15.5;
 const STATION_HIT_AREA = 10;
 const TOOLTIP_GAP = 18;
 const TOOLTIP_VIEWPORT_PADDING = 20;
@@ -201,35 +201,6 @@ export function StationMap() {
     });
   };
 
-  const layers = useMemo(() => {
-    const nextLayers: Layer[] = [];
-
-    if (!citiBikeStations) {
-      return nextLayers;
-    }
-
-    const layer = createStationPinsLayer(
-      citiBikeStations.stations,
-      viewState.zoom,
-    );
-
-    if (!layer) {
-      return nextLayers;
-    }
-
-    nextLayers.push(...(Array.isArray(layer) ? layer : [layer]));
-
-    if (isNeighborhoodsVisible) {
-      nextLayers.push(
-        ...createNeighborhoodPolygonsLayer({
-          showLabels: viewState.zoom >= SMALL_TO_MEDIUM_DOTS_ZOOM,
-        }),
-      );
-    }
-
-    return nextLayers;
-  }, [citiBikeStations, isNeighborhoodsVisible, viewState.zoom]);
-
   const clickedPointScreenPositions = useMemo(() => {
     if (clickedCoordinates.length === 0 || !containerRef.current) {
       return null;
@@ -265,7 +236,7 @@ export function StationMap() {
       )
       .join(", ");
 
-    return `create a new file in src/lib/neighborhood-regions/ called {INSERT NAME} with a deck.gl polygon coordinate array based off the following lat/lon coords. follow other files in directory for pattern. make edges smooth: [${points}]`;
+    return `create a new file in src/lib/neighborhood-regions/ called {INSERT NAME} with a deck.gl polygon coordinate array based off the following lat/lon coords. do not change the points i have provided unless absolutely necessary. follow other files in directory for pattern: \n [${points}]`;
   }, [clickedCoordinates]);
 
   const handleHover = (info: PickingInfo<CitiBikeStation>) => {
@@ -381,6 +352,35 @@ export function StationMap() {
       }
     };
   }, []);
+
+  const layers = useMemo(() => {
+    const nextLayers: Layer[] = [];
+
+    if (!citiBikeStations) {
+      return nextLayers;
+    }
+
+    const layer = createStationPinsLayer(
+      citiBikeStations.stations,
+      viewState.zoom,
+    );
+
+    if (!layer) {
+      return nextLayers;
+    }
+
+    nextLayers.push(...(Array.isArray(layer) ? layer : [layer]));
+
+    if (isNeighborhoodsVisible) {
+      nextLayers.push(
+        ...createNeighborhoodPolygonsLayer({
+          showLabels: viewState.zoom >= SMALL_TO_MEDIUM_DOTS_ZOOM,
+        }),
+      );
+    }
+
+    return nextLayers;
+  }, [citiBikeStations, isNeighborhoodsVisible, viewState.zoom]);
 
   return (
     <div className="relative size-full" ref={containerRef}>

@@ -85,12 +85,31 @@ function smoothPolygonWithChaikin(points: readonly Coordinate[]): Coordinate[] {
 	return smoothed;
 }
 
+function normalizePolygonCoordinates(
+	points: readonly Coordinate[],
+): Coordinate[] {
+	if (points.length < 2) {
+		return [...points];
+	}
+
+	const firstPoint = points[0];
+	const lastPoint = points[points.length - 1];
+
+	if (firstPoint[0] === lastPoint[0] && firstPoint[1] === lastPoint[1]) {
+		return points.slice(0, -1);
+	}
+
+	return [...points];
+}
+
 function prepareNeighborhoodRegion(
 	region: NeighborhoodRegion,
 ): RenderableNeighborhoodRegion {
+	const normalizedCoordinates = normalizePolygonCoordinates(region.coordinates);
+
 	return {
 		...region,
-		renderCoordinates: smoothPolygonWithChaikin(region.coordinates),
+		renderCoordinates: smoothPolygonWithChaikin(normalizedCoordinates),
 	};
 }
 
@@ -234,7 +253,7 @@ export function createNeighborhoodPolygonsLayer({
 			getPolygon: (region) => region.renderCoordinates,
 			getFillColor: (region) => region.fillColor,
 			getLineColor: (region) => region.lineColor,
-			lineWidthMinPixels: 2,
+			lineWidthMinPixels: 2.5,
 		}),
 	];
 
