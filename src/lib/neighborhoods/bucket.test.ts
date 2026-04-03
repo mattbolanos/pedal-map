@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
-import {
-	assignNeighborhoodBucket,
-	getNeighborhoodBucketMeta,
-} from "./neighborhood-bucket";
-import { type Coordinate, neighborhoodRegions } from "./neighborhood-regions";
+import { assignNeighborhoodBucket, getNeighborhoodBucketMeta } from "./bucket";
+import { type Coordinate, neighborhoodRegions } from "./regions";
 
 function smoothPolygonWithChaikin(points: readonly Coordinate[]): Coordinate[] {
 	if (points.length < 3) {
@@ -155,6 +152,11 @@ describe("assignNeighborhoodBucket", () => {
 		expect(assignNeighborhoodBucket(40.6475, -73.9735)).toBe("kensington");
 	});
 
+	it("returns Ditmas Park for points inside the new polygon", () => {
+		expect(assignNeighborhoodBucket(40.639445, -73.963738)).toBe("ditmasPark");
+		expect(assignNeighborhoodBucket(40.6455, -73.9655)).toBe("ditmasPark");
+	});
+
 	it("keeps the broad region labels as fallback buckets", () => {
 		expect(assignNeighborhoodBucket(40.719, -74.043)).toBe("jerseyCity");
 		expect(assignNeighborhoodBucket(40.7433, -74.0324)).toBe("hoboken");
@@ -172,6 +174,9 @@ describe("assignNeighborhoodBucket", () => {
 		});
 		expect(getNeighborhoodBucketMeta("kensington")).toEqual({
 			label: "Kensington",
+		});
+		expect(getNeighborhoodBucketMeta("ditmasPark")).toEqual({
+			label: "Ditmas Park",
 		});
 	});
 

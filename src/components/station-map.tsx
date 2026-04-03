@@ -18,7 +18,7 @@ import { Drawer } from "#/components/ui/drawer";
 import { useIsMobile } from "#/hooks/use-mobile";
 import type { CitiBikeStation } from "#/lib/citibike";
 import { citiBikeStationsQueryOptions } from "#/lib/citibike";
-import { createNeighborhoodPolygonsLayer } from "#/lib/neighborhood-bucket";
+import { createNeighborhoodPolygonsLayer } from "#/lib/neighborhoods";
 import { NeighborhoodToggle } from "./neighborhood-toggle";
 
 const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
@@ -27,7 +27,7 @@ const MAP_STYLE_URL = "mapbox://styles/mapbox/dark-v11";
 const INITIAL_VIEW_STATE: MapViewState = {
   longitude: -73.9651,
   latitude: 40.6917,
-  zoom: 13,
+  zoom: 13.8,
   bearing: 0,
   pitch: 0,
 };
@@ -38,7 +38,7 @@ const NYC_METRO_BOUNDS: LngLatBoundsLike = [
 ];
 
 const MIN_ZOOM = 10.65;
-const MAX_ZOOM = process.env.NODE_ENV === "development" ? 22 : 15.5;
+const MAX_ZOOM = process.env.NODE_ENV === "development" ? 22 : 15.2;
 const STATION_HIT_AREA = 10;
 const TOOLTIP_GAP = 18;
 const TOOLTIP_VIEWPORT_PADDING = 20;
@@ -236,7 +236,7 @@ export function StationMap() {
       )
       .join(", ");
 
-    return `create a new file in src/lib/neighborhood-regions/ called {INSERT NAME} with a deck.gl polygon coordinate array based off the following lat/lon coords. add a badge variant in src/components/ui/badge.tsx for the neighborhood bucket (neighborhoodBadgeVariants). do not change the points i have provided unless absolutely necessary. follow other files in directory for pattern: \n [${points}]`;
+    return `create a new file in src/lib/neighborhoods/regions/ called {INSERT NAME} with a deck.gl polygon coordinate array based off the following lat/lon coords. add a badge variant in src/components/ui/badge.tsx for the neighborhood bucket (neighborhoodBadgeVariants). keep the same badge aesthetic, but use the color family from the region file's fillColor/lineColor. do not change the points i have provided unless absolutely necessary. follow other files in directory for pattern: \n [${points}]`;
   }, [clickedCoordinates]);
 
   const handleHover = (info: PickingInfo<CitiBikeStation>) => {
@@ -374,7 +374,7 @@ export function StationMap() {
     if (isNeighborhoodsVisible) {
       nextLayers.push(
         ...createNeighborhoodPolygonsLayer({
-          showLabels: viewState.zoom >= SMALL_TO_MEDIUM_DOTS_ZOOM,
+          showLabels: viewState.zoom >= 13,
         }),
       );
     }
@@ -428,6 +428,7 @@ export function StationMap() {
         <div className="rounded-md border border-white/10 bg-black/70 px-3 py-2 font-mono text-[11px] text-white shadow-lg backdrop-blur-sm">
           <div>lat: {cursorCoordinates?.lat.toFixed(6) ?? "--"}</div>
           <div>lon: {cursorCoordinates?.lon.toFixed(6) ?? "--"}</div>
+          <div>zoom: {viewState.zoom.toFixed(2) ?? "--"}</div>
         </div>
         <button
           className="pointer-events-auto rounded-md border border-cyan-300/35 bg-slate-950/90 px-3 py-2 font-mono text-[11px] text-cyan-100 shadow-lg transition hover:border-cyan-200/60 hover:text-cyan-50 disabled:cursor-not-allowed disabled:opacity-40"

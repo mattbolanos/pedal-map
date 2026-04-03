@@ -2,7 +2,7 @@ import { keepPreviousData, queryOptions } from "@tanstack/react-query";
 import {
 	assignNeighborhoodBucket,
 	type NeighborhoodBucket,
-} from "#/lib/neighborhood-bucket";
+} from "#/lib/neighborhoods";
 
 const STATION_INFORMATION_URL =
 	"https://gbfs.citibikenyc.com/gbfs/en/station_information.json";

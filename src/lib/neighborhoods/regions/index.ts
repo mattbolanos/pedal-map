@@ -1,4 +1,5 @@
 import { bayRidgeRegion } from "./bay-ridge";
+import { ditmasParkRegion } from "./ditmas-park";
 import { kensingtonRegion } from "./kensington";
 import { prospectParkSouthRegion } from "./prospect-park-south";
 import { sunsetParkRegion } from "./sunset-park";
@@ -12,6 +13,7 @@ export type {
 
 export const neighborhoodRegions = [
 	bayRidgeRegion,
+	ditmasParkRegion,
 	kensingtonRegion,
 	prospectParkSouthRegion,
 	sunsetParkRegion,

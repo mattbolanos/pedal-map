@@ -5,7 +5,7 @@ import {
 	type NeighborhoodRegion,
 	type NeighborhoodRegionBucket,
 	neighborhoodRegions,
-} from "./neighborhood-regions";
+} from "./regions";
 
 type MetroBucket = "nyc" | "jerseyCity" | "hoboken";
 export type NeighborhoodBucket = MetroBucket | NeighborhoodRegionBucket;
@@ -274,9 +274,11 @@ export function createNeighborhoodPolygonsLayer({
 				getBackgroundColor: () => [20, 20, 20, 255],
 				fontFamily: "'Geist Mono', Menlo, Monaco, 'Courier New', monospace",
 				fontWeight: 600,
-				sizeMinPixels: 12,
-				sizeMaxPixels: 18,
-				backgroundPadding: [8, 5],
+				sizeMinPixels: 11,
+				sizeMaxPixels: 14,
+				backgroundPadding: [7.5, 5],
+				getBorderColor: () => [232, 248, 255, 180],
+				getBorderWidth: () => 1,
 				backgroundBorderRadius: 24,
 			}),
 		);
