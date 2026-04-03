@@ -236,7 +236,7 @@ export function StationMap() {
       )
       .join(", ");
 
-    return `create a new file in src/lib/neighborhood-regions/ called {INSERT NAME} with a deck.gl polygon coordinate array based off the following lat/lon coords. do not change the points i have provided unless absolutely necessary. follow other files in directory for pattern: \n [${points}]`;
+    return `create a new file in src/lib/neighborhood-regions/ called {INSERT NAME} with a deck.gl polygon coordinate array based off the following lat/lon coords. add a badge variant in src/components/ui/badge.tsx for the neighborhood bucket (neighborhoodBadgeVariants). do not change the points i have provided unless absolutely necessary. follow other files in directory for pattern: \n [${points}]`;
   }, [clickedCoordinates]);
 
   const handleHover = (info: PickingInfo<CitiBikeStation>) => {
