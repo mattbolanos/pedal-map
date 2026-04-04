@@ -4,6 +4,7 @@ import { kensingtonRegion } from "./kensington";
 import { prospectParkSouthRegion } from "./prospect-park-south";
 import { sunsetParkRegion } from "./sunset-park";
 import type { NeighborhoodRegionDefinition } from "./types";
+import { windsorTerraceRegion } from "./windsor-terrace";
 
 export type {
 	Coordinate,
@@ -17,6 +18,7 @@ export const neighborhoodRegions = [
 	kensingtonRegion,
 	prospectParkSouthRegion,
 	sunsetParkRegion,
+	windsorTerraceRegion,
 ] as const satisfies readonly NeighborhoodRegionDefinition[];
 
 export type NeighborhoodRegion = (typeof neighborhoodRegions)[number];
