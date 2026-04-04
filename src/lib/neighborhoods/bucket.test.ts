@@ -157,6 +157,18 @@ describe("assignNeighborhoodBucket", () => {
 		expect(assignNeighborhoodBucket(40.6455, -73.9655)).toBe("ditmasPark");
 	});
 
+	it("assigns unambiguous near misses to the closest neighborhood", () => {
+		expect(assignNeighborhoodBucket(40.655716, -74.006664)).toBe("sunsetPark");
+		expect(assignNeighborhoodBucket(40.651654, -73.981231)).toBe(
+			"windsorTerrace",
+		);
+	});
+
+	it("keeps ambiguous or distant near misses in the broad fallback bucket", () => {
+		expect(assignNeighborhoodBucket(40.65007, -73.96001)).toBe("nyc");
+		expect(assignNeighborhoodBucket(40.655278, -74.003101)).toBe("nyc");
+	});
+
 	it("keeps the broad region labels as fallback buckets", () => {
 		expect(assignNeighborhoodBucket(40.719, -74.043)).toBe("jerseyCity");
 		expect(assignNeighborhoodBucket(40.7433, -74.0324)).toBe("hoboken");

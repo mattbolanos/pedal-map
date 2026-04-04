@@ -25,6 +25,14 @@ type RenderableNeighborhoodRegion = NeighborhoodRegion & {
 	renderCoordinates: readonly Coordinate[];
 };
 
+interface NeighborhoodDistanceCandidate {
+	bucket: NeighborhoodRegionBucket;
+	distanceMeters: number;
+}
+
+const NEIGHBORHOOD_GRACE_DISTANCE_METERS = 100;
+const NEIGHBORHOOD_GRACE_CLEARANCE_METERS = 30;
+
 const metroBucketMeta = {
 	nyc: { label: "NYC" },
 	jerseyCity: { label: "Jersey City" },
@@ -202,6 +210,101 @@ function isWithinPolygon(
 	return isInside;
 }
 
+function metersPerDegreeLon(lat: number): number {
+	return 111_320 * Math.cos((lat * Math.PI) / 180);
+}
+
+function projectCoordinateToMeters(
+	coordinate: Coordinate,
+	originLat: number,
+	originLon: number,
+): { x: number; y: number } {
+	const [lon, lat] = coordinate;
+
+	return {
+		x: (lon - originLon) * metersPerDegreeLon(originLat),
+		y: (lat - originLat) * 111_132,
+	};
+}
+
+function distanceToSegmentMeters(
+	lat: number,
+	lon: number,
+	start: Coordinate,
+	end: Coordinate,
+): number {
+	const point = { x: 0, y: 0 };
+	const startProjected = projectCoordinateToMeters(start, lat, lon);
+	const endProjected = projectCoordinateToMeters(end, lat, lon);
+	const segmentX = endProjected.x - startProjected.x;
+	const segmentY = endProjected.y - startProjected.y;
+	const segmentLengthSquared = segmentX * segmentX + segmentY * segmentY;
+
+	if (segmentLengthSquared === 0) {
+		return Math.hypot(startProjected.x - point.x, startProjected.y - point.y);
+	}
+
+	const projection =
+		-(startProjected.x * segmentX + startProjected.y * segmentY) /
+		segmentLengthSquared;
+	const clampedProjection = Math.max(0, Math.min(1, projection));
+	const closestX = startProjected.x + segmentX * clampedProjection;
+	const closestY = startProjected.y + segmentY * clampedProjection;
+
+	return Math.hypot(closestX - point.x, closestY - point.y);
+}
+
+function getDistanceToPolygonMeters(
+	lat: number,
+	lon: number,
+	coordinates: readonly Coordinate[],
+): number {
+	let shortestDistance = Number.POSITIVE_INFINITY;
+
+	for (let index = 0; index < coordinates.length; index += 1) {
+		const start = coordinates[index];
+		const end = coordinates[(index + 1) % coordinates.length];
+		const nextDistance = distanceToSegmentMeters(lat, lon, start, end);
+
+		if (nextDistance < shortestDistance) {
+			shortestDistance = nextDistance;
+		}
+	}
+
+	return shortestDistance;
+}
+
+function getNearbyNeighborhoodCandidate(
+	lat: number,
+	lon: number,
+): NeighborhoodDistanceCandidate | null {
+	const candidates = neighborhoodRegions
+		.map((region) => ({
+			bucket: region.bucket,
+			distanceMeters: getDistanceToPolygonMeters(lat, lon, region.coordinates),
+		}))
+		.sort((left, right) => left.distanceMeters - right.distanceMeters);
+	const nearestCandidate = candidates[0];
+	const secondNearestCandidate = candidates[1];
+
+	if (
+		!nearestCandidate ||
+		nearestCandidate.distanceMeters > NEIGHBORHOOD_GRACE_DISTANCE_METERS
+	) {
+		return null;
+	}
+
+	if (
+		secondNearestCandidate &&
+		secondNearestCandidate.distanceMeters - nearestCandidate.distanceMeters <
+			NEIGHBORHOOD_GRACE_CLEARANCE_METERS
+	) {
+		return null;
+	}
+
+	return nearestCandidate;
+}
+
 function getMetroBucket(lat: number, lon: number): MetroBucket {
 	for (const metroBucket of metroBucketBounds) {
 		if (isWithinBounds(lat, lon, metroBucket.bounds)) {
@@ -226,6 +329,12 @@ export function assignNeighborhoodBucket(
 		if (isWithinPolygon(lat, lon, region.coordinates)) {
 			return region.bucket;
 		}
+	}
+
+	const nearbyNeighborhoodCandidate = getNearbyNeighborhoodCandidate(lat, lon);
+
+	if (nearbyNeighborhoodCandidate) {
+		return nearbyNeighborhoodCandidate.bucket;
 	}
 
 	return metroBucket;
