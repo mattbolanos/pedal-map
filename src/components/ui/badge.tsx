@@ -12,10 +12,12 @@ export const neighborhoodBadgeVariants = {
 		"border-amber-500/25 bg-amber-500/12 text-amber-700 dark:text-amber-300",
 	bayRidge: "border-sky-400/30 bg-sky-400/15 text-sky-300",
 	ditmasPark: "border-rose-300/30 bg-rose-400/15 text-rose-300",
+	greenwoodHeights: "border-green-400/30 bg-green-400/15 text-green-300",
 	kensington: "border-teal-400/30 bg-teal-400/15 text-teal-300",
 	prospectParkSouth: "border-yellow-400/30 bg-yellow-400/15 text-yellow-300",
+	southSlope: "border-orange-400/30 bg-orange-400/15 text-orange-300",
 	sunsetPark: "border-amber-400/30 bg-amber-400/15 text-amber-300",
-	windsorTerrace: "border-emerald-400/30 bg-emerald-400/15 text-emerald-300",
+	windsorTerrace: "border-indigo-400/30 bg-indigo-400/15 text-indigo-300",
 } as const;
 
 type NeighborhoodBadgeVariant = keyof typeof neighborhoodBadgeVariants;

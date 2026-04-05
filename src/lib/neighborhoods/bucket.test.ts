@@ -157,8 +157,24 @@ describe("assignNeighborhoodBucket", () => {
 		expect(assignNeighborhoodBucket(40.6455, -73.9655)).toBe("ditmasPark");
 	});
 
-	it("assigns unambiguous near misses to the closest neighborhood", () => {
-		expect(assignNeighborhoodBucket(40.655716, -74.006664)).toBe("sunsetPark");
+	it("returns Greenwood Heights for points inside the new polygon", () => {
+		expect(assignNeighborhoodBucket(40.658873, -74.001615)).toBe(
+			"greenwoodHeights",
+		);
+		expect(assignNeighborhoodBucket(40.6603, -74.0008)).toBe(
+			"greenwoodHeights",
+		);
+	});
+
+	it("returns South Slope for points inside the new polygon", () => {
+		expect(assignNeighborhoodBucket(40.661918, -73.989582)).toBe("southSlope");
+		expect(assignNeighborhoodBucket(40.665324, -73.988779)).toBe("southSlope");
+	});
+
+	it("assigns updated neighborhood coverage to the closest matching bucket", () => {
+		expect(assignNeighborhoodBucket(40.655716, -74.006664)).toBe(
+			"greenwoodHeights",
+		);
 		expect(assignNeighborhoodBucket(40.651654, -73.981231)).toBe(
 			"windsorTerrace",
 		);
@@ -166,7 +182,7 @@ describe("assignNeighborhoodBucket", () => {
 
 	it("keeps ambiguous or distant near misses in the broad fallback bucket", () => {
 		expect(assignNeighborhoodBucket(40.65007, -73.96001)).toBe("nyc");
-		expect(assignNeighborhoodBucket(40.655278, -74.003101)).toBe("nyc");
+		expect(assignNeighborhoodBucket(40.654, -73.998)).toBe("nyc");
 	});
 
 	it("keeps the broad region labels as fallback buckets", () => {
@@ -189,6 +205,12 @@ describe("assignNeighborhoodBucket", () => {
 		});
 		expect(getNeighborhoodBucketMeta("ditmasPark")).toEqual({
 			label: "Ditmas Park",
+		});
+		expect(getNeighborhoodBucketMeta("greenwoodHeights")).toEqual({
+			label: "Greenwood Heights",
+		});
+		expect(getNeighborhoodBucketMeta("southSlope")).toEqual({
+			label: "South Slope",
 		});
 	});
 
