@@ -34,7 +34,7 @@ export function NeighborhoodToggle({
         )}
       />
       Neighborhoods
-      <Kbd className="ml-3">N</Kbd>
+      <Kbd className="ml-3 hidden md:inline-flex">N</Kbd>
     </Toggle>
   );
 }
