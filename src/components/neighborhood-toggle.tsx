@@ -25,16 +25,18 @@ export function NeighborhoodToggle({
       pressed={isVisible}
       onPressedChange={onVisibilityChange}
       aria-label="Toggle show neighborhoods"
-      className="flex items-center gap-x-2"
+      className="flex items-center justify-between gap-3"
     >
-      <HouseLineIcon
-        className={cn(
-          isVisible ? "fill-foreground" : "fill-muted-foreground",
-          "size-4",
-        )}
-      />
-      Neighborhoods
-      <Kbd className="ml-3 hidden md:inline-flex">N</Kbd>
+      <div className="flex items-center gap-x-2">
+        <HouseLineIcon
+          className={cn(
+            isVisible ? "fill-foreground" : "fill-muted-foreground",
+            "size-4",
+          )}
+        />
+        Neighborhoods
+      </div>
+      <Kbd className="hidden md:inline-flex">N</Kbd>
     </Toggle>
   );
 }
