@@ -171,6 +171,11 @@ describe("assignNeighborhoodBucket", () => {
 		expect(assignNeighborhoodBucket(40.665324, -73.988779)).toBe("southSlope");
 	});
 
+	it("returns Park Slope for points inside the new polygon", () => {
+		expect(assignNeighborhoodBucket(40.672131, -73.981251)).toBe("parkSlope");
+		expect(assignNeighborhoodBucket(40.6778, -73.9798)).toBe("parkSlope");
+	});
+
 	it("assigns updated neighborhood coverage to the closest matching bucket", () => {
 		expect(assignNeighborhoodBucket(40.655716, -74.006664)).toBe(
 			"greenwoodHeights",
@@ -208,6 +213,9 @@ describe("assignNeighborhoodBucket", () => {
 		});
 		expect(getNeighborhoodBucketMeta("greenwoodHeights")).toEqual({
 			label: "Greenwood Heights",
+		});
+		expect(getNeighborhoodBucketMeta("parkSlope")).toEqual({
+			label: "Park Slope",
 		});
 		expect(getNeighborhoodBucketMeta("southSlope")).toEqual({
 			label: "South Slope",

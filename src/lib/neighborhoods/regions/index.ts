@@ -2,6 +2,7 @@ import { bayRidgeRegion } from "./bay-ridge";
 import { ditmasParkRegion } from "./ditmas-park";
 import { greenwoodHeightsRegion } from "./greenwood-heights";
 import { kensingtonRegion } from "./kensington";
+import { parkSlopeRegion } from "./park-slope";
 import { prospectParkSouthRegion } from "./prospect-park-south";
 import { southSlopeRegion } from "./south-slope";
 import { sunsetParkRegion } from "./sunset-park";
@@ -19,6 +20,7 @@ export const neighborhoodRegions = [
 	ditmasParkRegion,
 	greenwoodHeightsRegion,
 	kensingtonRegion,
+	parkSlopeRegion,
 	prospectParkSouthRegion,
 	southSlopeRegion,
 	sunsetParkRegion,
