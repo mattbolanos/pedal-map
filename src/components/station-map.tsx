@@ -106,9 +106,12 @@ export function StationMap() {
     ClickedCoordinate[]
   >([]);
   const [copyButtonLabel, setCopyButtonLabel] = useState("Copy GPT Prompt");
+  const [copyArrayButtonLabel, setCopyArrayButtonLabel] =
+    useState("Copy TS Array");
   const hoveredStationIdRef = useRef<string | null>(null);
   const clickedCoordinateIdRef = useRef(0);
   const copyFeedbackTimeoutRef = useRef<number | null>(null);
+  const copyArrayFeedbackTimeoutRef = useRef<number | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
   const tooltipPositionFrameRef = useRef<number | null>(null);
@@ -238,6 +241,13 @@ export function StationMap() {
 
     return `create a new file in src/lib/neighborhoods/regions/ called {INSERT NAME} with a deck.gl polygon coordinate array based off the following lat/lon coords. add a badge variant in src/components/ui/badge.tsx for the neighborhood bucket (neighborhoodBadgeVariants). keep the same badge aesthetic, but use the color family from the region file's fillColor/lineColor. do not change the points i have provided unless absolutely necessary. follow other files in directory for pattern: \n [${points}]`;
   }, [clickedCoordinates]);
+  const clickedCoordinatesTsArray = useMemo(() => {
+    const points = clickedCoordinates
+      .map((coordinate) => `  [${coordinate.lon}, ${coordinate.lat}],`)
+      .join("\n");
+
+    return `const coordinates = [\n${points}\n] as const;`;
+  }, [clickedCoordinates]);
 
   const handleHover = (info: PickingInfo<CitiBikeStation>) => {
     const [lon, lat] = info.coordinate ?? [];
@@ -336,6 +346,28 @@ export function StationMap() {
     }, 2000);
   };
 
+  const handleCopyCoordinatesTsArray = async () => {
+    if (clickedCoordinates.length === 0) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(clickedCoordinatesTsArray);
+      setCopyArrayButtonLabel("Copied");
+    } catch {
+      setCopyArrayButtonLabel("Copy Failed");
+    }
+
+    if (copyArrayFeedbackTimeoutRef.current !== null) {
+      window.clearTimeout(copyArrayFeedbackTimeoutRef.current);
+    }
+
+    copyArrayFeedbackTimeoutRef.current = window.setTimeout(() => {
+      setCopyArrayButtonLabel("Copy TS Array");
+      copyArrayFeedbackTimeoutRef.current = null;
+    }, 2000);
+  };
+
   // Vaul not respecting modal b/c of controlled open :/
   useEffect(() => {
     if (isMobile && isMobileDrawerOpen) {
@@ -349,6 +381,9 @@ export function StationMap() {
     return () => {
       if (copyFeedbackTimeoutRef.current !== null) {
         window.clearTimeout(copyFeedbackTimeoutRef.current);
+      }
+      if (copyArrayFeedbackTimeoutRef.current !== null) {
+        window.clearTimeout(copyArrayFeedbackTimeoutRef.current);
       }
     };
   }, []);
@@ -437,6 +472,14 @@ export function StationMap() {
           type="button"
         >
           {copyButtonLabel}
+        </button>
+        <button
+          className="pointer-events-auto rounded-md border border-cyan-300/35 bg-slate-950/90 px-3 py-2 font-mono text-[11px] text-cyan-100 shadow-lg transition hover:border-cyan-200/60 hover:text-cyan-50 disabled:cursor-not-allowed disabled:opacity-40"
+          disabled={clickedCoordinates.length === 0}
+          onClick={handleCopyCoordinatesTsArray}
+          type="button"
+        >
+          {copyArrayButtonLabel}
         </button>
         <button
           className="pointer-events-auto rounded-md border border-cyan-300/35 bg-slate-950/90 px-3 py-2 font-mono text-[11px] text-cyan-100 shadow-lg transition hover:border-cyan-200/60 hover:text-cyan-50 disabled:cursor-not-allowed disabled:opacity-40"

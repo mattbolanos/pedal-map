@@ -1,24 +1,27 @@
 import { bayRidgeRegion } from "./bay-ridge";
 import { ditmasParkRegion } from "./ditmas-park";
+import { flatbushRegion } from "./flatbush";
 import { greenwoodHeightsRegion } from "./greenwood-heights";
 import { kensingtonRegion } from "./kensington";
 import { parkSlopeRegion } from "./park-slope";
 import { prospectParkSouthRegion } from "./prospect-park-south";
 import { southSlopeRegion } from "./south-slope";
 import { sunsetParkRegion } from "./sunset-park";
-import type { NeighborhoodRegionDefinition } from "./types";
-import { windsorTerraceRegion } from "./windsor-terrace";
-
-export type {
+import type {
 	Coordinate,
 	NeighborhoodRegionDefinition,
 	RgbaColor,
 } from "./types";
+import { windsorTerraceRegion } from "./windsor-terrace";
 
-export const neighborhoodRegions = [
+type NeighborhoodRegion = (typeof neighborhoodRegions)[number];
+type NeighborhoodRegionBucket = (typeof neighborhoodRegions)[number]["bucket"];
+
+const neighborhoodRegions = [
 	bayRidgeRegion,
 	ditmasParkRegion,
 	greenwoodHeightsRegion,
+	flatbushRegion,
 	kensingtonRegion,
 	parkSlopeRegion,
 	prospectParkSouthRegion,
@@ -27,6 +30,11 @@ export const neighborhoodRegions = [
 	windsorTerraceRegion,
 ] as const satisfies readonly NeighborhoodRegionDefinition[];
 
-export type NeighborhoodRegion = (typeof neighborhoodRegions)[number];
-export type NeighborhoodRegionBucket =
-	(typeof neighborhoodRegions)[number]["bucket"];
+export {
+	neighborhoodRegions,
+	type Coordinate,
+	type NeighborhoodRegionDefinition,
+	type RgbaColor,
+	type NeighborhoodRegion,
+	type NeighborhoodRegionBucket,
+};
