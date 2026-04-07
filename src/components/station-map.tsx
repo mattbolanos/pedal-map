@@ -38,7 +38,7 @@ const NYC_METRO_BOUNDS: LngLatBoundsLike = [
 ];
 
 const MIN_ZOOM = 10.65;
-const MAX_ZOOM = process.env.NODE_ENV === "development" ? 22 : 15.2;
+const MAX_ZOOM = process.env.NODE_ENV === "development" ? 22 : 15.1;
 const STATION_HIT_AREA = 10;
 const TOOLTIP_GAP = 18;
 const TOOLTIP_VIEWPORT_PADDING = 20;
