@@ -1,6 +1,7 @@
 import { bayRidgeRegion } from "./bay-ridge";
 import { carrollGardensRegion } from "./carroll-gardens";
 import { cobbleHillRegion } from "./cobble-hill";
+import { columbiaStWaterFrontRegion } from "./columbia-st-water-front";
 import { crownHeightsRegion } from "./crown-heights";
 import { ditmasParkRegion } from "./ditmas-park";
 import { eastFlatbushRegion } from "./east-flatbush";
@@ -28,6 +29,7 @@ type NeighborhoodRegionBucket = (typeof neighborhoodRegions)[number]["bucket"];
 const neighborhoodRegions = [
 	bayRidgeRegion,
 	carrollGardensRegion,
+	columbiaStWaterFrontRegion,
 	crownHeightsRegion,
 	cobbleHillRegion,
 	ditmasParkRegion,

@@ -22,7 +22,7 @@ export const cobbleHillRegion: NeighborhoodRegionDefinition = {
 	bucket: "cobbleHill",
 	label: "Cobble Hill",
 	coordinates,
-	labelCoordinate: [-73.99454667739357, 40.68032911038725],
+	labelCoordinate: [-73.99520313756074, 40.687098864503376],
 	fillColor: [255, 165, 0, 35] as const,
 	lineColor: [255, 165, 0, 235] as const,
 };

@@ -12,6 +12,7 @@ export const neighborhoodBadgeVariants = {
     "border-amber-500/25 bg-amber-500/12 text-amber-700 dark:text-amber-300",
   bayRidge: "border-sky-400/30 bg-sky-400/15 text-sky-300",
   carrollGardens: "border-pink-200/30 bg-pink-200/15 text-pink-300",
+  columbiaStWaterFront: "border-cyan-400/30 bg-cyan-400/15 text-cyan-300",
   crownHeights: "border-emerald-400/30 bg-emerald-400/15 text-emerald-300",
   cobbleHill: "border-orange-400/30 bg-orange-400/15 text-orange-300",
   ditmasPark: "border-rose-300/30 bg-rose-400/15 text-rose-300",
