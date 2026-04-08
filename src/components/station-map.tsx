@@ -105,7 +105,6 @@ export function StationMap() {
   const [clickedCoordinates, setClickedCoordinates] = useState<
     ClickedCoordinate[]
   >([]);
-  const [copyButtonLabel, setCopyButtonLabel] = useState("Copy GPT Prompt");
   const [copyArrayButtonLabel, setCopyArrayButtonLabel] =
     useState("Copy TS Array");
   const hoveredStationIdRef = useRef<string | null>(null);
@@ -231,16 +230,6 @@ export function StationMap() {
     });
   }, [clickedCoordinates, viewState]);
 
-  const polygonPrompt = useMemo(() => {
-    const points = clickedCoordinates
-      .map(
-        (coordinate, index) =>
-          `point ${index + 1}: { lat: ${coordinate.lat.toFixed(6)}, lon: ${coordinate.lon.toFixed(6)} }`,
-      )
-      .join(", ");
-
-    return `create a new file in src/lib/neighborhoods/regions/ called {INSERT NAME} with a deck.gl polygon coordinate array based off the following lat/lon coords. add a badge variant in src/components/ui/badge.tsx for the neighborhood bucket (neighborhoodBadgeVariants). keep the same badge aesthetic, but use the color family from the region file's fillColor/lineColor. do not change the points i have provided unless absolutely necessary. follow other files in directory for pattern: \n [${points}]`;
-  }, [clickedCoordinates]);
   const clickedCoordinatesTsArray = useMemo(() => {
     const points = clickedCoordinates
       .map((coordinate) => `  [${coordinate.lon}, ${coordinate.lat}],`)
@@ -322,28 +311,6 @@ export function StationMap() {
     setClickedCoordinates((current) =>
       current.filter((coordinate) => coordinate.id !== pointId),
     );
-  };
-
-  const handleCopyPolygonPrompt = async () => {
-    if (clickedCoordinates.length === 0) {
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(polygonPrompt);
-      setCopyButtonLabel("Copied");
-    } catch {
-      setCopyButtonLabel("Copy Failed");
-    }
-
-    if (copyFeedbackTimeoutRef.current !== null) {
-      window.clearTimeout(copyFeedbackTimeoutRef.current);
-    }
-
-    copyFeedbackTimeoutRef.current = window.setTimeout(() => {
-      setCopyButtonLabel("Copy GPT Prompt");
-      copyFeedbackTimeoutRef.current = null;
-    }, 2000);
   };
 
   const handleCopyCoordinatesTsArray = async () => {
@@ -465,14 +432,7 @@ export function StationMap() {
           <div>lon: {cursorCoordinates?.lon.toFixed(6) ?? "--"}</div>
           <div>zoom: {viewState.zoom.toFixed(2) ?? "--"}</div>
         </div>
-        <button
-          className="pointer-events-auto rounded-md border border-cyan-300/35 bg-slate-950/90 px-3 py-2 font-mono text-[11px] text-cyan-100 shadow-lg transition hover:border-cyan-200/60 hover:text-cyan-50 disabled:cursor-not-allowed disabled:opacity-40"
-          disabled={clickedCoordinates.length === 0}
-          onClick={handleCopyPolygonPrompt}
-          type="button"
-        >
-          {copyButtonLabel}
-        </button>
+
         <button
           className="pointer-events-auto rounded-md border border-cyan-300/35 bg-slate-950/90 px-3 py-2 font-mono text-[11px] text-cyan-100 shadow-lg transition hover:border-cyan-200/60 hover:text-cyan-50 disabled:cursor-not-allowed disabled:opacity-40"
           disabled={clickedCoordinates.length === 0}

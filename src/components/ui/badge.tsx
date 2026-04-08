@@ -17,6 +17,7 @@ export const neighborhoodBadgeVariants = {
   flatbush: "border-purple-400/30 bg-purple-400/15 text-purple-300",
   greenwoodHeights: "border-green-400/30 bg-green-400/15 text-green-300",
   kensington: "border-teal-400/30 bg-teal-400/15 text-teal-300",
+  oceanHill: "border-blue-400/30 bg-blue-400/15 text-blue-300",
   parkSlope: "border-fuchsia-400/30 bg-fuchsia-400/15 text-fuchsia-300",
   prospectHeights: "border-pink-600/30 bg-pink-600/15 text-pink-300",
   prospectLeffertGardens: "border-pink-400/30 bg-pink-400/15 text-pink-300",
