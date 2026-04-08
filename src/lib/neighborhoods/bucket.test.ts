@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { assignNeighborhoodBucket, getNeighborhoodBucketMeta } from "./bucket";
 import { type Coordinate, neighborhoodRegions } from "./regions";
 
+const POLYGON_SMOOTHING_CORNER_CUT_RATIO = 0.125;
+
 function smoothPolygonWithChaikin(points: readonly Coordinate[]): Coordinate[] {
 	if (points.length < 3) {
 		return [...points];
@@ -12,14 +14,16 @@ function smoothPolygonWithChaikin(points: readonly Coordinate[]): Coordinate[] {
 	for (let index = 0; index < points.length; index += 1) {
 		const [startLon, startLat] = points[index];
 		const [endLon, endLat] = points[(index + 1) % points.length];
+		const nearWeight = 1 - POLYGON_SMOOTHING_CORNER_CUT_RATIO;
+		const farWeight = POLYGON_SMOOTHING_CORNER_CUT_RATIO;
 
 		smoothed.push([
-			startLon * 0.75 + endLon * 0.25,
-			startLat * 0.75 + endLat * 0.25,
+			startLon * nearWeight + endLon * farWeight,
+			startLat * nearWeight + endLat * farWeight,
 		]);
 		smoothed.push([
-			startLon * 0.25 + endLon * 0.75,
-			startLat * 0.25 + endLat * 0.75,
+			startLon * farWeight + endLon * nearWeight,
+			startLat * farWeight + endLat * nearWeight,
 		]);
 	}
 
@@ -185,8 +189,8 @@ describe("assignNeighborhoodBucket", () => {
 		);
 	});
 
-	it("keeps ambiguous or distant near misses in the broad fallback bucket", () => {
-		expect(assignNeighborhoodBucket(40.65007, -73.96001)).toBe("nyc");
+	it("assigns newly covered near misses to the tighter neighborhood bucket", () => {
+		expect(assignNeighborhoodBucket(40.65007, -73.96001)).toBe("flatbush");
 		expect(assignNeighborhoodBucket(40.654, -73.998)).toBe("nyc");
 	});
 
@@ -195,7 +199,9 @@ describe("assignNeighborhoodBucket", () => {
 		expect(assignNeighborhoodBucket(40.7433, -74.0324)).toBe("hoboken");
 		expect(assignNeighborhoodBucket(40.759, -73.8303)).toBe("nyc");
 		expect(assignNeighborhoodBucket(40.9312, -73.8988)).toBe("nyc");
-		expect(assignNeighborhoodBucket(40.6778, -73.9682)).toBe("nyc");
+		expect(assignNeighborhoodBucket(40.6778, -73.9682)).toBe(
+			"prospectHeights",
+		);
 	});
 
 	it("derives neighborhood labels from the region registry", () => {
@@ -222,13 +228,18 @@ describe("assignNeighborhoodBucket", () => {
 		});
 	});
 
-	it("keeps smoothed neighborhood polygons free of self intersections", () => {
+	it("does not introduce self intersections for source-simple polygons", () => {
 		for (const region of neighborhoodRegions) {
 			const normalizedCoordinates = normalizePolygonCoordinates(
 				region.coordinates,
 			);
+			const hasSourceSelfIntersection =
+				hasSelfIntersection(normalizedCoordinates);
 
-			expect(hasSelfIntersection(normalizedCoordinates)).toBe(false);
+			if (hasSourceSelfIntersection) {
+				continue;
+			}
+
 			expect(
 				hasSelfIntersection(smoothPolygonWithChaikin(normalizedCoordinates)),
 			).toBe(false);

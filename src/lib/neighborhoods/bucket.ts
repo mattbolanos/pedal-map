@@ -32,6 +32,7 @@ interface NeighborhoodDistanceCandidate {
 
 const NEIGHBORHOOD_GRACE_DISTANCE_METERS = 100;
 const NEIGHBORHOOD_GRACE_CLEARANCE_METERS = 30;
+const POLYGON_SMOOTHING_CORNER_CUT_RATIO = 0.125;
 
 const metroBucketMeta = {
 	nyc: { label: "NYC" },
@@ -76,14 +77,16 @@ function smoothPolygonWithChaikin(points: readonly Coordinate[]): Coordinate[] {
 		for (let index = 0; index < smoothed.length; index += 1) {
 			const [startLon, startLat] = smoothed[index];
 			const [endLon, endLat] = smoothed[(index + 1) % smoothed.length];
+			const nearWeight = 1 - POLYGON_SMOOTHING_CORNER_CUT_RATIO;
+			const farWeight = POLYGON_SMOOTHING_CORNER_CUT_RATIO;
 
 			next.push([
-				startLon * 0.75 + endLon * 0.25,
-				startLat * 0.75 + endLat * 0.25,
+				startLon * nearWeight + endLon * farWeight,
+				startLat * nearWeight + endLat * farWeight,
 			]);
 			next.push([
-				startLon * 0.25 + endLon * 0.75,
-				startLat * 0.25 + endLat * 0.75,
+				startLon * farWeight + endLon * nearWeight,
+				startLat * farWeight + endLat * nearWeight,
 			]);
 		}
 

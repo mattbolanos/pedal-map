@@ -6,6 +6,7 @@ import { flatbushRegion } from "./flatbush";
 import { greenwoodHeightsRegion } from "./greenwood-heights";
 import { kensingtonRegion } from "./kensington";
 import { parkSlopeRegion } from "./park-slope";
+import { prospectHeightsRegion } from "./prospect-heights";
 import { prospectLeffertGardensRegion } from "./prospect-leffert-gardens";
 import { prospectParkSouthRegion } from "./prospect-park-south";
 import { southSlopeRegion } from "./south-slope";
@@ -25,6 +26,7 @@ const neighborhoodRegions = [
 	crownHeightsRegion,
 	ditmasParkRegion,
 	eastFlatbushRegion,
+	prospectHeightsRegion,
 	greenwoodHeightsRegion,
 	flatbushRegion,
 	kensingtonRegion,
