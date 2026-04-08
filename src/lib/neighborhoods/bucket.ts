@@ -32,7 +32,6 @@ interface NeighborhoodDistanceCandidate {
 
 const NEIGHBORHOOD_GRACE_DISTANCE_METERS = 100;
 const NEIGHBORHOOD_GRACE_CLEARANCE_METERS = 30;
-const POLYGON_SMOOTHING_CORNER_CUT_RATIO = 0.125;
 
 const metroBucketMeta = {
 	nyc: { label: "NYC" },
@@ -64,38 +63,6 @@ const metroBucketBounds = [
 	bounds: Bounds;
 }[];
 
-function smoothPolygonWithChaikin(points: readonly Coordinate[]): Coordinate[] {
-	if (points.length < 3) {
-		return [...points];
-	}
-
-	let smoothed = [...points];
-
-	for (let iteration = 0; iteration < 1; iteration += 1) {
-		const next: Coordinate[] = [];
-
-		for (let index = 0; index < smoothed.length; index += 1) {
-			const [startLon, startLat] = smoothed[index];
-			const [endLon, endLat] = smoothed[(index + 1) % smoothed.length];
-			const nearWeight = 1 - POLYGON_SMOOTHING_CORNER_CUT_RATIO;
-			const farWeight = POLYGON_SMOOTHING_CORNER_CUT_RATIO;
-
-			next.push([
-				startLon * nearWeight + endLon * farWeight,
-				startLat * nearWeight + endLat * farWeight,
-			]);
-			next.push([
-				startLon * farWeight + endLon * nearWeight,
-				startLat * farWeight + endLat * nearWeight,
-			]);
-		}
-
-		smoothed = next;
-	}
-
-	return smoothed;
-}
-
 function normalizePolygonCoordinates(
 	points: readonly Coordinate[],
 ): Coordinate[] {
@@ -120,7 +87,7 @@ function prepareNeighborhoodRegion(
 
 	return {
 		...region,
-		renderCoordinates: smoothPolygonWithChaikin(normalizedCoordinates),
+		renderCoordinates: normalizedCoordinates,
 	};
 }
 

@@ -11,7 +11,9 @@ export const neighborhoodBadgeVariants = {
   hoboken:
     "border-amber-500/25 bg-amber-500/12 text-amber-700 dark:text-amber-300",
   bayRidge: "border-sky-400/30 bg-sky-400/15 text-sky-300",
+  carrollGardens: "border-pink-200/30 bg-pink-200/15 text-pink-300",
   crownHeights: "border-emerald-400/30 bg-emerald-400/15 text-emerald-300",
+  cobbleHill: "border-orange-400/30 bg-orange-400/15 text-orange-300",
   ditmasPark: "border-rose-300/30 bg-rose-400/15 text-rose-300",
   eastFlatbush: "border-violet-400/30 bg-violet-400/15 text-violet-300",
   flatbush: "border-purple-400/30 bg-purple-400/15 text-purple-300",

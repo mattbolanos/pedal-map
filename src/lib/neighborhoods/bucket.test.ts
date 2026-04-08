@@ -2,34 +2,6 @@ import { describe, expect, it } from "vitest";
 import { assignNeighborhoodBucket, getNeighborhoodBucketMeta } from "./bucket";
 import { type Coordinate, neighborhoodRegions } from "./regions";
 
-const POLYGON_SMOOTHING_CORNER_CUT_RATIO = 0.125;
-
-function smoothPolygonWithChaikin(points: readonly Coordinate[]): Coordinate[] {
-	if (points.length < 3) {
-		return [...points];
-	}
-
-	const smoothed: Coordinate[] = [];
-
-	for (let index = 0; index < points.length; index += 1) {
-		const [startLon, startLat] = points[index];
-		const [endLon, endLat] = points[(index + 1) % points.length];
-		const nearWeight = 1 - POLYGON_SMOOTHING_CORNER_CUT_RATIO;
-		const farWeight = POLYGON_SMOOTHING_CORNER_CUT_RATIO;
-
-		smoothed.push([
-			startLon * nearWeight + endLon * farWeight,
-			startLat * nearWeight + endLat * farWeight,
-		]);
-		smoothed.push([
-			startLon * farWeight + endLon * nearWeight,
-			startLat * farWeight + endLat * nearWeight,
-		]);
-	}
-
-	return smoothed;
-}
-
 function normalizePolygonCoordinates(
 	points: readonly Coordinate[],
 ): Coordinate[] {
@@ -228,21 +200,19 @@ describe("assignNeighborhoodBucket", () => {
 		});
 	});
 
-	it("does not introduce self intersections for source-simple polygons", () => {
+	it("documents which source polygons remain self-intersecting after normalization", () => {
+		const selfIntersectingBuckets: string[] = [];
+
 		for (const region of neighborhoodRegions) {
 			const normalizedCoordinates = normalizePolygonCoordinates(
 				region.coordinates,
 			);
-			const hasSourceSelfIntersection =
-				hasSelfIntersection(normalizedCoordinates);
 
-			if (hasSourceSelfIntersection) {
-				continue;
+			if (hasSelfIntersection(normalizedCoordinates)) {
+				selfIntersectingBuckets.push(region.bucket);
 			}
-
-			expect(
-				hasSelfIntersection(smoothPolygonWithChaikin(normalizedCoordinates)),
-			).toBe(false);
 		}
+
+		expect(selfIntersectingBuckets).toEqual(["sunsetPark"]);
 	});
 });
