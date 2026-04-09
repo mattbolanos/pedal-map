@@ -23,6 +23,6 @@ export const cobbleHillRegion: NeighborhoodRegionDefinition = {
 	label: "Cobble Hill",
 	coordinates,
 	labelCoordinate: [-73.99520313756074, 40.687098864503376],
-	fillColor: [255, 165, 0, 35] as const,
-	lineColor: [255, 165, 0, 235] as const,
+	fillColor: [210, 170, 100, 25] as const,
+	lineColor: [230, 190, 120, 120] as const,
 };

@@ -16,6 +16,6 @@ export const boerumHillRegion: NeighborhoodRegionDefinition = {
 	label: "Boerum Hill",
 	coordinates,
 	labelCoordinate: [-73.98535511183933, 40.68419722988949],
-	fillColor: [107, 114, 128, 35] as const,
-	lineColor: [107, 114, 128, 235] as const,
+	fillColor: [180, 160, 140, 25] as const,
+	lineColor: [200, 180, 160, 120] as const,
 };

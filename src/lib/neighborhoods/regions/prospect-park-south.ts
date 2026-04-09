@@ -69,6 +69,6 @@ export const prospectParkSouthRegion: NeighborhoodRegionDefinition = {
 	label: "Prospect Park South",
 	coordinates,
 	labelCoordinate: [-73.96725, 40.651656] as const,
-	fillColor: [250, 204, 21, 35] as const,
-	lineColor: [253, 224, 71, 235] as const,
+	fillColor: [200, 180, 95, 25] as const,
+	lineColor: [220, 200, 120, 120] as const,
 };

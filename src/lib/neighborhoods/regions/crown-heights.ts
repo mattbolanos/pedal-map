@@ -353,6 +353,6 @@ export const crownHeightsRegion: NeighborhoodRegionDefinition = {
 	label: "Crown Heights",
 	coordinates,
 	labelCoordinate: [-73.9396219044988, 40.671219978838785] as const,
-	fillColor: [22, 163, 74, 35] as const,
-	lineColor: [34, 197, 94, 235] as const,
+	fillColor: [100, 185, 130, 25] as const,
+	lineColor: [125, 205, 155, 120] as const,
 };

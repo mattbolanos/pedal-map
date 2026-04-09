@@ -359,6 +359,6 @@ export const sunsetParkRegion: NeighborhoodRegionDefinition = {
 	label: "Sunset Park",
 	coordinates,
 	labelCoordinate: [-74.0128, 40.6458] as const,
-	fillColor: [245, 158, 11, 35] as const,
-	lineColor: [251, 191, 36, 235] as const,
+	fillColor: [205, 165, 80, 25] as const,
+	lineColor: [225, 185, 105, 120] as const,
 };

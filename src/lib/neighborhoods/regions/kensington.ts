@@ -90,6 +90,6 @@ export const kensingtonRegion: NeighborhoodRegionDefinition = {
 	label: "Kensington",
 	coordinates,
 	labelCoordinate: [-73.9756, 40.646] as const,
-	fillColor: [20, 184, 166, 35] as const,
-	lineColor: [45, 212, 191, 235] as const,
+	fillColor: [75, 190, 180, 25] as const,
+	lineColor: [100, 210, 200, 120] as const,
 };

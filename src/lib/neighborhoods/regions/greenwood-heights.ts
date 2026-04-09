@@ -200,6 +200,6 @@ export const greenwoodHeightsRegion: NeighborhoodRegionDefinition = {
 	label: "Greenwood Heights",
 	coordinates,
 	labelCoordinate: [-74.001615, 40.658873] as const,
-	fillColor: [34, 197, 94, 35] as const,
-	lineColor: [74, 222, 128, 235] as const,
+	fillColor: [80, 190, 140, 25] as const,
+	lineColor: [105, 210, 162, 120] as const,
 };

@@ -196,6 +196,6 @@ export const oceanHillRegion: NeighborhoodRegionDefinition = {
 	label: "Ocean Hill",
 	coordinates,
 	labelCoordinate: [-73.91704369784192, 40.67055056108338] as const,
-	fillColor: [80, 140, 180, 35] as const,
-	lineColor: [30, 80, 140, 235] as const,
+	fillColor: [120, 155, 195, 25] as const,
+	lineColor: [145, 178, 215, 120] as const,
 };

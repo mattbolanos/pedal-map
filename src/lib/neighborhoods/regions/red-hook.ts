@@ -223,6 +223,6 @@ export const redHookRegion: NeighborhoodRegionDefinition = {
 	label: "Red Hook",
 	coordinates,
 	labelCoordinate: [-74.00893045432574, 40.67593460208594],
-	fillColor: [251, 146, 60, 35] as const,
-	lineColor: [253, 186, 116, 235] as const,
+	fillColor: [210, 150, 110, 25] as const,
+	lineColor: [228, 172, 135, 120] as const,
 };

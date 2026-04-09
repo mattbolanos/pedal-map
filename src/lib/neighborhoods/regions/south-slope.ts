@@ -209,6 +209,6 @@ export const southSlopeRegion: NeighborhoodRegionDefinition = {
 	label: "South Slope",
 	coordinates,
 	labelCoordinate: [-73.989582, 40.661918] as const,
-	fillColor: [251, 146, 60, 35] as const,
-	lineColor: [253, 186, 116, 235] as const,
+	fillColor: [195, 170, 125, 25] as const,
+	lineColor: [215, 190, 148, 120] as const,
 };

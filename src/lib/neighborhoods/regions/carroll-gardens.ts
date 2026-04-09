@@ -178,6 +178,6 @@ export const carrollGardensRegion: NeighborhoodRegionDefinition = {
 	label: "Carroll Gardens",
 	coordinates,
 	labelCoordinate: [-73.99690833416199, 40.68032911038725],
-	fillColor: [244, 114, 182, 35] as const,
-	lineColor: [244, 114, 182, 235] as const,
+	fillColor: [200, 130, 155, 25] as const,
+	lineColor: [220, 150, 175, 120] as const,
 };

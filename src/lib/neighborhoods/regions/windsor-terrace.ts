@@ -204,6 +204,6 @@ export const windsorTerraceRegion: NeighborhoodRegionDefinition = {
 	label: "Windsor Terrace",
 	coordinates,
 	labelCoordinate: [-73.977808, 40.654532] as const,
-	fillColor: [129, 140, 248, 35] as const,
-	lineColor: [165, 180, 252, 235] as const,
+	fillColor: [115, 170, 215, 25] as const,
+	lineColor: [140, 192, 232, 120] as const,
 };

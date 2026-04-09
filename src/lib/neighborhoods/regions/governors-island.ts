@@ -258,6 +258,6 @@ export const governorsIslandRegion: NeighborhoodRegionDefinition = {
 	label: "Governors Island",
 	coordinates,
 	labelCoordinate: [-74.0203349536217, 40.68857773091964],
-	fillColor: [163, 230, 53, 35] as const,
-	lineColor: [163, 230, 53, 235] as const,
+	fillColor: [90, 200, 165, 25] as const,
+	lineColor: [115, 220, 185, 120] as const,
 };

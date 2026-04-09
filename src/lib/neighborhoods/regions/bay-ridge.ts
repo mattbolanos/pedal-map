@@ -213,6 +213,6 @@ export const bayRidgeRegion: NeighborhoodRegionDefinition = {
 	label: "Bay Ridge",
 	coordinates,
 	labelCoordinate: [-74.0288, 40.6248] as const,
-	fillColor: [43, 174, 227, 35] as const,
-	lineColor: [117, 223, 255, 235] as const,
+	fillColor: [80, 180, 210, 25] as const,
+	lineColor: [100, 200, 230, 120] as const,
 };

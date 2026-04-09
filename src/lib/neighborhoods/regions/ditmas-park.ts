@@ -100,6 +100,6 @@ export const ditmasParkRegion: NeighborhoodRegionDefinition = {
 	label: "Ditmas Park",
 	coordinates,
 	labelCoordinate: [-73.963738, 40.639445] as const,
-	fillColor: [251, 113, 133, 35] as const,
-	lineColor: [253, 164, 175, 235] as const,
+	fillColor: [210, 140, 130, 25] as const,
+	lineColor: [230, 160, 150, 120] as const,
 };

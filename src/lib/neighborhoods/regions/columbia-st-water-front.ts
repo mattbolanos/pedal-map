@@ -68,6 +68,6 @@ export const columbiaStWaterFrontRegion: NeighborhoodRegionDefinition = {
 	label: "Columbia Street Waterfront",
 	coordinates,
 	labelCoordinate: [-74.00329036967447, 40.68434640242268],
-	fillColor: [14, 165, 232, 35] as const,
-	lineColor: [14, 165, 232, 235] as const,
+	fillColor: [100, 150, 210, 25] as const,
+	lineColor: [125, 175, 230, 120] as const,
 };

@@ -247,6 +247,6 @@ export const gowanusRegion: NeighborhoodRegionDefinition = {
 	label: "Gowanus",
 	coordinates,
 	labelCoordinate: [-73.99254530403745, 40.67441619465292],
-	fillColor: [163, 230, 53, 35] as const,
-	lineColor: [163, 230, 53, 235] as const,
+	fillColor: [155, 185, 100, 25] as const,
+	lineColor: [175, 205, 125, 120] as const,
 };

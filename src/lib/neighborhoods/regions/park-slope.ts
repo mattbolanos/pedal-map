@@ -281,6 +281,6 @@ export const parkSlopeRegion: NeighborhoodRegionDefinition = {
 	label: "Park Slope",
 	coordinates,
 	labelCoordinate: [-73.981251, 40.672131] as const,
-	fillColor: [217, 70, 239, 35] as const,
-	lineColor: [232, 121, 249, 235] as const,
+	fillColor: [170, 140, 200, 25] as const,
+	lineColor: [190, 162, 220, 120] as const,
 };

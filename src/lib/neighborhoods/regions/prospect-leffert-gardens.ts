@@ -212,6 +212,6 @@ export const prospectLeffertGardensRegion: NeighborhoodRegionDefinition = {
 	label: "Prospect Leffert Gardens",
 	coordinates,
 	labelCoordinate: [-73.95193571520684, 40.65921100186306] as const,
-	fillColor: [186, 104, 200, 35] as const,
-	lineColor: [225, 157, 255, 235] as const,
+	fillColor: [148, 130, 200, 25] as const,
+	lineColor: [170, 155, 220, 120] as const,
 };

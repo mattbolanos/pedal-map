@@ -339,6 +339,6 @@ export const eastFlatbushRegion: NeighborhoodRegionDefinition = {
 	label: "East Flatbush",
 	coordinates,
 	labelCoordinate: [-73.92910722840011, 40.64923341757636] as const,
-	fillColor: [168, 85, 247, 35] as const, // soft purple fill
-	lineColor: [192, 132, 252, 235] as const, // vibrant purple line
+	fillColor: [160, 130, 200, 25] as const,
+	lineColor: [180, 150, 220, 120] as const,
 };

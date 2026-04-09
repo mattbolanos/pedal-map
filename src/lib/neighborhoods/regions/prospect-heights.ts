@@ -154,6 +154,6 @@ export const prospectHeightsRegion: NeighborhoodRegionDefinition = {
 	label: "Prospect Heights",
 	coordinates,
 	labelCoordinate: [-73.96852189184824, 40.67853418510036] as const,
-	fillColor: [236, 72, 153, 35] as const,
-	lineColor: [219, 39, 119, 235] as const,
+	fillColor: [215, 160, 115, 25] as const,
+	lineColor: [232, 180, 138, 120] as const,
 };
