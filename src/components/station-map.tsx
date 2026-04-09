@@ -1,4 +1,5 @@
 import {
+  FlyToInterpolator,
   type Layer,
   type MapViewState,
   type PickingInfo,
@@ -7,13 +8,17 @@ import {
 import { DeckGL } from "@deck.gl/react";
 import { useQuery } from "@tanstack/react-query";
 import type { LngLatBoundsLike } from "mapbox-gl";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Map as MapView } from "react-map-gl/mapbox";
 import {
   createStationPinsLayer,
   SMALL_TO_MEDIUM_DOTS_ZOOM,
 } from "#/components/station-pins-layer";
-import { StationDrawer, StationTooltip } from "#/components/station-tooltip";
+import {
+  StationDrawer,
+  StationPopoverPanel,
+  StationTooltip,
+} from "#/components/station-tooltip";
 import { Drawer } from "#/components/ui/drawer";
 import { useIsMobile } from "#/hooks/use-mobile";
 import type { CitiBikeStation } from "#/lib/citibike";
@@ -41,6 +46,13 @@ const MAX_ZOOM = 15.1;
 const STATION_HIT_AREA = 10;
 const TOOLTIP_GAP = 18;
 const TOOLTIP_VIEWPORT_PADDING = 20;
+const SELECTED_DESKTOP_PANEL_GAP = 16;
+const DESKTOP_SELECTED_STATION_X_RATIO = 0.5;
+const DESKTOP_SELECTED_STATION_Y_RATIO = 0.62;
+const STATION_FLY_TO_INTERPOLATOR = new FlyToInterpolator({ curve: 1.25 });
+const STATION_FLY_TO_DURATION_MS = 1050;
+
+const easeOutQuint = (value: number) => 1 - (1 - value) ** 5;
 
 interface HoveredStation {
   station: CitiBikeStation;
@@ -49,6 +61,12 @@ interface HoveredStation {
 interface TooltipPosition {
   left: number;
   top: number;
+}
+
+interface ProjectedStationPosition {
+  anchorX: number;
+  anchorY: number;
+  containerRect: DOMRect;
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -73,6 +91,26 @@ function toStationState(station: CitiBikeStation): HoveredStation {
   return { station };
 }
 
+function usePrefersReducedMotion() {
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const updatePreference = () => {
+      setPrefersReducedMotion(mediaQuery.matches);
+    };
+
+    updatePreference();
+    mediaQuery.addEventListener("change", updatePreference);
+
+    return () => {
+      mediaQuery.removeEventListener("change", updatePreference);
+    };
+  }, []);
+
+  return prefersReducedMotion;
+}
+
 export function StationMap() {
   const { data: citiBikeStations } = useQuery(citiBikeStationsQueryOptions);
   const stations = citiBikeStations?.stations ?? [];
@@ -82,9 +120,8 @@ export function StationMap() {
   const [hoveredStation, setHoveredStation] = useState<HoveredStation | null>(
     null,
   );
-  const [pinnedStation, setPinnedStation] = useState<HoveredStation | null>(
-    null,
-  );
+  const [selectedDesktopStation, setSelectedDesktopStation] =
+    useState<HoveredStation | null>(null);
   const [selectedStation, setSelectedStation] = useState<HoveredStation | null>(
     null,
   );
@@ -97,7 +134,7 @@ export function StationMap() {
   const tooltipRef = useRef<HTMLDivElement | null>(null);
   const tooltipPositionFrameRef = useRef<number | null>(null);
   const canHover = viewState.zoom >= SMALL_TO_MEDIUM_DOTS_ZOOM;
-  const displayedStation = hoveredStation ?? pinnedStation;
+  const prefersReducedMotion = usePrefersReducedMotion();
 
   const clearHoveredStation = () => {
     if (tooltipPositionFrameRef.current !== null) {
@@ -112,84 +149,135 @@ export function StationMap() {
     }
   };
 
-  const clearPinnedStation = () => {
-    setPinnedStation(null);
-    setTooltipPosition(null);
-  };
-
-  const updateTooltipPosition = (
-    station: CitiBikeStation,
-    nextViewState: MapViewState,
-  ) => {
-    if (!containerRef.current || !tooltipRef.current) {
-      setTooltipPosition(null);
-      return;
-    }
-
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const tooltipRect = tooltipRef.current.getBoundingClientRect();
-
-    if (
-      containerRect.width === 0 ||
-      containerRect.height === 0 ||
-      tooltipRect.width === 0 ||
-      tooltipRect.height === 0
-    ) {
-      setTooltipPosition(null);
-      return;
-    }
-
-    const viewport = new WebMercatorViewport({
-      ...nextViewState,
-      width: containerRect.width,
-      height: containerRect.height,
-    });
-    const [anchorX, anchorY] = viewport.project([station.lon, station.lat]);
-
-    const minLeft = TOOLTIP_VIEWPORT_PADDING;
-    const maxLeft = Math.max(
-      minLeft,
-      containerRect.width - tooltipRect.width - TOOLTIP_VIEWPORT_PADDING,
-    );
-    const left = clamp(anchorX - tooltipRect.width / 2, minLeft, maxLeft);
-
-    const aboveTop = anchorY - tooltipRect.height - TOOLTIP_GAP;
-    const belowTop = anchorY + TOOLTIP_GAP;
-    const canPlaceAbove = aboveTop >= TOOLTIP_VIEWPORT_PADDING;
-    const canPlaceBelow =
-      belowTop + tooltipRect.height <=
-      containerRect.height - TOOLTIP_VIEWPORT_PADDING;
-
-    const desiredTop = canPlaceAbove || !canPlaceBelow ? aboveTop : belowTop;
-    const minTop = TOOLTIP_VIEWPORT_PADDING;
-    const maxTop = Math.max(
-      minTop,
-      containerRect.height - tooltipRect.height - TOOLTIP_VIEWPORT_PADDING,
-    );
-    const top = clamp(desiredTop, minTop, maxTop);
-
-    setTooltipPosition((current) => {
-      if (current && current.left === left && current.top === top) {
-        return current;
+  const projectStationPosition = useCallback(
+    (
+      station: CitiBikeStation,
+      nextViewState: MapViewState,
+    ): ProjectedStationPosition | null => {
+      if (!containerRef.current) {
+        return null;
       }
 
-      return { left, top };
-    });
-  };
+      const containerRect = containerRef.current.getBoundingClientRect();
 
-  const scheduleTooltipPosition = (
-    station: CitiBikeStation,
-    nextViewState: MapViewState,
-  ) => {
-    if (tooltipPositionFrameRef.current !== null) {
-      cancelAnimationFrame(tooltipPositionFrameRef.current);
-    }
+      if (containerRect.width === 0 || containerRect.height === 0) {
+        return null;
+      }
 
-    tooltipPositionFrameRef.current = requestAnimationFrame(() => {
-      tooltipPositionFrameRef.current = null;
-      updateTooltipPosition(station, nextViewState);
-    });
-  };
+      const viewport = new WebMercatorViewport({
+        ...nextViewState,
+        width: containerRect.width,
+        height: containerRect.height,
+      });
+      const [anchorX, anchorY] = viewport.project([station.lon, station.lat]);
+
+      return {
+        anchorX,
+        anchorY,
+        containerRect,
+      };
+    },
+    [],
+  );
+
+  const updateTooltipPosition = useCallback(
+    (station: CitiBikeStation, nextViewState: MapViewState) => {
+      if (!tooltipRef.current) {
+        setTooltipPosition(null);
+        return;
+      }
+
+      const projectedPosition = projectStationPosition(station, nextViewState);
+
+      if (!projectedPosition) {
+        setTooltipPosition(null);
+        return;
+      }
+
+      const { anchorX, anchorY, containerRect } = projectedPosition;
+      const tooltipRect = tooltipRef.current.getBoundingClientRect();
+
+      if (tooltipRect.width === 0 || tooltipRect.height === 0) {
+        setTooltipPosition(null);
+        return;
+      }
+
+      const minLeft = TOOLTIP_VIEWPORT_PADDING;
+      const maxLeft = Math.max(
+        minLeft,
+        containerRect.width - tooltipRect.width - TOOLTIP_VIEWPORT_PADDING,
+      );
+      const left = clamp(anchorX - tooltipRect.width / 2, minLeft, maxLeft);
+
+      const aboveTop = anchorY - tooltipRect.height - TOOLTIP_GAP;
+      const belowTop = anchorY + TOOLTIP_GAP;
+      const canPlaceAbove = aboveTop >= TOOLTIP_VIEWPORT_PADDING;
+      const canPlaceBelow =
+        belowTop + tooltipRect.height <=
+        containerRect.height - TOOLTIP_VIEWPORT_PADDING;
+
+      const desiredTop = canPlaceAbove || !canPlaceBelow ? aboveTop : belowTop;
+      const minTop = TOOLTIP_VIEWPORT_PADDING;
+      const maxTop = Math.max(
+        minTop,
+        containerRect.height - tooltipRect.height - TOOLTIP_VIEWPORT_PADDING,
+      );
+      const top = clamp(desiredTop, minTop, maxTop);
+
+      setTooltipPosition((current) => {
+        if (current && current.left === left && current.top === top) {
+          return current;
+        }
+
+        return { left, top };
+      });
+    },
+    [projectStationPosition],
+  );
+
+  const scheduleTooltipPosition = useCallback(
+    (station: CitiBikeStation, nextViewState: MapViewState) => {
+      if (tooltipPositionFrameRef.current !== null) {
+        cancelAnimationFrame(tooltipPositionFrameRef.current);
+      }
+
+      tooltipPositionFrameRef.current = requestAnimationFrame(() => {
+        tooltipPositionFrameRef.current = null;
+        updateTooltipPosition(station, nextViewState);
+      });
+    },
+    [updateTooltipPosition],
+  );
+
+  const alignStationInViewport = useCallback(
+    (station: CitiBikeStation, nextViewState: MapViewState) => {
+      if (!containerRef.current || isMobile) {
+        return nextViewState;
+      }
+
+      const { width, height } = containerRef.current.getBoundingClientRect();
+
+      if (width === 0 || height === 0) {
+        return nextViewState;
+      }
+
+      const viewport = new WebMercatorViewport({
+        ...nextViewState,
+        width,
+        height,
+      });
+      const desiredPixel: [number, number] = [
+        width * DESKTOP_SELECTED_STATION_X_RATIO,
+        height * DESKTOP_SELECTED_STATION_Y_RATIO,
+      ];
+
+      return clampViewState({
+        ...nextViewState,
+        ...viewport.panByPosition([station.lon, station.lat], desiredPixel),
+      });
+    },
+    [isMobile],
+  );
 
   const handleHover = (info: PickingInfo<CitiBikeStation>) => {
     if (!canHover || isMobile) {
@@ -221,14 +309,20 @@ export function StationMap() {
       ...viewState,
       longitude: station.lon,
       latitude: station.lat,
-      zoom: Math.max(viewState.zoom, SMALL_TO_MEDIUM_DOTS_ZOOM),
+      zoom: MAX_ZOOM,
+      transitionDuration: prefersReducedMotion ? 0 : STATION_FLY_TO_DURATION_MS,
+      transitionEasing: prefersReducedMotion ? undefined : easeOutQuint,
+      transitionInterpolator: prefersReducedMotion
+        ? undefined
+        : STATION_FLY_TO_INTERPOLATOR,
     });
+    const focusedViewState = alignStationInViewport(station, nextViewState);
 
-    setViewState(nextViewState);
+    setViewState(focusedViewState);
 
     if (isMobile) {
       clearHoveredStation();
-      setPinnedStation(null);
+      setSelectedDesktopStation(null);
       setSelectedStation(toStationState(station));
       setIsMobileDrawerOpen(true);
       return;
@@ -236,26 +330,55 @@ export function StationMap() {
 
     hoveredStationIdRef.current = null;
     setHoveredStation(null);
-    setSelectedStation(null);
-    setPinnedStation(toStationState(station));
     setTooltipPosition(null);
+    setSelectedDesktopStation(toStationState(station));
   };
 
   const handleMapClick = (info: PickingInfo<CitiBikeStation>) => {
-    if (!isMobile) {
-      return;
-    }
-
     const station = info.object;
 
-    if (!station) {
-      clearHoveredStation();
+    if (isMobile) {
+      if (!station) {
+        clearHoveredStation();
+        return;
+      }
+
+      hoveredStationIdRef.current = station.station_id;
+      setIsMobileDrawerOpen(true);
+      setSelectedStation((current) => {
+        if (current?.station === station) {
+          return current;
+        }
+
+        return {
+          station,
+        };
+      });
       return;
     }
 
-    hoveredStationIdRef.current = station.station_id;
-    setIsMobileDrawerOpen(true);
-    setSelectedStation((current) => {
+    if (!station) {
+      setSelectedDesktopStation(null);
+      return;
+    }
+
+    const nextViewState = alignStationInViewport(
+      station,
+      clampViewState({
+        ...viewState,
+        transitionDuration: prefersReducedMotion ? 0 : 700,
+        transitionEasing: prefersReducedMotion ? undefined : easeOutQuint,
+        transitionInterpolator: prefersReducedMotion
+          ? undefined
+          : STATION_FLY_TO_INTERPOLATOR,
+      }),
+    );
+
+    hoveredStationIdRef.current = null;
+    setHoveredStation(null);
+    setTooltipPosition(null);
+    setViewState(nextViewState);
+    setSelectedDesktopStation((current) => {
       if (current?.station === station) {
         return current;
       }
@@ -274,6 +397,14 @@ export function StationMap() {
       });
     }
   }, [isMobile, isMobileDrawerOpen]);
+
+  useEffect(() => {
+    if (isMobile || !hoveredStation) {
+      return;
+    }
+
+    scheduleTooltipPosition(hoveredStation.station, viewState);
+  }, [hoveredStation, isMobile, scheduleTooltipPosition, viewState]);
 
   useEffect(() => {
     return () => {
@@ -301,6 +432,37 @@ export function StationMap() {
     return nextLayers;
   }, [stations, viewState.zoom]);
 
+  const selectedDesktopPanelTop = useMemo(() => {
+    if (!selectedDesktopStation || isMobile) {
+      return null;
+    }
+
+    const projectedPosition = projectStationPosition(
+      selectedDesktopStation.station,
+      viewState,
+    );
+
+    if (projectedPosition) {
+      return clamp(
+        projectedPosition.anchorY,
+        TOOLTIP_VIEWPORT_PADDING + SELECTED_DESKTOP_PANEL_GAP,
+        projectedPosition.containerRect.height - TOOLTIP_VIEWPORT_PADDING,
+      );
+    }
+
+    if (!containerRef.current) {
+      return null;
+    }
+
+    const { height } = containerRef.current.getBoundingClientRect();
+
+    if (height === 0) {
+      return null;
+    }
+
+    return height * DESKTOP_SELECTED_STATION_Y_RATIO;
+  }, [isMobile, projectStationPosition, selectedDesktopStation, viewState]);
+
   return (
     <div className="relative size-full" ref={containerRef}>
       <MapControls stations={stations} onSelectStation={focusStation} />
@@ -314,7 +476,6 @@ export function StationMap() {
         onDragStart={() => {
           if (!isMobile) {
             clearHoveredStation();
-            clearPinnedStation();
           }
         }}
         onHover={handleHover}
@@ -338,30 +499,47 @@ export function StationMap() {
         />
       </DeckGL>
 
-      {displayedStation ? (
+      {hoveredStation ? (
         <div
-          className="pointer-events-none absolute z-20 hidden md:block"
+          className="pointer-events-none absolute top-0 left-0 z-20 hidden will-change-transform md:block"
           ref={(node) => {
             tooltipRef.current = node;
 
-            if (node && displayedStation) {
-              scheduleTooltipPosition(displayedStation.station, viewState);
+            if (node && hoveredStation) {
+              scheduleTooltipPosition(hoveredStation.station, viewState);
             }
           }}
           style={
             tooltipPosition
               ? {
-                  left: tooltipPosition.left,
-                  top: tooltipPosition.top,
+                  transform: `translate3d(${tooltipPosition.left}px, ${tooltipPosition.top}px, 0)`,
                 }
               : {
-                  left: 0,
-                  top: 0,
+                  transform: "translate3d(0, 0, 0)",
                   visibility: "hidden",
                 }
           }
         >
-          <StationTooltip station={displayedStation.station} />
+          <StationTooltip station={hoveredStation.station} />
+        </div>
+      ) : null}
+
+      {!isMobile && selectedDesktopStation ? (
+        <div
+          className="pointer-events-none absolute left-1/2 z-30 hidden md:block"
+          style={{
+            top: selectedDesktopPanelTop ?? "62%",
+            transform: `translate3d(-50%, calc(-100% - ${SELECTED_DESKTOP_PANEL_GAP}px), 0)`,
+          }}
+        >
+          <div className="bg-popover text-popover-foreground supports-backdrop-filter:bg-popover/95 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-2 motion-safe:zoom-in-95 pointer-events-auto flex w-72 origin-top flex-col gap-4 rounded-2xl p-4 text-sm shadow-2xl ring-1 ring-black/10 outline-hidden motion-safe:duration-150">
+            <StationPopoverPanel
+              station={selectedDesktopStation.station}
+              onClose={() => {
+                setSelectedDesktopStation(null);
+              }}
+            />
+          </div>
         </div>
       ) : null}
 

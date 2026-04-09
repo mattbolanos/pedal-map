@@ -6,6 +6,7 @@ import { LightningIcon } from "@phosphor-icons/react/dist/csr/Lightning";
 import { WrenchIcon } from "@phosphor-icons/react/dist/csr/Wrench";
 import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import type { CitiBikeStation } from "#/lib/citibike";
+import { isStationActive } from "#/lib/station";
 import { availabilityColorCss } from "#/lib/station-pin";
 import { getStationRegion } from "#/lib/station-region";
 import { cn, getRelativeTime } from "#/lib/utils";
@@ -19,18 +20,19 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "./ui/drawer";
+import { PopoverHeader } from "./ui/popover";
 import { Progress } from "./ui/progress";
 
 interface StationTooltipProps {
   station: CitiBikeStation;
 }
 
-function count(value: number | undefined): number {
-  return value ?? 0;
+interface StationPopoverPanelProps extends StationTooltipProps {
+  onClose?: () => void;
 }
 
-function getIsActive(station: CitiBikeStation): boolean {
-  return station.is_renting === 1 && station.is_installed === 1;
+function count(value: number | undefined): number {
+  return value ?? 0;
 }
 
 function BikeBreakdownBar({
@@ -83,7 +85,6 @@ function BikeBreakdownBar({
   );
 }
 
-/** Single stat row */
 function StatRow({
   icon,
   label,
@@ -106,20 +107,23 @@ function StatRow({
   );
 }
 
-function StationDetails({ station }: StationTooltipProps) {
+function StationDetails({
+  station,
+  className,
+}: StationTooltipProps & { className?: string }) {
   const bikes = count(station.num_bikes_available);
   const docks = count(station.num_docks_available);
   const ebikes = count(station.num_ebikes_available);
   const classicBikes = bikes - ebikes;
   const capacity = count(station.capacity);
   const disabledBikes = count(station.num_bikes_disabled);
-  const isActive = getIsActive(station);
+  const isActive = isStationActive(station);
   const lastReported = getRelativeTime(station.last_reported);
   const ratio = capacity > 0 ? bikes / capacity : 0;
   const pct = Math.round(ratio * 100);
 
   return (
-    <div className="space-y-3 px-4 text-sm tabular-nums">
+    <div className={cn("space-y-3 text-sm tabular-nums", className)}>
       {isActive ? (
         <>
           <div className="space-y-1.5">
@@ -185,7 +189,7 @@ function StationDetails({ station }: StationTooltipProps) {
 
 function StationBadges({ station }: StationTooltipProps) {
   const regionBadge = getStationRegion(station.region_id);
-  const isActive = getIsActive(station);
+  const isActive = isStationActive(station);
 
   if (!regionBadge && isActive) {
     return null;
@@ -211,15 +215,43 @@ function StationBadges({ station }: StationTooltipProps) {
 }
 
 export const StationTooltip = ({ station }: StationTooltipProps) => (
-  <Card className="bg-popover md:w-72">
+  <Card className="bg-popover supports-backdrop-filter:bg-popover/95 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 motion-safe:slide-in-from-bottom-2 motion-safe:duration-200 md:w-72">
     <CardHeader className="gap-1.5">
       <CardTitle className="min-w-0 text-balance">{station.name}</CardTitle>
       <StationBadges station={station} />
     </CardHeader>
     <CardContent className="p-0">
-      <StationDetails station={station} />
+      <StationDetails station={station} className="px-4" />
     </CardContent>
   </Card>
+);
+
+export const StationPopoverPanel = ({
+  station,
+  onClose,
+}: StationPopoverPanelProps) => (
+  <div className="flex w-full flex-col gap-3">
+    <div className="flex items-start justify-between gap-2">
+      <PopoverHeader className="min-w-0 flex-1 gap-1.5">
+        <h3 className="min-w-0 text-sm font-medium text-balance">
+          {station.name}
+        </h3>
+        <StationBadges station={station} />
+      </PopoverHeader>
+      {onClose ? (
+        <Button
+          size="icon-sm"
+          variant="secondary"
+          className="-mt-1 -mr-1 shrink-0"
+          onClick={onClose}
+          aria-label="Close station details"
+        >
+          <XIcon />
+        </Button>
+      ) : null}
+    </div>
+    <StationDetails station={station} />
+  </div>
 );
 
 export const StationDrawer = ({ station }: StationTooltipProps) => (
@@ -240,6 +272,6 @@ export const StationDrawer = ({ station }: StationTooltipProps) => (
         <StationBadges station={station} />
       </DrawerDescription>
     </DrawerHeader>
-    <StationDetails station={station} />
+    <StationDetails station={station} className="px-4" />
   </DrawerContent>
 );

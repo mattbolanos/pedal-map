@@ -49,7 +49,7 @@ function CommandDialog({
       </DialogHeader>
       <DialogContent
         className={cn(
-          "bg-secondary top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0",
+          "bg-secondary top-1/12 translate-y-0 overflow-hidden rounded-xl! p-0 md:top-1/3",
           className,
         )}
         showCloseButton={showCloseButton}
@@ -144,19 +144,24 @@ function CommandSeparator({
 function CommandItem({
   className,
   children,
+  hideCheckIcon = false,
   ...props
-}: React.ComponentProps<typeof CommandPrimitive.Item>) {
+}: React.ComponentProps<typeof CommandPrimitive.Item> & {
+  hideCheckIcon?: boolean;
+}) {
   return (
     <CommandPrimitive.Item
       data-slot="command-item"
       className={cn(
-        "group/command-item hover:bg-accent relative flex cursor-default items-center gap-2 rounded-xl px-3 py-2 text-sm outline-hidden select-none in-data-[slot=dialog-content]:rounded-xl data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "group/command-item hover:bg-accent data-[selected=true]:bg-accent data-[selected=true]:text-foreground data-[selected=true]:[&_svg]:text-foreground relative flex cursor-default items-center gap-2 rounded-xl px-3 py-2 text-sm outline-hidden select-none in-data-[slot=dialog-content]:rounded-xl data-[disabled=true]:pointer-events-none data-[disabled=true]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         className,
       )}
       {...props}
     >
       {children}
-      <CheckIcon className="ms-auto opacity-0 group-has-data-[slot=command-shortcut]/command-item:hidden group-data-[checked=true]/command-item:opacity-100" />
+      {!hideCheckIcon && (
+        <CheckIcon className="ms-auto opacity-0 group-has-data-[slot=command-shortcut]/command-item:hidden group-data-[checked=true]/command-item:opacity-100" />
+      )}
     </CommandPrimitive.Item>
   );
 }

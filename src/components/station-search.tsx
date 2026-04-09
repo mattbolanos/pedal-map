@@ -1,10 +1,15 @@
 import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/csr/MagnifyingGlass";
 import { MapPinAreaIcon } from "@phosphor-icons/react/dist/csr/MapPinArea";
 import { useHotkey } from "@tanstack/react-hotkeys";
-import { useDeferredValue, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import type { CitiBikeStation } from "#/lib/citibike";
-import { getStationRegion } from "#/lib/station-region";
+import { isStationActive } from "#/lib/station";
+import {
+  getStationRegion,
+  type StationRegionLabel,
+} from "#/lib/station-region";
 import { cn } from "#/lib/utils";
+import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import {
   Command,
@@ -17,11 +22,142 @@ import {
 } from "./ui/command";
 import { Kbd, KbdGroup } from "./ui/kbd";
 
-const DEFAULT_VISIBLE_STATIONS = 30;
+const MAX_VISIBLE_STATIONS = 50;
+const SEARCH_SEPARATOR_PATTERN = /[^a-z0-9]+/g;
+type StationGroupHeading = StationRegionLabel | "Other";
+
+interface SearchableStation {
+  originalIndex: number;
+  station: CitiBikeStation;
+  searchableText: string;
+  searchableTokens: string[];
+}
+
+interface StationSearchResult {
+  originalIndex: number;
+  score: number;
+  station: CitiBikeStation;
+}
+
+interface VisibleStationState {
+  hasMoreResults: boolean;
+  stations: CitiBikeStation[];
+}
+
+const REGION_GROUP_ORDER: readonly StationGroupHeading[] = [
+  "NYC",
+  "Jersey City",
+  "Hoboken",
+  "Other",
+];
+const REGION_GROUP_INDEX = new Map<StationGroupHeading, number>(
+  REGION_GROUP_ORDER.map((label, index): [StationGroupHeading, number] => [
+    label,
+    index,
+  ]),
+);
 
 interface StationSearchProps {
   stations: CitiBikeStation[];
   onSelectStation: (station: CitiBikeStation) => void;
+}
+
+function compareStationsByDefaultOrder(
+  stationA: CitiBikeStation,
+  stationB: CitiBikeStation,
+) {
+  const stationAIsActive = isStationActive(stationA);
+  const stationBIsActive = isStationActive(stationB);
+
+  if (stationAIsActive !== stationBIsActive) {
+    return stationAIsActive ? -1 : 1;
+  }
+
+  return stationA.name.localeCompare(stationB.name);
+}
+
+function compareStationSearchResults(
+  resultA: StationSearchResult,
+  resultB: StationSearchResult,
+) {
+  return (
+    resultB.score - resultA.score ||
+    resultA.originalIndex - resultB.originalIndex
+  );
+}
+
+function normalizeSearchText(value: string) {
+  return value.toLowerCase().replace(SEARCH_SEPARATOR_PATTERN, " ").trim();
+}
+
+function getSearchTokens(value: string) {
+  return normalizeSearchText(value).split(/\s+/).filter(Boolean);
+}
+
+function getBestTokenMatch(queryToken: string, searchableTokens: string[]) {
+  let bestScore = 0;
+  let bestIndex = -1;
+
+  searchableTokens.forEach((token, index) => {
+    const score =
+      token === queryToken
+        ? 120
+        : token.startsWith(queryToken)
+          ? 90
+          : token.includes(queryToken)
+            ? 60
+            : 0;
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestIndex = index;
+    }
+  });
+
+  return { index: bestIndex, score: bestScore };
+}
+
+function getStationSearchScore(
+  searchableStation: SearchableStation,
+  normalizedQuery: string,
+  queryTokens: string[],
+) {
+  let score = 0;
+  const tokenPositions: number[] = [];
+
+  if (searchableStation.searchableText.startsWith(normalizedQuery)) {
+    score += 240;
+  } else if (searchableStation.searchableText.includes(normalizedQuery)) {
+    score += 180;
+  }
+
+  for (const queryToken of queryTokens) {
+    const tokenMatch = getBestTokenMatch(
+      queryToken,
+      searchableStation.searchableTokens,
+    );
+
+    if (tokenMatch.score === 0) {
+      return null;
+    }
+
+    score += tokenMatch.score;
+    tokenPositions.push(tokenMatch.index);
+  }
+
+  const isInQueryOrder = tokenPositions.every(
+    (position, index) => index === 0 || position > tokenPositions[index - 1],
+  );
+
+  if (isInQueryOrder) {
+    score += 80;
+    score += Math.max(
+      0,
+      24 - (tokenPositions[tokenPositions.length - 1] - tokenPositions[0]),
+    );
+  }
+
+  return score;
 }
 
 export function StationSearch({
@@ -31,36 +167,134 @@ export function StationSearch({
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
-  const normalizedQuery = deferredQuery.trim().toLowerCase();
-  const visibleStations = normalizedQuery
-    ? stations.filter((station) =>
-        [station.name, station.short_name, station.station_id].some((value) =>
-          value?.toLowerCase().includes(normalizedQuery),
-        ),
-      )
-    : stations.slice(0, DEFAULT_VISIBLE_STATIONS);
+  const normalizedQuery = normalizeSearchText(deferredQuery);
+
+  const searchableStations = useMemo(
+    () =>
+      stations.map((station, originalIndex) => {
+        const searchableText = normalizeSearchText(
+          [station.name, station.short_name, station.station_id]
+            .filter(Boolean)
+            .join(" "),
+        );
+
+        return {
+          originalIndex,
+          searchableText,
+          searchableTokens: getSearchTokens(searchableText),
+          station,
+        };
+      }),
+    [stations],
+  );
+
+  const defaultVisibleStations = useMemo(
+    () =>
+      [...stations]
+        .sort(compareStationsByDefaultOrder)
+        .slice(0, MAX_VISIBLE_STATIONS),
+    [stations],
+  );
+
+  const { hasMoreResults, stations: visibleStations } =
+    useMemo<VisibleStationState>(() => {
+      if (!normalizedQuery) {
+        return {
+          hasMoreResults: false,
+          stations: defaultVisibleStations,
+        };
+      }
+
+      const queryTokens = getSearchTokens(normalizedQuery);
+      const topResults: StationSearchResult[] = [];
+      let matchCount = 0;
+
+      for (const searchableStation of searchableStations) {
+        const score = getStationSearchScore(
+          searchableStation,
+          normalizedQuery,
+          queryTokens,
+        );
+
+        if (score === null) {
+          continue;
+        }
+
+        matchCount += 1;
+
+        const result = {
+          score,
+          station: searchableStation.station,
+          originalIndex: searchableStation.originalIndex,
+        };
+        let insertAt = topResults.findIndex((candidate) => {
+          return compareStationSearchResults(result, candidate) < 0;
+        });
+
+        if (insertAt === -1) {
+          insertAt = topResults.length;
+        }
+
+        if (insertAt >= MAX_VISIBLE_STATIONS) {
+          continue;
+        }
+
+        topResults.splice(insertAt, 0, result);
+
+        if (topResults.length > MAX_VISIBLE_STATIONS) {
+          topResults.pop();
+        }
+      }
+
+      return {
+        hasMoreResults: matchCount > MAX_VISIBLE_STATIONS,
+        stations: topResults.map((result) => result.station),
+      };
+    }, [defaultVisibleStations, normalizedQuery, searchableStations]);
+
+  const groupedStations = visibleStations.reduce((groups, station) => {
+    const regionLabel: StationGroupHeading =
+      getStationRegion(station.region_id)?.label ?? "Other";
+    const stationsInRegion = groups.get(regionLabel) ?? [];
+
+    stationsInRegion.push(station);
+    groups.set(regionLabel, stationsInRegion);
+
+    return groups;
+  }, new Map<StationGroupHeading, CitiBikeStation[]>());
+
+  const visibleGroups = [...groupedStations.entries()]
+    .sort(([labelA], [labelB]) => {
+      const indexA =
+        REGION_GROUP_INDEX.get(labelA) ?? REGION_GROUP_ORDER.length;
+      const indexB =
+        REGION_GROUP_INDEX.get(labelB) ?? REGION_GROUP_ORDER.length;
+
+      return indexA - indexB || labelA.localeCompare(labelB);
+    })
+    .map(([label, stationsInRegion]) => ({
+      heading: normalizedQuery
+        ? `${label} (${hasMoreResults ? "showing first 50" : stationsInRegion.length})`
+        : label,
+      stations: stationsInRegion,
+    }));
 
   useHotkey("Mod+K", () => setOpen(true));
 
   return (
     <div>
-      <Button variant="outline" onClick={() => setOpen(true)}>
+      <Button
+        variant="outline"
+        onClick={() => setOpen(true)}
+        className="w-9 md:w-auto"
+      >
         <MagnifyingGlassIcon />
-        Search
+        <span className="hidden md:block">Search</span>
         <KbdGroup>
           <Kbd>⌘ K</Kbd>
         </KbdGroup>
       </Button>
-      <CommandDialog
-        open={open}
-        onOpenChange={(nextOpen) => {
-          setOpen(nextOpen);
-
-          if (!nextOpen) {
-            setQuery("");
-          }
-        }}
-      >
+      <CommandDialog open={open} onOpenChange={setOpen}>
         <Command shouldFilter={false}>
           <CommandInput
             placeholder="Search stations..."
@@ -69,35 +303,42 @@ export function StationSearch({
           />
           <CommandList>
             <CommandEmpty>No results found.</CommandEmpty>
-            <CommandGroup
-              heading={
-                normalizedQuery
-                  ? `Stations (${visibleStations.length})`
-                  : `Stations (${visibleStations.length} of ${stations.length})`
-              }
-            >
-              {visibleStations.map((station) => {
-                const region = getStationRegion(station.region_id);
+            {visibleGroups.map((group) => (
+              <CommandGroup key={group.heading} heading={group.heading}>
+                {group.stations.map((station) => {
+                  const region = getStationRegion(station.region_id);
+                  const isActive = isStationActive(station);
 
-                return (
-                  <CommandItem
-                    key={station.station_id}
-                    value={station.name}
-                    keywords={[station.short_name ?? ""].filter(Boolean)}
-                    onSelect={() => {
-                      onSelectStation(station);
-                      setQuery("");
-                      setOpen(false);
-                    }}
-                  >
-                    <MapPinAreaIcon
-                      className={cn("size-4 shrink-0", region?.pinClassName)}
-                    />
-                    <span className="truncate">{station.name}</span>
-                  </CommandItem>
-                );
-              })}
-            </CommandGroup>
+                  return (
+                    <CommandItem
+                      key={station.station_id}
+                      value={station.name}
+                      keywords={[station.short_name ?? ""].filter(Boolean)}
+                      onSelect={() => {
+                        onSelectStation(station);
+                        setQuery("");
+                        setOpen(false);
+                      }}
+                      hideCheckIcon
+                    >
+                      <MapPinAreaIcon
+                        className={cn("shrink-0", region?.pinClassName)}
+                      />
+                      <span className="truncate">{station.name}</span>
+                      {!isActive && (
+                        <Badge
+                          variant="offline"
+                          aria-label="Offline"
+                          className="ml-auto"
+                        >
+                          Offline
+                        </Badge>
+                      )}
+                    </CommandItem>
+                  );
+                })}
+              </CommandGroup>
+            ))}
           </CommandList>
         </Command>
       </CommandDialog>

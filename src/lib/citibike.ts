@@ -1,4 +1,8 @@
 import { keepPreviousData, queryOptions } from "@tanstack/react-query";
+import {
+	normalizeStationRegionId,
+	type StationRegionId,
+} from "#/lib/station-region";
 
 const STATION_INFORMATION_URL =
 	"https://gbfs.citibikenyc.com/gbfs/en/station_information.json";
@@ -17,7 +21,7 @@ interface GbfsResponse<T> {
 	version: string;
 }
 
-interface CitiBikeStationInformation {
+interface GbfsCitiBikeStationInformation {
 	capacity?: number;
 	electric_bike_surcharge_waiver?: boolean;
 	eightd_has_key_dispenser?: boolean;
@@ -31,6 +35,13 @@ interface CitiBikeStationInformation {
 	short_name?: string;
 	station_id: string;
 }
+
+type CitiBikeStationInformation = Omit<
+	GbfsCitiBikeStationInformation,
+	"region_id"
+> & {
+	region_id?: StationRegionId;
+};
 
 interface CitiBikeStationStatus {
 	is_charging_station?: boolean;
@@ -56,7 +67,7 @@ interface CitiBikeStationStatus {
 }
 
 type StationInformationResponse = GbfsResponse<{
-	stations: CitiBikeStationInformation[];
+	stations: GbfsCitiBikeStationInformation[];
 }>;
 
 type StationStatusResponse = GbfsResponse<{
@@ -115,9 +126,10 @@ function mergeStations(
 	const stations = stationInformation.data.stations.map((station) => {
 		const { station_id: _, ...status } =
 			statusesByStationId.get(station.station_id) ?? {};
-		const nextStation = {
+		const nextStation: CitiBikeStation = {
 			...station,
 			...status,
+			region_id: normalizeStationRegionId(station.region_id),
 		};
 		const previousStation = previousStationsByStationId.get(station.station_id);
 
