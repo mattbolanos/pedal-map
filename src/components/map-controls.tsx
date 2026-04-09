@@ -8,7 +8,7 @@ interface MapControlsProps {
 
 export function MapControls({ stations, onSelectStation }: MapControlsProps) {
   return (
-    <div className="absolute top-4 left-4 z-10">
+    <div className="absolute top-3 left-3 z-10">
       <StationSearch stations={stations} onSelectStation={onSelectStation} />
     </div>
   );

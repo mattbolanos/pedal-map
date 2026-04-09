@@ -5,6 +5,7 @@ import {
   bucketRatio,
   getPinIconUrl,
   ICON_RES,
+  ICON_SIZE_SCALE,
   pinSize,
 } from "#/lib/station-pin";
 
@@ -97,17 +98,91 @@ function dotZoomTierScale(zoom: number) {
 }
 
 const easeOut = (t: number) => t * (2 - t);
+const PIN_TRANSITION = { duration: 140, easing: easeOut };
+
+function isSelectedStation(
+  station: CitiBikeStation,
+  selectedStationIds: ReadonlySet<string>,
+) {
+  return selectedStationIds.has(station.station_id);
+}
+
+const SELECTED_HALO_COLOR = [59, 130, 246, 100] as const;
+
+function selectedPinGlowRadius(capacity: number, zoom: number) {
+  return clamp(scaledPinSize(capacity, zoom) * 0.58, 12, 22);
+}
 
 export function createStationPinsLayer(
   stations: CitiBikeStation[],
   zoom: number,
+  selectedStationIdsInput: readonly string[] = [],
 ) {
   const valid = stations.filter(hasValidCoordinates);
   if (valid.length === 0) return null;
   const dotScale = dotZoomTierScale(zoom);
+  const selectedStationIds = new Set(selectedStationIdsInput);
+  const selectedStations =
+    selectedStationIds.size > 0
+      ? valid.filter((station) =>
+          isSelectedStation(station, selectedStationIds),
+        )
+      : [];
 
   if (zoom < DOTS_TO_PINS_ZOOM) {
     return [
+      ...(selectedStations.length > 0
+        ? [
+            new ScatterplotLayer<CitiBikeStation>({
+              id: "station-pins-dot-selected-glow",
+              data: selectedStations,
+              filled: true,
+              pickable: false,
+              stroked: false,
+              getPosition: (station) => [station.lon, station.lat],
+              getRadius: (station) =>
+                dotFieldRadius(station.capacity ?? 0, zoom) * dotScale + 5,
+              getFillColor: SELECTED_HALO_COLOR,
+              radiusUnits: "pixels",
+              radiusMinPixels: 8 * dotScale,
+              radiusMaxPixels: 12 * dotScale,
+              transitions: {
+                getFillColor: PIN_TRANSITION,
+                getRadius: PIN_TRANSITION,
+              },
+              updateTriggers: {
+                getFillColor: [stations, zoom, selectedStationIdsInput],
+                getRadius: [stations, zoom, selectedStationIdsInput],
+              },
+            }),
+            new ScatterplotLayer<CitiBikeStation>({
+              id: "station-pins-dot-selected-ring",
+              data: selectedStations,
+              filled: false,
+              pickable: false,
+              stroked: true,
+              getPosition: (station) => [station.lon, station.lat],
+              getRadius: (station) =>
+                dotFieldRadius(station.capacity ?? 0, zoom) * dotScale + 3.2,
+              getLineColor: [59, 130, 246, 160],
+              getLineWidth: 1.3,
+              lineWidthUnits: "pixels",
+              lineWidthMinPixels: 1.3,
+              lineWidthMaxPixels: 2,
+              radiusUnits: "pixels",
+              radiusMinPixels: 6.5 * dotScale,
+              radiusMaxPixels: 10 * dotScale,
+              transitions: {
+                getLineColor: PIN_TRANSITION,
+                getRadius: PIN_TRANSITION,
+              },
+              updateTriggers: {
+                getLineColor: [stations, zoom, selectedStationIdsInput],
+                getRadius: [stations, zoom, selectedStationIdsInput],
+              },
+            }),
+          ]
+        : []),
       new ScatterplotLayer<CitiBikeStation>({
         id: "station-pins-dot-field",
         data: valid,
@@ -122,8 +197,8 @@ export function createStationPinsLayer(
         radiusMinPixels: 5 * dotScale,
         radiusMaxPixels: 8.5 * dotScale,
         transitions: {
-          getFillColor: { duration: 800, easing: easeOut },
-          getRadius: { duration: 600, easing: easeOut },
+          getFillColor: PIN_TRANSITION,
+          getRadius: PIN_TRANSITION,
         },
         updateTriggers: {
           getFillColor: [stations, zoom],
@@ -144,8 +219,8 @@ export function createStationPinsLayer(
         radiusMinPixels: 3 * dotScale,
         radiusMaxPixels: 6 * dotScale,
         transitions: {
-          getFillColor: { duration: 800, easing: easeOut },
-          getRadius: { duration: 600, easing: easeOut },
+          getFillColor: PIN_TRANSITION,
+          getRadius: PIN_TRANSITION,
         },
         updateTriggers: {
           getFillColor: [stations, zoom],
@@ -160,24 +235,25 @@ export function createStationPinsLayer(
         stroked: false,
         getPosition: (station) => [station.lon, station.lat],
         getRadius: (station) =>
-          dotCoreRadius(station.capacity ?? 0, zoom) * dotScale,
+          dotCoreRadius(station.capacity ?? 0, zoom) * dotScale +
+          (isSelectedStation(station, selectedStationIds) ? 0.65 : 0),
         getFillColor: dotCoreColor,
         radiusUnits: "pixels",
         radiusMinPixels: 1.5 * dotScale,
         radiusMaxPixels: 3.5 * dotScale,
         transitions: {
-          getFillColor: { duration: 800, easing: easeOut },
-          getRadius: { duration: 600, easing: easeOut },
+          getFillColor: PIN_TRANSITION,
+          getRadius: PIN_TRANSITION,
         },
         updateTriggers: {
           getFillColor: [stations, zoom],
-          getRadius: [stations, zoom],
+          getRadius: [stations, zoom, selectedStationIdsInput],
         },
       }),
     ];
   }
 
-  return new IconLayer<CitiBikeStation>({
+  const iconLayer = new IconLayer<CitiBikeStation>({
     id: "station-pins",
     data: valid,
     pickable: true,
@@ -187,7 +263,7 @@ export function createStationPinsLayer(
     getIcon: (s) => {
       const bucket = isActive(s) ? bucketRatio(availabilityRatio(s)) : 0;
       return {
-        url: getPinIconUrl(bucket),
+        url: getPinIconUrl(bucket, isSelectedStation(s, selectedStationIds)),
         width: ICON_RES,
         height: ICON_RES,
         mask: true,
@@ -195,21 +271,54 @@ export function createStationPinsLayer(
     },
 
     getColor: (s) => availabilityColor(availabilityRatio(s), isActive(s)),
-    getSize: (s) => scaledPinSize(s.capacity ?? 0, zoom),
+    getSize: (s) =>
+      scaledPinSize(s.capacity ?? 0, zoom) *
+      ICON_SIZE_SCALE *
+      (isSelectedStation(s, selectedStationIds) ? 1.12 : 1),
 
     sizeUnits: "pixels",
-    sizeMinPixels: 18,
-    sizeMaxPixels: 36,
+    sizeMinPixels: 18 * ICON_SIZE_SCALE,
+    sizeMaxPixels: 36 * ICON_SIZE_SCALE,
 
     transitions: {
-      getColor: { duration: 800, easing: easeOut },
-      getSize: { duration: 600, easing: easeOut },
+      getColor: PIN_TRANSITION,
+      getSize: PIN_TRANSITION,
     },
 
     updateTriggers: {
-      getIcon: stations,
+      getIcon: [stations, selectedStationIdsInput],
       getColor: stations,
-      getSize: [stations, zoom],
+      getSize: [stations, zoom, selectedStationIdsInput],
     },
   });
+
+  if (selectedStations.length === 0) {
+    return iconLayer;
+  }
+
+  return [
+    new ScatterplotLayer<CitiBikeStation>({
+      id: "station-pins-selected-glow",
+      data: selectedStations,
+      filled: true,
+      pickable: false,
+      stroked: false,
+      getPosition: (station) => [station.lon, station.lat],
+      getRadius: (station) =>
+        selectedPinGlowRadius(station.capacity ?? 0, zoom),
+      getFillColor: SELECTED_HALO_COLOR,
+      radiusUnits: "pixels",
+      radiusMinPixels: 12,
+      radiusMaxPixels: 24,
+      transitions: {
+        getFillColor: PIN_TRANSITION,
+        getRadius: PIN_TRANSITION,
+      },
+      updateTriggers: {
+        getFillColor: [stations, zoom, selectedStationIdsInput],
+        getRadius: [stations, zoom, selectedStationIdsInput],
+      },
+    }),
+    iconLayer,
+  ];
 }

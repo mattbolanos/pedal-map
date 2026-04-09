@@ -44,12 +44,15 @@ const NYC_METRO_BOUNDS: LngLatBoundsLike = [
 
 const MIN_ZOOM = 10.65;
 const MAX_ZOOM = 15.1;
-const STATION_HIT_AREA = 10;
+const STATION_HIT_AREA = 12;
+const DESKTOP_HOVER_LEAVE_DELAY_MS = 100;
 const TOOLTIP_GAP = 18;
 const TOOLTIP_VIEWPORT_PADDING = 20;
 const SELECTED_DESKTOP_PANEL_GAP = 16;
 const DESKTOP_SELECTED_STATION_X_RATIO = 0.5;
 const DESKTOP_SELECTED_STATION_Y_RATIO = 0.62;
+const MOBILE_SELECTED_STATION_Y_RATIO = 0.3;
+
 const STATION_FLY_TO_INTERPOLATOR = new FlyToInterpolator({ curve: 1.25 });
 const STATION_FLY_TO_DURATION_MS = 1050;
 
@@ -95,6 +98,7 @@ function toStationState(station: CitiBikeStation): HoveredStation {
 export function StationMap() {
   const { data: citiBikeStations } = useQuery(citiBikeStationsQueryOptions);
   const stations = citiBikeStations?.stations ?? [];
+  const renderStationsRef = useRef<CitiBikeStation[]>([]);
   const [viewState, setViewState] = useState(() =>
     clampViewState(INITIAL_VIEW_STATE),
   );
@@ -113,21 +117,39 @@ export function StationMap() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const tooltipRef = useRef<HTMLDivElement | null>(null);
   const tooltipPositionFrameRef = useRef<number | null>(null);
+  const hoverLeaveTimeoutRef = useRef<number | null>(null);
   const canHover = viewState.zoom >= SMALL_TO_MEDIUM_DOTS_ZOOM;
   const prefersReducedMotion = usePrefersReducedMotion();
+  const renderStations =
+    stations.length > 0 ? stations : renderStationsRef.current;
 
-  const clearHoveredStation = () => {
+  useEffect(() => {
+    if (stations.length > 0) {
+      renderStationsRef.current = stations;
+    }
+  }, [stations]);
+
+  const clearHoverTimers = useCallback(() => {
+    if (hoverLeaveTimeoutRef.current !== null) {
+      window.clearTimeout(hoverLeaveTimeoutRef.current);
+      hoverLeaveTimeoutRef.current = null;
+    }
+  }, []);
+
+  const clearHoveredStation = useCallback(() => {
     if (tooltipPositionFrameRef.current !== null) {
       cancelAnimationFrame(tooltipPositionFrameRef.current);
       tooltipPositionFrameRef.current = null;
     }
+
+    clearHoverTimers();
 
     if (hoveredStationIdRef.current !== null) {
       hoveredStationIdRef.current = null;
       setHoveredStation(null);
       setTooltipPosition(null);
     }
-  };
+  }, [clearHoverTimers]);
 
   const projectStationPosition = useCallback(
     (
@@ -229,9 +251,57 @@ export function StationMap() {
     [updateTooltipPosition],
   );
 
+  const setHoveredStationState = useCallback(
+    (station: CitiBikeStation) => {
+      hoveredStationIdRef.current = station.station_id;
+      scheduleTooltipPosition(station, viewState);
+      setHoveredStation((current) => {
+        if (current?.station === station) {
+          return current;
+        }
+
+        return {
+          station,
+        };
+      });
+    },
+    [scheduleTooltipPosition, viewState],
+  );
+
+  const scheduleHoverClear = useCallback(() => {
+    if (
+      hoveredStationIdRef.current === null ||
+      hoverLeaveTimeoutRef.current !== null
+    ) {
+      return;
+    }
+
+    hoverLeaveTimeoutRef.current = window.setTimeout(() => {
+      hoverLeaveTimeoutRef.current = null;
+      clearHoveredStation();
+    }, DESKTOP_HOVER_LEAVE_DELAY_MS);
+  }, [clearHoveredStation]);
+
+  const scheduleHoveredStation = useCallback(
+    (station: CitiBikeStation) => {
+      if (hoverLeaveTimeoutRef.current !== null) {
+        window.clearTimeout(hoverLeaveTimeoutRef.current);
+        hoverLeaveTimeoutRef.current = null;
+      }
+
+      if (hoveredStationIdRef.current !== station.station_id) {
+        setHoveredStationState(station);
+        return;
+      }
+
+      setHoveredStationState(station);
+    },
+    [setHoveredStationState],
+  );
+
   const alignStationInViewport = useCallback(
     (station: CitiBikeStation, nextViewState: MapViewState) => {
-      if (!containerRef.current || isMobile) {
+      if (!containerRef.current) {
         return nextViewState;
       }
 
@@ -246,10 +316,14 @@ export function StationMap() {
         width,
         height,
       });
-      const desiredPixel: [number, number] = [
-        width * DESKTOP_SELECTED_STATION_X_RATIO,
-        height * DESKTOP_SELECTED_STATION_Y_RATIO,
-      ];
+
+      // Use different y ratios for mobile and desktop, integrating MOBILE_SELECTED_STATION_Y_RATIO
+      const yRatio = isMobile
+        ? MOBILE_SELECTED_STATION_Y_RATIO
+        : DESKTOP_SELECTED_STATION_Y_RATIO;
+      const xRatio = DESKTOP_SELECTED_STATION_X_RATIO; // Both can share x
+
+      const desiredPixel: [number, number] = [width * xRatio, height * yRatio];
 
       return clampViewState({
         ...nextViewState,
@@ -267,21 +341,11 @@ export function StationMap() {
     const station = info.object;
 
     if (!station) {
-      clearHoveredStation();
+      scheduleHoverClear();
       return;
     }
 
-    hoveredStationIdRef.current = station.station_id;
-    scheduleTooltipPosition(station, viewState);
-    setHoveredStation((current) => {
-      if (current?.station === station) {
-        return current;
-      }
-
-      return {
-        station,
-      };
-    });
+    scheduleHoveredStation(station);
   };
 
   const selectStationFromSearch = (station: CitiBikeStation) => {
@@ -308,9 +372,7 @@ export function StationMap() {
       return;
     }
 
-    hoveredStationIdRef.current = null;
-    setHoveredStation(null);
-    setTooltipPosition(null);
+    clearHoveredStation();
     setSearchSelectedDesktopStation(toStationState(station));
   };
 
@@ -365,17 +427,41 @@ export function StationMap() {
       if (tooltipPositionFrameRef.current !== null) {
         cancelAnimationFrame(tooltipPositionFrameRef.current);
       }
+
+      clearHoverTimers();
     };
-  }, []);
+  }, [clearHoverTimers]);
+
+  const selectedStationIds = useMemo(() => {
+    const ids = new Set<string>();
+
+    if (hoveredStation) {
+      ids.add(hoveredStation.station.station_id);
+    }
+
+    if (searchSelectedDesktopStation) {
+      ids.add(searchSelectedDesktopStation.station.station_id);
+    }
+
+    if (selectedMobileStation) {
+      ids.add(selectedMobileStation.station.station_id);
+    }
+
+    return [...ids];
+  }, [hoveredStation, searchSelectedDesktopStation, selectedMobileStation]);
 
   const layers = useMemo(() => {
     const nextLayers: Layer[] = [];
 
-    if (stations.length === 0) {
+    if (renderStations.length === 0) {
       return nextLayers;
     }
 
-    const layer = createStationPinsLayer(stations, viewState.zoom);
+    const layer = createStationPinsLayer(
+      renderStations,
+      viewState.zoom,
+      selectedStationIds,
+    );
 
     if (!layer) {
       return nextLayers;
@@ -384,7 +470,7 @@ export function StationMap() {
     nextLayers.push(...(Array.isArray(layer) ? layer : [layer]));
 
     return nextLayers;
-  }, [stations, viewState.zoom]);
+  }, [renderStations, selectedStationIds, viewState.zoom]);
 
   const selectedDesktopPanelTop = useMemo(() => {
     if (!searchSelectedDesktopStation || isMobile) {
@@ -425,7 +511,7 @@ export function StationMap() {
   return (
     <div className="relative size-full" ref={containerRef}>
       <MapControls
-        stations={stations}
+        stations={renderStations}
         onSelectStation={selectStationFromSearch}
       />
       <DeckGL

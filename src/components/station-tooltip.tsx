@@ -188,7 +188,7 @@ function StationDetails({
 }
 
 function StationBadges({ station }: StationTooltipProps) {
-  const regionBadge = getStationRegion(station.region_id);
+  const regionBadge = getStationRegion(station.region_id, station.station_id);
   const isActive = isStationActive(station);
 
   if (!regionBadge && isActive) {
@@ -215,7 +215,7 @@ function StationBadges({ station }: StationTooltipProps) {
 }
 
 export const StationTooltip = ({ station }: StationTooltipProps) => (
-  <Card className="bg-popover supports-backdrop-filter:bg-popover/95 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 motion-safe:slide-in-from-bottom-2 motion-safe:duration-200 md:w-72">
+  <Card className="bg-popover supports-backdrop-filter:bg-popover/95 md:w-72">
     <CardHeader className="gap-1.5">
       <CardTitle className="min-w-0 text-balance">{station.name}</CardTitle>
       <StationBadges station={station} />

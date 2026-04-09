@@ -1,7 +1,10 @@
 import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/csr/MagnifyingGlass";
 import { MapPinAreaIcon } from "@phosphor-icons/react/dist/csr/MapPinArea";
+import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { useDeferredValue, useMemo, useState } from "react";
+import { useIsMobile } from "#/hooks/use-mobile";
+import { useIsTouchDevice } from "#/hooks/use-touch-device";
 import type { CitiBikeStation } from "#/lib/citibike";
 import { isStationActive } from "#/lib/station";
 import {
@@ -20,6 +23,15 @@ import {
   CommandItem,
   CommandList,
 } from "./ui/command";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+} from "./ui/drawer";
+import { Input } from "./ui/input";
 import { Kbd, KbdGroup } from "./ui/kbd";
 
 const MAX_VISIBLE_STATIONS = 50;
@@ -62,18 +74,12 @@ interface StationSearchProps {
   onSelectStation: (station: CitiBikeStation) => void;
 }
 
-function compareStationsByDefaultOrder(
-  stationA: CitiBikeStation,
-  stationB: CitiBikeStation,
-) {
-  const stationAIsActive = isStationActive(stationA);
-  const stationBIsActive = isStationActive(stationB);
-
-  if (stationAIsActive !== stationBIsActive) {
-    return stationAIsActive ? -1 : 1;
-  }
-
-  return stationA.name.localeCompare(stationB.name);
+interface StationSearchResultsProps {
+  visibleGroups: {
+    heading: string;
+    stations: CitiBikeStation[];
+  }[];
+  onSelectStation: (station: CitiBikeStation) => void;
 }
 
 function compareStationSearchResults(
@@ -160,12 +166,67 @@ function getStationSearchScore(
   return score;
 }
 
+function StationSearchResultContent({ station }: { station: CitiBikeStation }) {
+  const region = getStationRegion(station.region_id, station.station_id);
+  const isActive = isStationActive(station);
+
+  return (
+    <>
+      <MapPinAreaIcon className={cn("shrink-0", region?.pinClassName)} />
+      <span className="truncate">{station.name}</span>
+      {!isActive && (
+        <Badge variant="offline" aria-label="Offline" className="ml-auto">
+          Offline
+        </Badge>
+      )}
+    </>
+  );
+}
+
+function MobileStationSearchResults({
+  visibleGroups,
+  onSelectStation,
+}: StationSearchResultsProps) {
+  if (visibleGroups.length === 0) {
+    return (
+      <p className="text-muted-foreground py-6 text-center text-sm">
+        No results found.
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-1">
+      {visibleGroups.map((group) => (
+        <section key={group.heading} className="flex flex-col gap-1">
+          <h3 className="text-muted-foreground p-1.5 text-xs font-medium">
+            {group.heading}
+          </h3>
+          {group.stations.map((station) => (
+            <button
+              key={station.station_id}
+              type="button"
+              className="hover:bg-accent focus-visible:border-ring focus-visible:ring-ring/50 flex w-full items-center gap-2 rounded-xl p-2 text-left text-sm transition-colors outline-none focus-visible:ring-[3px]"
+              onClick={() => onSelectStation(station)}
+            >
+              <StationSearchResultContent station={station} />
+            </button>
+          ))}
+        </section>
+      ))}
+    </div>
+  );
+}
+
 export function StationSearch({
   stations,
   onSelectStation,
 }: StationSearchProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const isMobile = useIsMobile();
+  const isTouchDevice = useIsTouchDevice();
+  const useMobileSearch = isMobile || isTouchDevice;
   const deferredQuery = useDeferredValue(query);
   const normalizedQuery = normalizeSearchText(deferredQuery);
 
@@ -191,7 +252,11 @@ export function StationSearch({
   const defaultVisibleStations = useMemo(
     () =>
       [...stations]
-        .sort(compareStationsByDefaultOrder)
+        .sort(
+          (stationA, stationB) =>
+            (stationB.num_ebikes_available ?? 0) -
+            (stationA.num_ebikes_available ?? 0),
+        )
         .slice(0, MAX_VISIBLE_STATIONS),
     [stations],
   );
@@ -254,7 +319,7 @@ export function StationSearch({
 
   const groupedStations = visibleStations.reduce((groups, station) => {
     const regionLabel: StationGroupHeading =
-      getStationRegion(station.region_id)?.label ?? "Other";
+      getStationRegion(station.region_id, station.station_id)?.label ?? "Other";
     const stationsInRegion = groups.get(regionLabel) ?? [];
 
     stationsInRegion.push(station);
@@ -281,6 +346,12 @@ export function StationSearch({
 
   useHotkey("Mod+K", () => setOpen(true));
 
+  const handleSelectStation = (station: CitiBikeStation) => {
+    onSelectStation(station);
+    setQuery("");
+    setOpen(false);
+  };
+
   return (
     <div>
       <Button
@@ -294,54 +365,78 @@ export function StationSearch({
           <Kbd>⌘ K</Kbd>
         </KbdGroup>
       </Button>
-      <CommandDialog open={open} onOpenChange={setOpen}>
-        <Command shouldFilter={false}>
-          <CommandInput
-            placeholder="Search stations..."
-            value={query}
-            onValueChange={setQuery}
-          />
-          <CommandList>
-            <CommandEmpty>No results found.</CommandEmpty>
-            {visibleGroups.map((group) => (
-              <CommandGroup key={group.heading} heading={group.heading}>
-                {group.stations.map((station) => {
-                  const region = getStationRegion(station.region_id);
-                  const isActive = isStationActive(station);
+      {useMobileSearch ? (
+        <Drawer open={open} onOpenChange={setOpen}>
+          <DrawerContent className="max-h-[80vh]">
+            <DrawerHeader className="gap-1.5">
+              <div className="flex items-center justify-between gap-2">
+                <DrawerTitle className="text-left">Search stations</DrawerTitle>
+                <DrawerClose asChild>
+                  <Button
+                    size="icon-sm"
+                    variant="secondary"
+                    className="-mr-1"
+                    aria-label="Close station search"
+                  >
+                    <XIcon />
+                  </Button>
+                </DrawerClose>
+              </div>
+              <DrawerDescription className="sr-only text-left">
+                Search by station name or short name.
+              </DrawerDescription>
+            </DrawerHeader>
+            <div className="px-4">
+              <Input
+                type="search"
+                placeholder="Search stations..."
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                autoCapitalize="none"
+                autoComplete="off"
+                autoCorrect="off"
+                enterKeyHint="search"
+                spellCheck={false}
+              />
+            </div>
 
-                  return (
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-3 pb-6">
+              <MobileStationSearchResults
+                visibleGroups={visibleGroups}
+                onSelectStation={handleSelectStation}
+              />
+            </div>
+          </DrawerContent>
+        </Drawer>
+      ) : (
+        <CommandDialog open={open} onOpenChange={setOpen}>
+          <Command shouldFilter={false}>
+            <CommandInput
+              placeholder="Search stations..."
+              value={query}
+              onValueChange={setQuery}
+            />
+            <CommandList>
+              <CommandEmpty>No results found.</CommandEmpty>
+              {visibleGroups.map((group) => (
+                <CommandGroup key={group.heading} heading={group.heading}>
+                  {group.stations.map((station) => (
                     <CommandItem
                       key={station.station_id}
                       value={station.name}
                       keywords={[station.short_name ?? ""].filter(Boolean)}
-                      onSelect={() => {
-                        onSelectStation(station);
-                        setQuery("");
-                        setOpen(false);
-                      }}
+                      onSelect={() => handleSelectStation(station)}
                       hideCheckIcon
                     >
-                      <MapPinAreaIcon
-                        className={cn("shrink-0", region?.pinClassName)}
-                      />
-                      <span className="truncate">{station.name}</span>
-                      {!isActive && (
-                        <Badge
-                          variant="offline"
-                          aria-label="Offline"
-                          className="ml-auto"
-                        >
-                          Offline
-                        </Badge>
-                      )}
+                      <StationSearchResultContent station={station} />
                     </CommandItem>
-                  );
-                })}
-              </CommandGroup>
-            ))}
-          </CommandList>
-        </Command>
-      </CommandDialog>
+                  ))}
+                </CommandGroup>
+              ))}
+            </CommandList>
+          </Command>
+        </CommandDialog>
+      )}
     </div>
   );
 }

@@ -25,6 +25,10 @@ const STATION_REGIONS = {
 	}
 >;
 
+const STATION_REGION_OVERRIDES: Partial<Record<string, StationRegionId>> = {
+	"66dbc860-0aca-11e7-82f6-3863bb44ef7c": "71",
+};
+
 export type StationRegionId = keyof typeof STATION_REGIONS;
 export type StationRegion = (typeof STATION_REGIONS)[StationRegionId];
 export type StationRegionLabel = StationRegion["label"];
@@ -43,8 +47,15 @@ export function normalizeStationRegionId(
 	return regionId;
 }
 
-export function getStationRegion(regionId: StationRegionId | undefined) {
+export function getStationRegion(
+	regionId: StationRegionId | undefined,
+	stationId: string,
+) {
 	if (!regionId) {
+		const overriddenRegionId = STATION_REGION_OVERRIDES[stationId];
+		if (overriddenRegionId) {
+			return STATION_REGIONS[overriddenRegionId];
+		}
 		return null;
 	}
 

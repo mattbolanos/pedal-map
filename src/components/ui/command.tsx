@@ -49,7 +49,7 @@ function CommandDialog({
       </DialogHeader>
       <DialogContent
         className={cn(
-          "bg-secondary top-1/12 translate-y-0 overflow-hidden rounded-xl! p-0 md:top-1/3",
+          "bg-secondary top-1/12 translate-y-0 overflow-hidden rounded-xl! p-0 md:top-1/6",
           className,
         )}
         showCloseButton={showCloseButton}
@@ -70,7 +70,7 @@ function CommandInput({
         <CommandPrimitive.Input
           data-slot="command-input"
           className={cn(
-            "w-full text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
+            "w-full text-base outline-hidden disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
             className,
           )}
           {...props}
@@ -91,7 +91,7 @@ function CommandList({
     <CommandPrimitive.List
       data-slot="command-list"
       className={cn(
-        "no-scrollbar max-h-72 scroll-py-1 overflow-x-hidden overflow-y-auto outline-none",
+        "no-scrollbar max-h-90 scroll-py-1 overflow-x-hidden overflow-y-auto outline-none",
         className,
       )}
       {...props}

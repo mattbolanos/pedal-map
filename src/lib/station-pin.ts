@@ -1,12 +1,17 @@
-const RES = 64;
+const ICON_VISUAL_RES = 64;
+const RES = 80;
 const CX = RES / 2;
 const CY = RES / 2;
-const RING_R = 24;
+const RING_R = 22;
 const RING_W = 6;
-const DOT_R = 12;
+const DOT_R = 14;
+const SELECTED_GLOW_R = 31;
+const SELECTED_RING_R = 28.5;
+const SELECTED_INNER_RING_R = 26.75;
 const BUCKET_STEP = 0.05;
 
 export const ICON_RES = RES;
+export const ICON_SIZE_SCALE = RES / ICON_VISUAL_RES;
 
 function polar(cx: number, cy: number, r: number, deg: number) {
 	const rad = ((deg - 90) * Math.PI) / 180;
@@ -31,19 +36,28 @@ function arcD(ratio: number): string {
 	return `M${s.x},${s.y} A${RING_R},${RING_R} 0 ${large} 1 ${e.x},${e.y}`;
 }
 
-const urlCache = new Map<number, string>();
+const urlCache = new Map<string, string>();
 
-export function getPinIconUrl(bucket: number): string {
-	const cached = urlCache.get(bucket);
+export function getPinIconUrl(bucket: number, selected = false): string {
+	const cacheKey = `${bucket}:${selected ? 1 : 0}`;
+	const cached = urlCache.get(cacheKey);
 	if (cached) return cached;
 
 	const progress =
 		bucket > 0
 			? `<path d="${arcD(bucket)}" fill="none" stroke="white" stroke-width="${RING_W}" stroke-linecap="round"/>`
 			: "";
+	const selectedAccent = selected
+		? [
+				`<circle cx="${CX}" cy="${CY}" r="${SELECTED_GLOW_R}" fill="white" opacity="0.1"/>`,
+				`<circle cx="${CX}" cy="${CY}" r="${SELECTED_RING_R}" fill="none" stroke="white" stroke-width="2.25" opacity="0.5"/>`,
+				`<circle cx="${CX}" cy="${CY}" r="${SELECTED_INNER_RING_R}" fill="none" stroke="white" stroke-width="1.2" opacity="0.28"/>`,
+			].join("")
+		: "";
 
 	const svg = [
 		`<svg xmlns="http://www.w3.org/2000/svg" width="${RES}" height="${RES}">`,
+		selectedAccent,
 		`<circle cx="${CX}" cy="${CY}" r="${RING_R}" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="${RING_W}"/>`,
 		progress,
 		`<circle cx="${CX}" cy="${CY}" r="${DOT_R}" fill="white" opacity="0.92"/>`,
@@ -51,7 +65,7 @@ export function getPinIconUrl(bucket: number): string {
 	].join("");
 
 	const url = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-	urlCache.set(bucket, url);
+	urlCache.set(cacheKey, url);
 	return url;
 }
 
