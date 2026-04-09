@@ -11,6 +11,7 @@ export const neighborhoodBadgeVariants = {
   hoboken:
     "border-amber-500/25 bg-amber-500/12 text-amber-700 dark:text-amber-300",
   bayRidge: "border-sky-400/30 bg-sky-400/15 text-sky-300",
+  boerumHill: "border-gray-400/30 bg-gray-400/15 text-gray-300",
   carrollGardens: "border-pink-200/30 bg-pink-200/15 text-pink-300",
   columbiaStWaterFront: "border-cyan-400/30 bg-cyan-400/15 text-cyan-300",
   crownHeights: "border-emerald-400/30 bg-emerald-400/15 text-emerald-300",
@@ -18,6 +19,7 @@ export const neighborhoodBadgeVariants = {
   ditmasPark: "border-rose-300/30 bg-rose-400/15 text-rose-300",
   eastFlatbush: "border-violet-400/30 bg-violet-400/15 text-violet-300",
   flatbush: "border-purple-400/30 bg-purple-400/15 text-purple-300",
+  governorsIsland: "border-green-400/30 bg-green-400/15 text-green-300",
   gowanus: "border-lime-400/30 bg-lime-400/15 text-lime-300",
   greenwoodHeights: "border-green-400/30 bg-green-400/15 text-green-300",
   kensington: "border-teal-400/30 bg-teal-400/15 text-teal-300",
@@ -26,6 +28,7 @@ export const neighborhoodBadgeVariants = {
   prospectHeights: "border-pink-600/30 bg-pink-600/15 text-pink-300",
   prospectLeffertGardens: "border-pink-400/30 bg-pink-400/15 text-pink-300",
   prospectParkSouth: "border-yellow-400/30 bg-yellow-400/15 text-yellow-300",
+  redHook: "border-orange-400/30 bg-orange-400/15 text-orange-300",
   southSlope: "border-orange-400/30 bg-orange-400/15 text-orange-300",
   sunsetPark: "border-amber-400/30 bg-amber-400/15 text-amber-300",
   windsorTerrace: "border-indigo-400/30 bg-indigo-400/15 text-indigo-300",
