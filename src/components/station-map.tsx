@@ -1,8 +1,8 @@
 import {
-	type Layer,
-	type MapViewState,
-	type PickingInfo,
-	WebMercatorViewport,
+  type Layer,
+  type MapViewState,
+  type PickingInfo,
+  WebMercatorViewport,
 } from "@deck.gl/core";
 import { DeckGL } from "@deck.gl/react";
 import { useQuery } from "@tanstack/react-query";
@@ -10,29 +10,30 @@ import type { LngLatBoundsLike } from "mapbox-gl";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Map as MapView } from "react-map-gl/mapbox";
 import {
-	createStationPinsLayer,
-	SMALL_TO_MEDIUM_DOTS_ZOOM,
+  createStationPinsLayer,
+  SMALL_TO_MEDIUM_DOTS_ZOOM,
 } from "#/components/station-pins-layer";
 import { StationDrawer, StationTooltip } from "#/components/station-tooltip";
 import { Drawer } from "#/components/ui/drawer";
 import { useIsMobile } from "#/hooks/use-mobile";
 import type { CitiBikeStation } from "#/lib/citibike";
 import { citiBikeStationsQueryOptions } from "#/lib/citibike";
+import { MapControls } from "./map-controls";
 
 const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 const MAP_STYLE_URL = "mapbox://styles/mapbox/dark-v11";
 
 const INITIAL_VIEW_STATE: MapViewState = {
-	longitude: -73.9651,
-	latitude: 40.6917,
-	zoom: 13.8,
-	bearing: 0,
-	pitch: 0,
+  longitude: -73.9651,
+  latitude: 40.6917,
+  zoom: 13.8,
+  bearing: 0,
+  pitch: 0,
 };
 
 const NYC_METRO_BOUNDS: LngLatBoundsLike = [
-	[-74.3, 40.5],
-	[-73.7, 40.95],
+  [-74.3, 40.5],
+  [-73.7, 40.95],
 ];
 
 const MIN_ZOOM = 10.65;
@@ -42,311 +43,344 @@ const TOOLTIP_GAP = 18;
 const TOOLTIP_VIEWPORT_PADDING = 20;
 
 interface HoveredStation {
-	station: CitiBikeStation;
-}
-
-interface CursorState {
-	isDragging: boolean;
-	isHovering: boolean;
+  station: CitiBikeStation;
 }
 
 interface TooltipPosition {
-	left: number;
-	top: number;
+  left: number;
+  top: number;
 }
 
 function clamp(value: number, min: number, max: number) {
-	return Math.min(Math.max(value, min), max);
+  return Math.min(Math.max(value, min), max);
 }
 
 function clampViewState(viewState: MapViewState): MapViewState {
-	const [[minLon, minLat], [maxLon, maxLat]] = NYC_METRO_BOUNDS as [
-		[number, number],
-		[number, number],
-	];
+  const [[minLon, minLat], [maxLon, maxLat]] = NYC_METRO_BOUNDS as [
+    [number, number],
+    [number, number],
+  ];
 
-	return {
-		...viewState,
-		longitude: clamp(viewState.longitude, minLon, maxLon),
-		latitude: clamp(viewState.latitude, minLat, maxLat),
-		zoom: clamp(viewState.zoom, MIN_ZOOM, MAX_ZOOM),
-	};
+  return {
+    ...viewState,
+    longitude: clamp(viewState.longitude, minLon, maxLon),
+    latitude: clamp(viewState.latitude, minLat, maxLat),
+    zoom: clamp(viewState.zoom, MIN_ZOOM, MAX_ZOOM),
+  };
+}
+
+function toStationState(station: CitiBikeStation): HoveredStation {
+  return { station };
 }
 
 export function StationMap() {
-	const { data: citiBikeStations } = useQuery(citiBikeStationsQueryOptions);
-	const [viewState, setViewState] = useState(() =>
-		clampViewState(INITIAL_VIEW_STATE),
-	);
-	const [hoveredStation, setHoveredStation] = useState<HoveredStation | null>(
-		null,
-	);
-	const [selectedStation, setSelectedStation] = useState<HoveredStation | null>(
-		null,
-	);
-	const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
-	const isMobile = useIsMobile();
-	const [tooltipPosition, setTooltipPosition] =
-		useState<TooltipPosition | null>(null);
-	const hoveredStationIdRef = useRef<string | null>(null);
-	const containerRef = useRef<HTMLDivElement | null>(null);
-	const tooltipRef = useRef<HTMLDivElement | null>(null);
-	const tooltipPositionFrameRef = useRef<number | null>(null);
-	const canHover = viewState.zoom >= SMALL_TO_MEDIUM_DOTS_ZOOM;
+  const { data: citiBikeStations } = useQuery(citiBikeStationsQueryOptions);
+  const stations = citiBikeStations?.stations ?? [];
+  const [viewState, setViewState] = useState(() =>
+    clampViewState(INITIAL_VIEW_STATE),
+  );
+  const [hoveredStation, setHoveredStation] = useState<HoveredStation | null>(
+    null,
+  );
+  const [pinnedStation, setPinnedStation] = useState<HoveredStation | null>(
+    null,
+  );
+  const [selectedStation, setSelectedStation] = useState<HoveredStation | null>(
+    null,
+  );
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
+  const isMobile = useIsMobile();
+  const [tooltipPosition, setTooltipPosition] =
+    useState<TooltipPosition | null>(null);
+  const hoveredStationIdRef = useRef<string | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const tooltipRef = useRef<HTMLDivElement | null>(null);
+  const tooltipPositionFrameRef = useRef<number | null>(null);
+  const canHover = viewState.zoom >= SMALL_TO_MEDIUM_DOTS_ZOOM;
+  const displayedStation = hoveredStation ?? pinnedStation;
 
-	const clearHoveredStation = () => {
-		if (tooltipPositionFrameRef.current !== null) {
-			cancelAnimationFrame(tooltipPositionFrameRef.current);
-			tooltipPositionFrameRef.current = null;
-		}
+  const clearHoveredStation = () => {
+    if (tooltipPositionFrameRef.current !== null) {
+      cancelAnimationFrame(tooltipPositionFrameRef.current);
+      tooltipPositionFrameRef.current = null;
+    }
 
-		if (hoveredStationIdRef.current !== null) {
-			hoveredStationIdRef.current = null;
-			setHoveredStation(null);
-			setTooltipPosition(null);
-		}
-	};
+    if (hoveredStationIdRef.current !== null) {
+      hoveredStationIdRef.current = null;
+      setHoveredStation(null);
+      setTooltipPosition(null);
+    }
+  };
 
-	const updateTooltipPosition = (
-		station: CitiBikeStation,
-		nextViewState: MapViewState,
-	) => {
-		if (!containerRef.current || !tooltipRef.current) {
-			setTooltipPosition(null);
-			return;
-		}
+  const clearPinnedStation = () => {
+    setPinnedStation(null);
+    setTooltipPosition(null);
+  };
 
-		const containerRect = containerRef.current.getBoundingClientRect();
-		const tooltipRect = tooltipRef.current.getBoundingClientRect();
+  const updateTooltipPosition = (
+    station: CitiBikeStation,
+    nextViewState: MapViewState,
+  ) => {
+    if (!containerRef.current || !tooltipRef.current) {
+      setTooltipPosition(null);
+      return;
+    }
 
-		if (
-			containerRect.width === 0 ||
-			containerRect.height === 0 ||
-			tooltipRect.width === 0 ||
-			tooltipRect.height === 0
-		) {
-			setTooltipPosition(null);
-			return;
-		}
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const tooltipRect = tooltipRef.current.getBoundingClientRect();
 
-		const viewport = new WebMercatorViewport({
-			...nextViewState,
-			width: containerRect.width,
-			height: containerRect.height,
-		});
-		const [anchorX, anchorY] = viewport.project([station.lon, station.lat]);
+    if (
+      containerRect.width === 0 ||
+      containerRect.height === 0 ||
+      tooltipRect.width === 0 ||
+      tooltipRect.height === 0
+    ) {
+      setTooltipPosition(null);
+      return;
+    }
 
-		const minLeft = TOOLTIP_VIEWPORT_PADDING;
-		const maxLeft = Math.max(
-			minLeft,
-			containerRect.width - tooltipRect.width - TOOLTIP_VIEWPORT_PADDING,
-		);
-		const left = clamp(anchorX - tooltipRect.width / 2, minLeft, maxLeft);
+    const viewport = new WebMercatorViewport({
+      ...nextViewState,
+      width: containerRect.width,
+      height: containerRect.height,
+    });
+    const [anchorX, anchorY] = viewport.project([station.lon, station.lat]);
 
-		const aboveTop = anchorY - tooltipRect.height - TOOLTIP_GAP;
-		const belowTop = anchorY + TOOLTIP_GAP;
-		const canPlaceAbove = aboveTop >= TOOLTIP_VIEWPORT_PADDING;
-		const canPlaceBelow =
-			belowTop + tooltipRect.height <=
-			containerRect.height - TOOLTIP_VIEWPORT_PADDING;
+    const minLeft = TOOLTIP_VIEWPORT_PADDING;
+    const maxLeft = Math.max(
+      minLeft,
+      containerRect.width - tooltipRect.width - TOOLTIP_VIEWPORT_PADDING,
+    );
+    const left = clamp(anchorX - tooltipRect.width / 2, minLeft, maxLeft);
 
-		const desiredTop = canPlaceAbove || !canPlaceBelow ? aboveTop : belowTop;
-		const minTop = TOOLTIP_VIEWPORT_PADDING;
-		const maxTop = Math.max(
-			minTop,
-			containerRect.height - tooltipRect.height - TOOLTIP_VIEWPORT_PADDING,
-		);
-		const top = clamp(desiredTop, minTop, maxTop);
+    const aboveTop = anchorY - tooltipRect.height - TOOLTIP_GAP;
+    const belowTop = anchorY + TOOLTIP_GAP;
+    const canPlaceAbove = aboveTop >= TOOLTIP_VIEWPORT_PADDING;
+    const canPlaceBelow =
+      belowTop + tooltipRect.height <=
+      containerRect.height - TOOLTIP_VIEWPORT_PADDING;
 
-		setTooltipPosition((current) => {
-			if (current && current.left === left && current.top === top) {
-				return current;
-			}
+    const desiredTop = canPlaceAbove || !canPlaceBelow ? aboveTop : belowTop;
+    const minTop = TOOLTIP_VIEWPORT_PADDING;
+    const maxTop = Math.max(
+      minTop,
+      containerRect.height - tooltipRect.height - TOOLTIP_VIEWPORT_PADDING,
+    );
+    const top = clamp(desiredTop, minTop, maxTop);
 
-			return { left, top };
-		});
-	};
+    setTooltipPosition((current) => {
+      if (current && current.left === left && current.top === top) {
+        return current;
+      }
 
-	const scheduleTooltipPosition = (
-		station: CitiBikeStation,
-		nextViewState: MapViewState,
-	) => {
-		if (tooltipPositionFrameRef.current !== null) {
-			cancelAnimationFrame(tooltipPositionFrameRef.current);
-		}
+      return { left, top };
+    });
+  };
 
-		tooltipPositionFrameRef.current = requestAnimationFrame(() => {
-			tooltipPositionFrameRef.current = null;
-			updateTooltipPosition(station, nextViewState);
-		});
-	};
+  const scheduleTooltipPosition = (
+    station: CitiBikeStation,
+    nextViewState: MapViewState,
+  ) => {
+    if (tooltipPositionFrameRef.current !== null) {
+      cancelAnimationFrame(tooltipPositionFrameRef.current);
+    }
 
-	const handleHover = (info: PickingInfo<CitiBikeStation>) => {
-		if (!canHover || isMobile) {
-			return;
-		}
+    tooltipPositionFrameRef.current = requestAnimationFrame(() => {
+      tooltipPositionFrameRef.current = null;
+      updateTooltipPosition(station, nextViewState);
+    });
+  };
 
-		const station = info.object;
+  const handleHover = (info: PickingInfo<CitiBikeStation>) => {
+    if (!canHover || isMobile) {
+      return;
+    }
 
-		if (!station) {
-			clearHoveredStation();
-			return;
-		}
+    const station = info.object;
 
-		hoveredStationIdRef.current = station.station_id;
-		scheduleTooltipPosition(station, viewState);
-		setHoveredStation((current) => {
-			if (current?.station === station) {
-				return current;
-			}
+    if (!station) {
+      clearHoveredStation();
+      return;
+    }
 
-			return {
-				station,
-			};
-		});
-	};
+    hoveredStationIdRef.current = station.station_id;
+    scheduleTooltipPosition(station, viewState);
+    setHoveredStation((current) => {
+      if (current?.station === station) {
+        return current;
+      }
 
-	const handleMapClick = (info: PickingInfo<CitiBikeStation>) => {
-		if (!isMobile) {
-			return;
-		}
+      return {
+        station,
+      };
+    });
+  };
 
-		const station = info.object;
+  const focusStation = (station: CitiBikeStation) => {
+    const nextViewState = clampViewState({
+      ...viewState,
+      longitude: station.lon,
+      latitude: station.lat,
+      zoom: Math.max(viewState.zoom, SMALL_TO_MEDIUM_DOTS_ZOOM),
+    });
 
-		if (!station) {
-			clearHoveredStation();
-			return;
-		}
+    setViewState(nextViewState);
 
-		hoveredStationIdRef.current = station.station_id;
-		setIsMobileDrawerOpen(true);
-		setSelectedStation((current) => {
-			if (current?.station === station) {
-				return current;
-			}
+    if (isMobile) {
+      clearHoveredStation();
+      setPinnedStation(null);
+      setSelectedStation(toStationState(station));
+      setIsMobileDrawerOpen(true);
+      return;
+    }
 
-			return {
-				station,
-			};
-		});
-	};
+    hoveredStationIdRef.current = null;
+    setHoveredStation(null);
+    setSelectedStation(null);
+    setPinnedStation(toStationState(station));
+    setTooltipPosition(null);
+  };
 
-	// Vaul not respecting modal b/c of controlled open :/
-	useEffect(() => {
-		if (isMobile && isMobileDrawerOpen) {
-			window.requestAnimationFrame(() => {
-				document.body.style.pointerEvents = "auto";
-			});
-		}
-	}, [isMobile, isMobileDrawerOpen]);
+  const handleMapClick = (info: PickingInfo<CitiBikeStation>) => {
+    if (!isMobile) {
+      return;
+    }
 
-	useEffect(() => {
-		return () => {
-			if (tooltipPositionFrameRef.current !== null) {
-				cancelAnimationFrame(tooltipPositionFrameRef.current);
-			}
-		};
-	}, []);
+    const station = info.object;
 
-	const layers = useMemo(() => {
-		const nextLayers: Layer[] = [];
+    if (!station) {
+      clearHoveredStation();
+      return;
+    }
 
-		if (!citiBikeStations) {
-			return nextLayers;
-		}
+    hoveredStationIdRef.current = station.station_id;
+    setIsMobileDrawerOpen(true);
+    setSelectedStation((current) => {
+      if (current?.station === station) {
+        return current;
+      }
 
-		const layer = createStationPinsLayer(
-			citiBikeStations.stations,
-			viewState.zoom,
-		);
+      return {
+        station,
+      };
+    });
+  };
 
-		if (!layer) {
-			return nextLayers;
-		}
+  // Vaul not respecting modal b/c of controlled open :/
+  useEffect(() => {
+    if (isMobile && isMobileDrawerOpen) {
+      window.requestAnimationFrame(() => {
+        document.body.style.pointerEvents = "auto";
+      });
+    }
+  }, [isMobile, isMobileDrawerOpen]);
 
-		nextLayers.push(...(Array.isArray(layer) ? layer : [layer]));
+  useEffect(() => {
+    return () => {
+      if (tooltipPositionFrameRef.current !== null) {
+        cancelAnimationFrame(tooltipPositionFrameRef.current);
+      }
+    };
+  }, []);
 
-		return nextLayers;
-	}, [citiBikeStations, viewState.zoom]);
+  const layers = useMemo(() => {
+    const nextLayers: Layer[] = [];
 
-	return (
-		<div className="relative size-full" ref={containerRef}>
-			<DeckGL
-				controller
-				getCursor={({ isDragging, isHovering }: CursorState) =>
-					isDragging ? "grabbing" : canHover && isHovering ? "pointer" : "grab"
-				}
-				layers={layers}
-				onClick={handleMapClick}
-				onDragStart={() => {
-					if (!isMobile) {
-						clearHoveredStation();
-					}
-				}}
-				onHover={handleHover}
-				pickingRadius={STATION_HIT_AREA}
-				onViewStateChange={({ viewState: nextViewState }) => {
-					if (!isMobile) {
-						clearHoveredStation();
-					}
-					setViewState(clampViewState(nextViewState as MapViewState));
-				}}
-				viewState={viewState}
-			>
-				<MapView
-					mapStyle={MAP_STYLE_URL}
-					mapboxAccessToken={MAPBOX_ACCESS_TOKEN}
-					maxBounds={NYC_METRO_BOUNDS}
-					maxZoom={MAX_ZOOM}
-					minZoom={MIN_ZOOM}
-					renderWorldCopies={false}
-					reuseMaps
-				/>
-			</DeckGL>
+    if (stations.length === 0) {
+      return nextLayers;
+    }
 
-			{hoveredStation ? (
-				<div
-					className="pointer-events-none absolute z-20 hidden md:block"
-					ref={(node) => {
-						tooltipRef.current = node;
+    const layer = createStationPinsLayer(stations, viewState.zoom);
 
-						if (node && hoveredStation) {
-							scheduleTooltipPosition(hoveredStation.station, viewState);
-						}
-					}}
-					style={
-						tooltipPosition
-							? {
-									left: tooltipPosition.left,
-									top: tooltipPosition.top,
-								}
-							: {
-									left: 0,
-									top: 0,
-									visibility: "hidden",
-								}
-					}
-				>
-					<StationTooltip station={hoveredStation.station} />
-				</div>
-			) : null}
+    if (!layer) {
+      return nextLayers;
+    }
 
-			<Drawer
-				open={isMobile && isMobileDrawerOpen}
-				noBodyStyles={true}
-				modal={false}
-				setBackgroundColorOnScale={false}
-				onOpenChange={setIsMobileDrawerOpen}
-				onAnimationEnd={(open) => {
-					if (!open) {
-						setSelectedStation(null);
-					}
-				}}
-			>
-				{isMobile && selectedStation ? (
-					<StationDrawer station={selectedStation.station} />
-				) : null}
-			</Drawer>
-		</div>
-	);
+    nextLayers.push(...(Array.isArray(layer) ? layer : [layer]));
+
+    return nextLayers;
+  }, [stations, viewState.zoom]);
+
+  return (
+    <div className="relative size-full" ref={containerRef}>
+      <MapControls stations={stations} onSelectStation={focusStation} />
+      <DeckGL
+        controller
+        getCursor={({ isDragging, isHovering }) =>
+          isDragging ? "grabbing" : canHover && isHovering ? "pointer" : "grab"
+        }
+        layers={layers}
+        onClick={handleMapClick}
+        onDragStart={() => {
+          if (!isMobile) {
+            clearHoveredStation();
+            clearPinnedStation();
+          }
+        }}
+        onHover={handleHover}
+        pickingRadius={STATION_HIT_AREA}
+        onViewStateChange={({ viewState: nextViewState }) => {
+          if (!isMobile) {
+            clearHoveredStation();
+          }
+          setViewState(clampViewState(nextViewState as MapViewState));
+        }}
+        viewState={viewState}
+      >
+        <MapView
+          mapStyle={MAP_STYLE_URL}
+          mapboxAccessToken={MAPBOX_ACCESS_TOKEN}
+          maxBounds={NYC_METRO_BOUNDS}
+          maxZoom={MAX_ZOOM}
+          minZoom={MIN_ZOOM}
+          renderWorldCopies={false}
+          reuseMaps
+        />
+      </DeckGL>
+
+      {displayedStation ? (
+        <div
+          className="pointer-events-none absolute z-20 hidden md:block"
+          ref={(node) => {
+            tooltipRef.current = node;
+
+            if (node && displayedStation) {
+              scheduleTooltipPosition(displayedStation.station, viewState);
+            }
+          }}
+          style={
+            tooltipPosition
+              ? {
+                  left: tooltipPosition.left,
+                  top: tooltipPosition.top,
+                }
+              : {
+                  left: 0,
+                  top: 0,
+                  visibility: "hidden",
+                }
+          }
+        >
+          <StationTooltip station={displayedStation.station} />
+        </div>
+      ) : null}
+
+      <Drawer
+        open={isMobile && isMobileDrawerOpen}
+        noBodyStyles={true}
+        modal={false}
+        setBackgroundColorOnScale={false}
+        onOpenChange={setIsMobileDrawerOpen}
+        onAnimationEnd={(open) => {
+          if (!open) {
+            setSelectedStation(null);
+          }
+        }}
+      >
+        {isMobile && selectedStation ? (
+          <StationDrawer station={selectedStation.station} />
+        ) : null}
+      </Drawer>
+    </div>
+  );
 }
