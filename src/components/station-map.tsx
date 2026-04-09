@@ -21,6 +21,7 @@ import {
 } from "#/components/station-tooltip";
 import { Drawer } from "#/components/ui/drawer";
 import { useIsMobile } from "#/hooks/use-mobile";
+import { usePrefersReducedMotion } from "#/hooks/use-reduced-motion";
 import type { CitiBikeStation } from "#/lib/citibike";
 import { citiBikeStationsQueryOptions } from "#/lib/citibike";
 import { MapControls } from "./map-controls";
@@ -91,26 +92,6 @@ function toStationState(station: CitiBikeStation): HoveredStation {
   return { station };
 }
 
-function usePrefersReducedMotion() {
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const updatePreference = () => {
-      setPrefersReducedMotion(mediaQuery.matches);
-    };
-
-    updatePreference();
-    mediaQuery.addEventListener("change", updatePreference);
-
-    return () => {
-      mediaQuery.removeEventListener("change", updatePreference);
-    };
-  }, []);
-
-  return prefersReducedMotion;
-}
-
 export function StationMap() {
   const { data: citiBikeStations } = useQuery(citiBikeStationsQueryOptions);
   const stations = citiBikeStations?.stations ?? [];
@@ -120,11 +101,10 @@ export function StationMap() {
   const [hoveredStation, setHoveredStation] = useState<HoveredStation | null>(
     null,
   );
-  const [selectedDesktopStation, setSelectedDesktopStation] =
+  const [searchSelectedDesktopStation, setSearchSelectedDesktopStation] =
     useState<HoveredStation | null>(null);
-  const [selectedStation, setSelectedStation] = useState<HoveredStation | null>(
-    null,
-  );
+  const [selectedMobileStation, setSelectedMobileStation] =
+    useState<HoveredStation | null>(null);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const isMobile = useIsMobile();
   const [tooltipPosition, setTooltipPosition] =
@@ -304,7 +284,7 @@ export function StationMap() {
     });
   };
 
-  const focusStation = (station: CitiBikeStation) => {
+  const selectStationFromSearch = (station: CitiBikeStation) => {
     const nextViewState = clampViewState({
       ...viewState,
       longitude: station.lon,
@@ -322,8 +302,8 @@ export function StationMap() {
 
     if (isMobile) {
       clearHoveredStation();
-      setSelectedDesktopStation(null);
-      setSelectedStation(toStationState(station));
+      setSearchSelectedDesktopStation(null);
+      setSelectedMobileStation(toStationState(station));
       setIsMobileDrawerOpen(true);
       return;
     }
@@ -331,7 +311,7 @@ export function StationMap() {
     hoveredStationIdRef.current = null;
     setHoveredStation(null);
     setTooltipPosition(null);
-    setSelectedDesktopStation(toStationState(station));
+    setSearchSelectedDesktopStation(toStationState(station));
   };
 
   const handleMapClick = (info: PickingInfo<CitiBikeStation>) => {
@@ -345,7 +325,7 @@ export function StationMap() {
 
       hoveredStationIdRef.current = station.station_id;
       setIsMobileDrawerOpen(true);
-      setSelectedStation((current) => {
+      setSelectedMobileStation((current) => {
         if (current?.station === station) {
           return current;
         }
@@ -358,35 +338,9 @@ export function StationMap() {
     }
 
     if (!station) {
-      setSelectedDesktopStation(null);
+      setSearchSelectedDesktopStation(null);
       return;
     }
-
-    const nextViewState = alignStationInViewport(
-      station,
-      clampViewState({
-        ...viewState,
-        transitionDuration: prefersReducedMotion ? 0 : 700,
-        transitionEasing: prefersReducedMotion ? undefined : easeOutQuint,
-        transitionInterpolator: prefersReducedMotion
-          ? undefined
-          : STATION_FLY_TO_INTERPOLATOR,
-      }),
-    );
-
-    hoveredStationIdRef.current = null;
-    setHoveredStation(null);
-    setTooltipPosition(null);
-    setViewState(nextViewState);
-    setSelectedDesktopStation((current) => {
-      if (current?.station === station) {
-        return current;
-      }
-
-      return {
-        station,
-      };
-    });
   };
 
   // Vaul not respecting modal b/c of controlled open :/
@@ -433,12 +387,12 @@ export function StationMap() {
   }, [stations, viewState.zoom]);
 
   const selectedDesktopPanelTop = useMemo(() => {
-    if (!selectedDesktopStation || isMobile) {
+    if (!searchSelectedDesktopStation || isMobile) {
       return null;
     }
 
     const projectedPosition = projectStationPosition(
-      selectedDesktopStation.station,
+      searchSelectedDesktopStation.station,
       viewState,
     );
 
@@ -461,16 +415,22 @@ export function StationMap() {
     }
 
     return height * DESKTOP_SELECTED_STATION_Y_RATIO;
-  }, [isMobile, projectStationPosition, selectedDesktopStation, viewState]);
+  }, [
+    isMobile,
+    projectStationPosition,
+    searchSelectedDesktopStation,
+    viewState,
+  ]);
 
   return (
     <div className="relative size-full" ref={containerRef}>
-      <MapControls stations={stations} onSelectStation={focusStation} />
+      <MapControls
+        stations={stations}
+        onSelectStation={selectStationFromSearch}
+      />
       <DeckGL
         controller
-        getCursor={({ isDragging, isHovering }) =>
-          isDragging ? "grabbing" : canHover && isHovering ? "pointer" : "grab"
-        }
+        getCursor={({ isDragging }) => (isDragging ? "grabbing" : "grab")}
         layers={layers}
         onClick={handleMapClick}
         onDragStart={() => {
@@ -524,7 +484,7 @@ export function StationMap() {
         </div>
       ) : null}
 
-      {!isMobile && selectedDesktopStation ? (
+      {!isMobile && searchSelectedDesktopStation ? (
         <div
           className="pointer-events-none absolute left-1/2 z-30 hidden md:block"
           style={{
@@ -534,9 +494,9 @@ export function StationMap() {
         >
           <div className="bg-popover text-popover-foreground supports-backdrop-filter:bg-popover/95 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-2 motion-safe:zoom-in-95 pointer-events-auto flex w-72 origin-top flex-col gap-4 rounded-2xl p-4 text-sm shadow-2xl ring-1 ring-black/10 outline-hidden motion-safe:duration-150">
             <StationPopoverPanel
-              station={selectedDesktopStation.station}
+              station={searchSelectedDesktopStation.station}
               onClose={() => {
-                setSelectedDesktopStation(null);
+                setSearchSelectedDesktopStation(null);
               }}
             />
           </div>
@@ -551,12 +511,12 @@ export function StationMap() {
         onOpenChange={setIsMobileDrawerOpen}
         onAnimationEnd={(open) => {
           if (!open) {
-            setSelectedStation(null);
+            setSelectedMobileStation(null);
           }
         }}
       >
-        {isMobile && selectedStation ? (
-          <StationDrawer station={selectedStation.station} />
+        {isMobile && selectedMobileStation ? (
+          <StationDrawer station={selectedMobileStation.station} />
         ) : null}
       </Drawer>
     </div>
