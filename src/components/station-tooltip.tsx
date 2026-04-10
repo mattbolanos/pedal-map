@@ -1,8 +1,6 @@
 import { BicycleIcon } from "@phosphor-icons/react/dist/csr/Bicycle";
 import { ChargingStationIcon } from "@phosphor-icons/react/dist/csr/ChargingStation";
-import { GearSixIcon } from "@phosphor-icons/react/dist/csr/GearSix";
 import { LetterCirclePIcon } from "@phosphor-icons/react/dist/csr/LetterCircleP";
-import { LightningIcon } from "@phosphor-icons/react/dist/csr/Lightning";
 import { WrenchIcon } from "@phosphor-icons/react/dist/csr/Wrench";
 import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import type { CitiBikeStation } from "#/lib/citibike";
@@ -10,6 +8,7 @@ import { isStationActive } from "#/lib/station";
 import { availabilityColorCss } from "#/lib/station-pin";
 import { getStationRegion } from "#/lib/station-region";
 import { cn, getRelativeTime } from "#/lib/utils";
+import { BikeSplitBar } from "./bike-split-bar";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
@@ -21,7 +20,6 @@ import {
   DrawerTitle,
 } from "./ui/drawer";
 import { PopoverHeader } from "./ui/popover";
-import { Progress } from "./ui/progress";
 
 interface StationTooltipProps {
   station: CitiBikeStation;
@@ -33,56 +31,6 @@ interface StationPopoverPanelProps extends StationTooltipProps {
 
 function count(value: number | undefined): number {
   return value ?? 0;
-}
-
-function BikeBreakdownBar({
-  electric,
-  classic,
-  total,
-}: {
-  electric: number;
-  classic: number;
-  total: number;
-}) {
-  if (total === 0) return null;
-
-  const electricPct = Math.round((electric / total) * 100);
-
-  return (
-    <div className="space-y-1.5">
-      <Progress
-        value={electricPct}
-        className="gap-0"
-        trackClassName="h-1.5 bg-sky-400/80 dark:bg-sky-300/80"
-        indicatorClassName="bg-amber-400 dark:bg-amber-300"
-      />
-      {/* legend row */}
-      <div className="flex items-center gap-3 tabular-nums">
-        {electric > 0 && (
-          <span className="flex items-center gap-x-1.5">
-            <LightningIcon
-              weight="fill"
-              className="size-4 text-amber-400 dark:text-amber-300"
-            />
-            <span className="text-muted-foreground">Electric</span>
-            <span>{electric}</span>
-          </span>
-        )}
-        {classic > 0 && (
-          <span
-            className={cn(
-              "flex items-center gap-x-1.5",
-              electric > 0 && "ml-auto flex-row-reverse",
-            )}
-          >
-            <GearSixIcon className="size-4 text-sky-400 dark:text-sky-300" />
-            <span className="text-muted-foreground">Classic</span>
-            <span>{classic}</span>
-          </span>
-        )}
-      </div>
-    </div>
-  );
 }
 
 function StatRow({
@@ -97,12 +45,10 @@ function StatRow({
   className?: string;
 }) {
   return (
-    <div
-      className={cn("flex items-center gap-x-1.5 transition-colors", className)}
-    >
+    <div className={cn("flex items-center gap-x-1.5", className)}>
       {icon}
       <span className="text-muted-foreground">{label}</span>
-      <span className="ml-auto">{value}</span>
+      <span className="ml-auto tabular-nums">{value}</span>
     </div>
   );
 }
@@ -118,12 +64,11 @@ function StationDetails({
   const capacity = count(station.capacity);
   const disabledBikes = count(station.num_bikes_disabled);
   const isActive = isStationActive(station);
-  const lastReported = getRelativeTime(station.last_reported);
   const ratio = capacity > 0 ? bikes / capacity : 0;
   const pct = Math.round(ratio * 100);
 
   return (
-    <div className={cn("space-y-3 text-sm tabular-nums", className)}>
+    <div className={cn("space-y-1.5 text-sm tabular-nums", className)}>
       {isActive ? (
         <>
           <div className="space-y-1.5">
@@ -138,10 +83,9 @@ function StationDetails({
                 </span>
               )}
               <span className="text-muted-foreground">Available</span>
-
               <span className="ml-auto tabular-nums">{bikes}</span>
             </div>
-            <BikeBreakdownBar
+            <BikeSplitBar
               electric={ebikes}
               classic={classicBikes}
               total={bikes}
@@ -176,12 +120,11 @@ function StationDetails({
           />
         )
       )}
-
       <time
         dateTime={station.last_reported?.toString()}
         className="text-[11px] tabular-nums"
       >
-        Updated {lastReported}
+        Updated {getRelativeTime(station.last_reported)}
       </time>
     </div>
   );

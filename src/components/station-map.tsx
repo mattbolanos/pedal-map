@@ -25,6 +25,7 @@ import { usePrefersReducedMotion } from "#/hooks/use-reduced-motion";
 import type { CitiBikeStation } from "#/lib/citibike";
 import { citiBikeStationsQueryOptions } from "#/lib/citibike";
 import { MapControls } from "./map-controls";
+import { MapSummary } from "./map-summary";
 
 const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 const MAP_STYLE_URL = "mapbox://styles/mapbox/dark-v11";
@@ -43,7 +44,7 @@ const NYC_METRO_BOUNDS: LngLatBoundsLike = [
 ];
 
 const MIN_ZOOM = 10.65;
-const MAX_ZOOM = 15.1;
+const MAX_ZOOM = 16;
 const STATION_HIT_AREA = 12;
 const DESKTOP_HOVER_LEAVE_DELAY_MS = 100;
 const TOOLTIP_GAP = 18;
@@ -108,6 +109,8 @@ export function StationMap() {
   const [searchSelectedDesktopStation, setSearchSelectedDesktopStation] =
     useState<HoveredStation | null>(null);
   const [selectedMobileStation, setSelectedMobileStation] =
+    useState<HoveredStation | null>(null);
+  const [mobileDrawerStation, setMobileDrawerStation] =
     useState<HoveredStation | null>(null);
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -367,7 +370,9 @@ export function StationMap() {
     if (isMobile) {
       clearHoveredStation();
       setSearchSelectedDesktopStation(null);
-      setSelectedMobileStation(toStationState(station));
+      const nextStationState = toStationState(station);
+      setSelectedMobileStation(nextStationState);
+      setMobileDrawerStation(nextStationState);
       setIsMobileDrawerOpen(true);
       return;
     }
@@ -388,6 +393,15 @@ export function StationMap() {
       hoveredStationIdRef.current = station.station_id;
       setIsMobileDrawerOpen(true);
       setSelectedMobileStation((current) => {
+        if (current?.station === station) {
+          return current;
+        }
+
+        return {
+          station,
+        };
+      });
+      setMobileDrawerStation((current) => {
         if (current?.station === station) {
           return current;
         }
@@ -514,6 +528,10 @@ export function StationMap() {
         stations={renderStations}
         onSelectStation={selectStationFromSearch}
       />
+      <MapSummary
+        stations={renderStations}
+        lastUpdated={citiBikeStations?.lastUpdated}
+      />
       <DeckGL
         controller
         getCursor={({ isDragging }) => (isDragging ? "grabbing" : "grab")}
@@ -594,15 +612,21 @@ export function StationMap() {
         noBodyStyles={true}
         modal={false}
         setBackgroundColorOnScale={false}
-        onOpenChange={setIsMobileDrawerOpen}
-        onAnimationEnd={(open) => {
+        onOpenChange={(open) => {
+          setIsMobileDrawerOpen(open);
+
           if (!open) {
             setSelectedMobileStation(null);
           }
         }}
+        onAnimationEnd={(open) => {
+          if (!open) {
+            setMobileDrawerStation(null);
+          }
+        }}
       >
-        {isMobile && selectedMobileStation ? (
-          <StationDrawer station={selectedMobileStation.station} />
+        {isMobile && mobileDrawerStation ? (
+          <StationDrawer station={mobileDrawerStation.station} />
         ) : null}
       </Drawer>
     </div>
