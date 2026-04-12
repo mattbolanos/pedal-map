@@ -1,6 +1,5 @@
 import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/csr/MagnifyingGlass";
 import { MapPinAreaIcon } from "@phosphor-icons/react/dist/csr/MapPinArea";
-import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { useDeferredValue, useMemo, useState } from "react";
 import { useIsMobile } from "#/hooks/use-mobile";
@@ -12,6 +11,7 @@ import {
   type StationRegionLabel,
 } from "#/lib/station-region";
 import { cn } from "#/lib/utils";
+import { CloseButton } from "./close-button";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import {
@@ -359,7 +359,7 @@ export function StationSearch({
         onClick={() => setOpen(true)}
         className="w-9 md:w-auto"
       >
-        <MagnifyingGlassIcon />
+        <MagnifyingGlassIcon className="size-5 md:size-4" />
         <span className="hidden md:block">Search</span>
         <KbdGroup>
           <Kbd>⌘ K</Kbd>
@@ -372,14 +372,10 @@ export function StationSearch({
               <div className="flex items-center justify-between gap-2">
                 <DrawerTitle className="text-left">Search stations</DrawerTitle>
                 <DrawerClose asChild>
-                  <Button
-                    size="icon-sm"
-                    variant="secondary"
+                  <CloseButton
                     className="-mr-1"
                     aria-label="Close station search"
-                  >
-                    <XIcon />
-                  </Button>
+                  />
                 </DrawerClose>
               </div>
               <DrawerDescription className="sr-only text-left">

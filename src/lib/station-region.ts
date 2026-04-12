@@ -27,6 +27,7 @@ const STATION_REGIONS = {
 
 const STATION_REGION_OVERRIDES: Partial<Record<string, StationRegionId>> = {
 	"66dbc860-0aca-11e7-82f6-3863bb44ef7c": "71",
+	"1827839088308194240": "71",
 };
 
 export type StationRegionId = keyof typeof STATION_REGIONS;

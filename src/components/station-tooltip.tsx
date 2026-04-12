@@ -2,15 +2,14 @@ import { BicycleIcon } from "@phosphor-icons/react/dist/csr/Bicycle";
 import { ChargingStationIcon } from "@phosphor-icons/react/dist/csr/ChargingStation";
 import { LetterCirclePIcon } from "@phosphor-icons/react/dist/csr/LetterCircleP";
 import { WrenchIcon } from "@phosphor-icons/react/dist/csr/Wrench";
-import { XIcon } from "@phosphor-icons/react/dist/csr/X";
 import type { CitiBikeStation } from "#/lib/citibike";
 import { isStationActive } from "#/lib/station";
 import { availabilityColorCss } from "#/lib/station-pin";
 import { getStationRegion } from "#/lib/station-region";
 import { cn, getRelativeTime } from "#/lib/utils";
 import { BikeSplitBar } from "./bike-split-bar";
+import { CloseButton } from "./close-button";
 import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import {
   DrawerClose,
@@ -182,15 +181,11 @@ export const StationPopoverPanel = ({
         <StationBadges station={station} />
       </PopoverHeader>
       {onClose ? (
-        <Button
-          size="icon-sm"
-          variant="secondary"
+        <CloseButton
           className="-mt-1 -mr-1 shrink-0"
           onClick={onClose}
           aria-label="Close station details"
-        >
-          <XIcon />
-        </Button>
+        />
       ) : null}
     </div>
     <StationDetails station={station} />
@@ -205,9 +200,7 @@ export const StationDrawer = ({ station }: StationTooltipProps) => (
           {station.name}
         </DrawerTitle>
         <DrawerClose asChild>
-          <Button size="icon-sm" variant="secondary" className="-mr-1">
-            <XIcon />
-          </Button>
+          <CloseButton className="-mr-1" aria-label="Close station details" />
         </DrawerClose>
       </div>
       <DrawerDescription className="text-left">

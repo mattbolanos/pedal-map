@@ -526,9 +526,11 @@ export function StationMap() {
     <div className="relative size-full" ref={containerRef}>
       <MapControls
         stations={renderStations}
+        lastUpdated={citiBikeStations?.lastUpdated}
         onSelectStation={selectStationFromSearch}
       />
       <MapSummary
+        className="hidden md:block"
         stations={renderStations}
         lastUpdated={citiBikeStations?.lastUpdated}
       />
