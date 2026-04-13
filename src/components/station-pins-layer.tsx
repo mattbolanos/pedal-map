@@ -1,5 +1,6 @@
 import { IconLayer, ScatterplotLayer } from "@deck.gl/layers";
 import type { CitiBikeStation } from "#/lib/citibike";
+import type { GeoCoordinates } from "#/lib/geo";
 import {
   availabilityColor,
   bucketRatio,
@@ -99,6 +100,11 @@ function dotZoomTierScale(zoom: number) {
 
 const easeOut = (t: number) => t * (2 - t);
 const PIN_TRANSITION = { duration: 140, easing: easeOut };
+const USER_LOCATION_CORE_COLOR = [255, 255, 255, 255] as const;
+const USER_LOCATION_RING_COLOR = [56, 189, 248, 245] as const;
+const USER_LOCATION_GLOW_COLOR = [56, 189, 248, 84] as const;
+const USER_LOCATION_ACCURACY_FILL = [56, 189, 248, 22] as const;
+const USER_LOCATION_ACCURACY_LINE = [56, 189, 248, 78] as const;
 
 function isSelectedStation(
   station: CitiBikeStation,
@@ -321,4 +327,82 @@ export function createStationPinsLayer(
     }),
     iconLayer,
   ];
+}
+
+export function createUserLocationLayer(userLocation: GeoCoordinates | null) {
+  if (!userLocation) {
+    return null;
+  }
+
+  const layers = [];
+
+  if ((userLocation.accuracy ?? 0) > 25) {
+    layers.push(
+      new ScatterplotLayer<GeoCoordinates>({
+        id: "user-location-accuracy",
+        data: [userLocation],
+        filled: true,
+        pickable: false,
+        stroked: true,
+        getPosition: (coordinates) => [coordinates.lon, coordinates.lat],
+        getRadius: (coordinates) => Math.min(coordinates.accuracy ?? 0, 1200),
+        radiusUnits: "meters",
+        getFillColor: USER_LOCATION_ACCURACY_FILL,
+        getLineColor: USER_LOCATION_ACCURACY_LINE,
+        getLineWidth: 1.5,
+        lineWidthUnits: "pixels",
+        lineWidthMinPixels: 1,
+        lineWidthMaxPixels: 2,
+      }),
+    );
+  }
+
+  layers.push(
+    new ScatterplotLayer<GeoCoordinates>({
+      id: "user-location-glow",
+      data: [userLocation],
+      filled: true,
+      pickable: false,
+      stroked: false,
+      getPosition: (coordinates) => [coordinates.lon, coordinates.lat],
+      getRadius: 13,
+      radiusUnits: "pixels",
+      radiusMinPixels: 13,
+      radiusMaxPixels: 13,
+      getFillColor: USER_LOCATION_GLOW_COLOR,
+    }),
+    new ScatterplotLayer<GeoCoordinates>({
+      id: "user-location-ring",
+      data: [userLocation],
+      filled: true,
+      pickable: false,
+      stroked: true,
+      getPosition: (coordinates) => [coordinates.lon, coordinates.lat],
+      getRadius: 7,
+      radiusUnits: "pixels",
+      radiusMinPixels: 7,
+      radiusMaxPixels: 7,
+      getFillColor: USER_LOCATION_CORE_COLOR,
+      getLineColor: USER_LOCATION_RING_COLOR,
+      getLineWidth: 2.5,
+      lineWidthUnits: "pixels",
+      lineWidthMinPixels: 2.5,
+      lineWidthMaxPixels: 2.5,
+    }),
+    new ScatterplotLayer<GeoCoordinates>({
+      id: "user-location-core",
+      data: [userLocation],
+      filled: true,
+      pickable: false,
+      stroked: false,
+      getPosition: (coordinates) => [coordinates.lon, coordinates.lat],
+      getRadius: 3,
+      radiusUnits: "pixels",
+      radiusMinPixels: 3,
+      radiusMaxPixels: 3,
+      getFillColor: USER_LOCATION_RING_COLOR,
+    }),
+  );
+
+  return layers;
 }

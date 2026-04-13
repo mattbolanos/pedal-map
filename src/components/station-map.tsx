@@ -1,5 +1,4 @@
 import {
-  FlyToInterpolator,
   type Layer,
   type MapViewState,
   type PickingInfo,
@@ -7,23 +6,40 @@ import {
 } from "@deck.gl/core";
 import { DeckGL } from "@deck.gl/react";
 import { useQuery } from "@tanstack/react-query";
-import type { LngLatBoundsLike } from "mapbox-gl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Map as MapView } from "react-map-gl/mapbox";
+import { toast } from "sonner";
+import {
+  HoveredStationTooltipOverlay,
+  MobileStationDrawerOverlay,
+  SelectedDesktopStationPopoverOverlay,
+  type TooltipPosition,
+} from "#/components/station-map-overlays";
+import {
+  clamp,
+  clampViewState,
+  createStationFlyToViewState,
+  createUserLocationFlyToViewState,
+  MAX_ZOOM,
+  MIN_ZOOM,
+} from "#/components/station-map-view-state";
 import {
   createStationPinsLayer,
+  createUserLocationLayer,
   SMALL_TO_MEDIUM_DOTS_ZOOM,
 } from "#/components/station-pins-layer";
-import {
-  StationDrawer,
-  StationPopoverPanel,
-  StationTooltip,
-} from "#/components/station-tooltip";
-import { Drawer } from "#/components/ui/drawer";
 import { useIsMobile } from "#/hooks/use-mobile";
 import { usePrefersReducedMotion } from "#/hooks/use-reduced-motion";
 import type { CitiBikeStation } from "#/lib/citibike";
 import { citiBikeStationsQueryOptions } from "#/lib/citibike";
+import { NYC_METRO_BOUNDS } from "#/lib/geo";
+import {
+  getUserLocationToast,
+  hasActiveUserLocation,
+  INITIAL_USER_LOCATION_STATE,
+  requestCurrentUserLocation,
+  type UserLocationState,
+} from "#/lib/user-location";
 import { MapControls } from "./map-controls";
 import { MapSummary } from "./map-summary";
 
@@ -38,13 +54,6 @@ const INITIAL_VIEW_STATE: MapViewState = {
   pitch: 0,
 };
 
-const NYC_METRO_BOUNDS: LngLatBoundsLike = [
-  [-74.3, 40.5],
-  [-73.7, 40.95],
-];
-
-const MIN_ZOOM = 10.65;
-const MAX_ZOOM = 16;
 const STATION_HIT_AREA = 12;
 const DESKTOP_HOVER_LEAVE_DELAY_MS = 100;
 const TOOLTIP_GAP = 18;
@@ -53,43 +62,16 @@ const SELECTED_DESKTOP_PANEL_GAP = 16;
 const DESKTOP_SELECTED_STATION_X_RATIO = 0.5;
 const DESKTOP_SELECTED_STATION_Y_RATIO = 0.62;
 const MOBILE_SELECTED_STATION_Y_RATIO = 0.3;
-
-const STATION_FLY_TO_INTERPOLATOR = new FlyToInterpolator({ curve: 1.25 });
-const STATION_FLY_TO_DURATION_MS = 1050;
-
-const easeOutQuint = (value: number) => 1 - (1 - value) ** 5;
+const USER_LOCATION_TOAST_ID = "user-location-status";
 
 interface HoveredStation {
   station: CitiBikeStation;
-}
-
-interface TooltipPosition {
-  left: number;
-  top: number;
 }
 
 interface ProjectedStationPosition {
   anchorX: number;
   anchorY: number;
   containerRect: DOMRect;
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
-}
-
-function clampViewState(viewState: MapViewState): MapViewState {
-  const [[minLon, minLat], [maxLon, maxLat]] = NYC_METRO_BOUNDS as [
-    [number, number],
-    [number, number],
-  ];
-
-  return {
-    ...viewState,
-    longitude: clamp(viewState.longitude, minLon, maxLon),
-    latitude: clamp(viewState.latitude, minLat, maxLat),
-    zoom: clamp(viewState.zoom, MIN_ZOOM, MAX_ZOOM),
-  };
 }
 
 function toStationState(station: CitiBikeStation): HoveredStation {
@@ -121,16 +103,17 @@ export function StationMap() {
   const tooltipRef = useRef<HTMLDivElement | null>(null);
   const tooltipPositionFrameRef = useRef<number | null>(null);
   const hoverLeaveTimeoutRef = useRef<number | null>(null);
+  const locationRequestIdRef = useRef(0);
   const canHover = viewState.zoom >= SMALL_TO_MEDIUM_DOTS_ZOOM;
   const prefersReducedMotion = usePrefersReducedMotion();
+  const [userLocation, setUserLocation] = useState<UserLocationState>(
+    INITIAL_USER_LOCATION_STATE,
+  );
   const renderStations =
     stations.length > 0 ? stations : renderStationsRef.current;
-
-  useEffect(() => {
-    if (stations.length > 0) {
-      renderStationsRef.current = stations;
-    }
-  }, [stations]);
+  const activeUserCoordinates = hasActiveUserLocation(userLocation)
+    ? userLocation.coords
+    : null;
 
   const clearHoverTimers = useCallback(() => {
     if (hoverLeaveTimeoutRef.current !== null) {
@@ -254,6 +237,17 @@ export function StationMap() {
     [updateTooltipPosition],
   );
 
+  const setTooltipRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      tooltipRef.current = node;
+
+      if (node && hoveredStation) {
+        scheduleTooltipPosition(hoveredStation.station, viewState);
+      }
+    },
+    [hoveredStation, scheduleTooltipPosition, viewState],
+  );
+
   const setHoveredStationState = useCallback(
     (station: CitiBikeStation) => {
       hoveredStationIdRef.current = station.station_id;
@@ -351,21 +345,77 @@ export function StationMap() {
     scheduleHoveredStation(station);
   };
 
-  const selectStationFromSearch = (station: CitiBikeStation) => {
-    const nextViewState = clampViewState({
-      ...viewState,
-      longitude: station.lon,
-      latitude: station.lat,
-      zoom: MAX_ZOOM,
-      transitionDuration: prefersReducedMotion ? 0 : STATION_FLY_TO_DURATION_MS,
-      transitionEasing: prefersReducedMotion ? undefined : easeOutQuint,
-      transitionInterpolator: prefersReducedMotion
-        ? undefined
-        : STATION_FLY_TO_INTERPOLATOR,
-    });
-    const focusedViewState = alignStationInViewport(station, nextViewState);
+  const requestUserLocation = useCallback(async () => {
+    const requestId = locationRequestIdRef.current + 1;
+    locationRequestIdRef.current = requestId;
 
-    setViewState(focusedViewState);
+    setUserLocation((current) => ({
+      ...current,
+      errorMessage: undefined,
+      status: "requesting",
+    }));
+
+    const nextUserLocation = await requestCurrentUserLocation(
+      typeof navigator === "undefined" ? undefined : navigator.geolocation,
+    );
+
+    if (locationRequestIdRef.current !== requestId) {
+      return;
+    }
+
+    setUserLocation(nextUserLocation);
+
+    if (hasActiveUserLocation(nextUserLocation) && nextUserLocation.coords) {
+      toast.dismiss(USER_LOCATION_TOAST_ID);
+      clearHoveredStation();
+      setSearchSelectedDesktopStation(null);
+      setSelectedMobileStation(null);
+      setMobileDrawerStation(null);
+      setIsMobileDrawerOpen(false);
+      setViewState((currentViewState) =>
+        clampViewState(
+          createUserLocationFlyToViewState(
+            currentViewState,
+            nextUserLocation.coords ?? { lon: 0, lat: 0 },
+            prefersReducedMotion,
+          ),
+        ),
+      );
+    }
+
+    const locationToast = getUserLocationToast(nextUserLocation);
+
+    if (!locationToast) {
+      return;
+    }
+
+    const showToast =
+      locationToast.variant === "warning" ? toast.warning : toast.error;
+
+    showToast(locationToast.title, {
+      description: locationToast.description,
+      id: USER_LOCATION_TOAST_ID,
+    });
+  }, [clearHoveredStation, prefersReducedMotion]);
+
+  const clearUserLocation = useCallback(() => {
+    locationRequestIdRef.current += 1;
+    toast.dismiss(USER_LOCATION_TOAST_ID);
+    setUserLocation(INITIAL_USER_LOCATION_STATE);
+  }, []);
+
+  const selectStationFromSearch = (station: CitiBikeStation) => {
+    setViewState((currentViewState) => {
+      const nextViewState = clampViewState(
+        createStationFlyToViewState(
+          currentViewState,
+          station,
+          prefersReducedMotion,
+        ),
+      );
+
+      return alignStationInViewport(station, nextViewState);
+    });
 
     if (isMobile) {
       clearHoveredStation();
@@ -464,27 +514,32 @@ export function StationMap() {
     return [...ids];
   }, [hoveredStation, searchSelectedDesktopStation, selectedMobileStation]);
 
+  const userLocationLayers = useMemo(
+    () => createUserLocationLayer(activeUserCoordinates),
+    [activeUserCoordinates],
+  );
+
   const layers = useMemo(() => {
     const nextLayers: Layer[] = [];
 
-    if (renderStations.length === 0) {
-      return nextLayers;
+    if (renderStations.length > 0) {
+      const layer = createStationPinsLayer(
+        renderStations,
+        viewState.zoom,
+        selectedStationIds,
+      );
+
+      if (layer) {
+        nextLayers.push(...(Array.isArray(layer) ? layer : [layer]));
+      }
     }
 
-    const layer = createStationPinsLayer(
-      renderStations,
-      viewState.zoom,
-      selectedStationIds,
-    );
-
-    if (!layer) {
-      return nextLayers;
+    if (userLocationLayers) {
+      nextLayers.push(...userLocationLayers);
     }
-
-    nextLayers.push(...(Array.isArray(layer) ? layer : [layer]));
 
     return nextLayers;
-  }, [renderStations, selectedStationIds, viewState.zoom]);
+  }, [renderStations, selectedStationIds, userLocationLayers, viewState.zoom]);
 
   const selectedDesktopPanelTop = useMemo(() => {
     if (!searchSelectedDesktopStation || isMobile) {
@@ -527,7 +582,10 @@ export function StationMap() {
       <MapControls
         stations={renderStations}
         lastUpdated={citiBikeStations?.lastUpdated}
+        onClearUserLocation={clearUserLocation}
         onSelectStation={selectStationFromSearch}
+        onRequestUserLocation={requestUserLocation}
+        userLocation={userLocation}
       />
       <MapSummary
         className="hidden md:block"
@@ -566,54 +624,28 @@ export function StationMap() {
       </DeckGL>
 
       {hoveredStation ? (
-        <div
-          className="pointer-events-none absolute top-0 left-0 z-20 hidden will-change-transform md:block"
-          ref={(node) => {
-            tooltipRef.current = node;
-
-            if (node && hoveredStation) {
-              scheduleTooltipPosition(hoveredStation.station, viewState);
-            }
-          }}
-          style={
-            tooltipPosition
-              ? {
-                  transform: `translate3d(${tooltipPosition.left}px, ${tooltipPosition.top}px, 0)`,
-                }
-              : {
-                  transform: "translate3d(0, 0, 0)",
-                  visibility: "hidden",
-                }
-          }
-        >
-          <StationTooltip station={hoveredStation.station} />
-        </div>
+        <HoveredStationTooltipOverlay
+          station={hoveredStation.station}
+          tooltipPosition={tooltipPosition}
+          tooltipRef={setTooltipRef}
+          scheduleTooltipPosition={scheduleTooltipPosition}
+          viewState={viewState}
+        />
       ) : null}
 
       {!isMobile && searchSelectedDesktopStation ? (
-        <div
-          className="pointer-events-none absolute left-1/2 z-30 hidden md:block"
-          style={{
-            top: selectedDesktopPanelTop ?? "62%",
-            transform: `translate3d(-50%, calc(-100% - ${SELECTED_DESKTOP_PANEL_GAP}px), 0)`,
+        <SelectedDesktopStationPopoverOverlay
+          station={searchSelectedDesktopStation.station}
+          top={selectedDesktopPanelTop}
+          onClose={() => {
+            setSearchSelectedDesktopStation(null);
           }}
-        >
-          <div className="bg-popover text-popover-foreground supports-backdrop-filter:bg-popover/95 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-2 motion-safe:zoom-in-95 pointer-events-auto flex w-72 origin-top flex-col gap-4 rounded-2xl p-4 text-sm shadow-2xl ring-1 ring-black/10 outline-hidden motion-safe:duration-150">
-            <StationPopoverPanel
-              station={searchSelectedDesktopStation.station}
-              onClose={() => {
-                setSearchSelectedDesktopStation(null);
-              }}
-            />
-          </div>
-        </div>
+        />
       ) : null}
 
-      <Drawer
+      <MobileStationDrawerOverlay
         open={isMobile && isMobileDrawerOpen}
-        noBodyStyles={true}
-        modal={false}
-        setBackgroundColorOnScale={false}
+        station={isMobile ? (mobileDrawerStation?.station ?? null) : null}
         onOpenChange={(open) => {
           setIsMobileDrawerOpen(open);
 
@@ -626,11 +658,7 @@ export function StationMap() {
             setMobileDrawerStation(null);
           }
         }}
-      >
-        {isMobile && mobileDrawerStation ? (
-          <StationDrawer station={mobileDrawerStation.station} />
-        ) : null}
-      </Drawer>
+      />
     </div>
   );
 }
