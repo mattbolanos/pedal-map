@@ -1,17 +1,13 @@
 import type { MapViewState } from "@deck.gl/core";
 import { useCallback } from "react";
 import type { CitiBikeStation } from "#/lib/citibike";
+import type { TooltipPosition } from "./station-map.types";
 import {
   StationDrawer,
   StationPopoverPanel,
   StationTooltip,
 } from "./station-tooltip";
 import { Drawer } from "./ui/drawer";
-
-export interface TooltipPosition {
-  left: number;
-  top: number;
-}
 
 interface HoveredStationTooltipOverlayProps {
   station: CitiBikeStation;
