@@ -1,4 +1,6 @@
 import { BicycleIcon } from "@phosphor-icons/react/dist/csr/Bicycle";
+import { ChartLineUpIcon } from "@phosphor-icons/react/dist/csr/ChartLineUp";
+import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import type { CitiBikeStation } from "#/lib/citibike";
 import type { UserLocationState } from "#/lib/user-location";
@@ -7,7 +9,7 @@ import { CloseButton } from "./close-button";
 import { MapSummary } from "./map-summary";
 import { NearbyButton } from "./nearby-button";
 import { StationSearch } from "./station-search";
-import { Button } from "./ui/button";
+import { Button, buttonVariants } from "./ui/button";
 
 interface MapControlsProps {
   stations: CitiBikeStation[];
@@ -30,7 +32,7 @@ export function MapControls({
 
   return (
     <div className="absolute top-3 right-3 left-3 z-10 md:right-auto">
-      <div className="flex flex-row gap-1.5 md:grid md:grid-cols-1">
+      <div className="grid w-fit grid-cols-2 grid-rows-2 gap-1.5 md:grid-cols-1">
         <StationSearch
           stations={stations}
           onSelectStation={onSelectStation}
@@ -41,6 +43,17 @@ export function MapControls({
           onClearUserLocation={onClearUserLocation}
           onRequestUserLocation={onRequestUserLocation}
         />
+        <Link
+          to="/insights"
+          className={cn(
+            buttonVariants({ variant: "outline" }),
+            "w-9 md:w-auto md:justify-start",
+          )}
+          aria-label="Open ride insights"
+        >
+          <ChartLineUpIcon className="size-4.5" />
+          <span className="hidden md:inline">Insights</span>
+        </Link>
         <Button
           size="icon"
           variant="outline"
