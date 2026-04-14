@@ -36,24 +36,22 @@ export function MapControls({
           onSelectStation={onSelectStation}
           userLocation={userLocation}
         />
-
         <NearbyButton
           userLocation={userLocation}
           onClearUserLocation={onClearUserLocation}
           onRequestUserLocation={onRequestUserLocation}
         />
-        {stations.length > 0 ? (
-          <Button
-            size="icon"
-            variant="outline"
-            className="md:hidden"
-            aria-expanded={isSummaryOpen}
-            aria-label={isSummaryOpen ? "Hide map summary" : "Show map summary"}
-            onClick={() => setIsSummaryOpen((open) => !open)}
-          >
-            <BicycleIcon className="size-4.5" />
-          </Button>
-        ) : null}
+        <Button
+          size="icon"
+          variant="outline"
+          className="md:hidden"
+          disabled={stations.length === 0}
+          aria-expanded={isSummaryOpen}
+          aria-label={isSummaryOpen ? "Hide map summary" : "Show map summary"}
+          onClick={() => setIsSummaryOpen((open) => !open)}
+        >
+          <BicycleIcon className="size-4.5" />
+        </Button>
       </div>
       {stations.length > 0 ? (
         <MapSummary
