@@ -1,34 +1,25 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { ReactNode } from "react";
+import { QueryClient } from "@tanstack/react-query";
 
-let context:
-  | {
-      queryClient: QueryClient;
-    }
-  | undefined;
-
-export function getContext() {
-  if (context) {
-    return context;
-  }
-
-  const queryClient = new QueryClient();
-
-  context = {
-    queryClient,
-  };
-
-  return context;
+export interface AppRouterContext {
+	queryClient: QueryClient;
 }
 
-export default function TanStackQueryProvider({
-  children,
-}: {
-  children: ReactNode;
-}) {
-  const { queryClient } = getContext();
+let browserContext: AppRouterContext | undefined;
 
-  return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  );
+function createAppRouterContext(): AppRouterContext {
+	return {
+		queryClient: new QueryClient(),
+	};
+}
+
+export function getRouterContext(): AppRouterContext {
+	if (typeof window === "undefined") {
+		return createAppRouterContext();
+	}
+
+	if (!browserContext) {
+		browserContext = createAppRouterContext();
+	}
+
+	return browserContext;
 }
