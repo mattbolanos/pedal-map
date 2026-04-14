@@ -33,9 +33,16 @@
 			}
 		}
 	},
+	"formatter": {
+		"enabled": true,
+		"indentStyle": "space",
+		"indentWidth": 2
+	},
 	"javascript": {
 		"formatter": {
-			"quoteStyle": "double"
+			"quoteStyle": "double",
+			"attributePosition": "auto",
+			"bracketSameLine": true
 		}
 	}
 }
