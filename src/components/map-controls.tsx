@@ -38,6 +38,17 @@ export function MapControls({
           onSelectStation={onSelectStation}
           userLocation={userLocation}
         />
+        <Button
+          size="icon-lg"
+          variant="outline"
+          className="md:hidden"
+          disabled={stations.length === 0}
+          aria-expanded={isSummaryOpen}
+          aria-label={isSummaryOpen ? "Hide map summary" : "Show map summary"}
+          onClick={() => setIsSummaryOpen((open) => !open)}
+        >
+          <BicycleIcon className="size-5" />
+        </Button>
         <NearbyButton
           userLocation={userLocation}
           onClearUserLocation={onClearUserLocation}
@@ -47,24 +58,13 @@ export function MapControls({
           to="/insights"
           className={cn(
             buttonVariants({ variant: "outline" }),
-            "w-9 md:w-auto md:justify-start",
+            "size-10 md:h-9 md:w-auto md:justify-start",
           )}
           aria-label="Open ride insights"
         >
-          <ChartLineUpIcon className="size-4.5" />
+          <ChartLineUpIcon className="size-5" />
           <span className="hidden md:inline">Insights</span>
         </Link>
-        <Button
-          size="icon"
-          variant="outline"
-          className="md:hidden"
-          disabled={stations.length === 0}
-          aria-expanded={isSummaryOpen}
-          aria-label={isSummaryOpen ? "Hide map summary" : "Show map summary"}
-          onClick={() => setIsSummaryOpen((open) => !open)}
-        >
-          <BicycleIcon className="size-4.5" />
-        </Button>
       </div>
       {stations.length > 0 ? (
         <MapSummary

@@ -514,9 +514,9 @@ export function StationSearch({
         aria-label="Search stations"
         variant="outline"
         onClick={() => setOpen(true)}
-        className="w-9 md:w-auto"
+        className="size-10 md:h-9 md:w-auto"
       >
-        <MagnifyingGlassIcon className="size-4.5 md:size-4" />
+        <MagnifyingGlassIcon className="size-5 md:size-4" />
         <span className="hidden md:block">Search</span>
         <KbdGroup>
           <Kbd>⌘ K</Kbd>
