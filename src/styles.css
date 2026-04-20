@@ -43,7 +43,7 @@
 }
 
 .dark {
-  --background: oklch(0.148 0.004 228.8);
+  --background: oklch(0.178 0.004 228.8);
   --foreground: oklch(0.987 0.002 197.1);
   --card: oklch(16.332% 0.0036 229.245);
   --card-foreground: oklch(0.987 0.002 197.1);
@@ -58,7 +58,7 @@
   --accent: oklch(0.26 0.015 210);
   --accent-foreground: oklch(99.238% 0.00252 260.123);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
+  --border: oklch(1 0 0 / 11.5%);
   --input: oklch(0.34 0.02 210);
   --ring: oklch(0.56 0.021 213.5);
   --chart-1: oklch(0.809 0.105 251.813);
@@ -126,7 +126,6 @@ body,
 body {
   margin: 0;
   font-family: var(--font-sans);
-  background-color: var(--bg-base);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

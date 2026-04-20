@@ -6,7 +6,7 @@ export const MAP_STYLE_URL = "mapbox://styles/mapbox/dark-v11";
 export const INITIAL_VIEW_STATE: MapViewState = {
   longitude: -73.9651,
   latitude: 40.6917,
-  zoom: 13.8,
+  zoom: 13.0,
   bearing: 0,
   pitch: 0,
 };

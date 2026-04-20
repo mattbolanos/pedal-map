@@ -42,7 +42,6 @@ export function MapControls({
           size="icon-lg"
           variant="outline"
           className="md:hidden"
-          disabled={stations.length === 0}
           aria-expanded={isSummaryOpen}
           aria-label={isSummaryOpen ? "Hide map summary" : "Show map summary"}
           onClick={() => setIsSummaryOpen((open) => !open)}
@@ -62,7 +61,7 @@ export function MapControls({
           )}
           aria-label="Open ride insights"
         >
-          <ChartLineUpIcon className="size-5" />
+          <ChartLineUpIcon className="size-5 md:size-4" />
           <span className="hidden md:inline">Insights</span>
         </Link>
       </div>
