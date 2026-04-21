@@ -31,6 +31,18 @@ export function StationTable({ data }: StationTableProps) {
         cell: ({ getValue }) => (
           <span className="tabular-nums">{getValue() as string | number}</span>
         ),
+        sortUndefined: "first",
+      }}
+      initialState={{
+        pagination: {
+          pageSize: 15,
+        },
+        sorting: [
+          {
+            id: "avgDockAvailabilityPct",
+            desc: true,
+          },
+        ],
       }}
     />
   );
@@ -40,20 +52,16 @@ const insightsTableColumns: ColumnDef<InsightsStationRow>[] = [
   {
     accessorKey: "name",
     header: "Station",
-  },
-  {
-    accessorFn: (row) =>
-      getStationRegion(row.regionId, row.stationId)?.label ?? "",
-    header: "Region",
-    cell: ({ row }) => {
-      const region = getStationRegion(
-        row.original.regionId,
-        row.original.stationId,
-      );
-      return region ? (
-        <Badge variant={region.badgeVariant}>{region.label}</Badge>
-      ) : null;
-    },
+    cell: ({ row }) => (
+      <div>
+        <span>{row.original.name}</span>
+        {row.original.isActive === false ? (
+          <Badge variant="offline" aria-label="Offline" className="ml-2">
+            Offline
+          </Badge>
+        ) : null}
+      </div>
+    ),
   },
   {
     accessorKey: "avgEbikesAvailable",
@@ -62,15 +70,16 @@ const insightsTableColumns: ColumnDef<InsightsStationRow>[] = [
   {
     accessorFn: (row) =>
       (row.avgBikesAvailable ?? 0) - (row.avgEbikesAvailable ?? 0),
+    id: "classic",
     header: "Classic",
   },
   {
     accessorKey: "avgDocksAvailable",
-    header: "Open Docks",
+    header: "Docks",
   },
   {
     accessorKey: "avgDockAvailabilityPct",
-    header: "Open Dock %",
+    header: "Dock %",
     cell: ({ getValue }) => {
       const value = getValue() as number | null;
 

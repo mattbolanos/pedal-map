@@ -1,7 +1,11 @@
 import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
 import { CaretUpIcon } from "@phosphor-icons/react/dist/csr/CaretUp";
 import { CaretUpDownIcon } from "@phosphor-icons/react/dist/csr/CaretUpDown";
-import type { Column, ColumnDef, SortingState } from "@tanstack/react-table";
+import type {
+  Column,
+  ColumnDef,
+  InitialTableState,
+} from "@tanstack/react-table";
 import {
   flexRender,
   getCoreRowModel,
@@ -21,6 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from "#/components/ui/table";
+import { getFuzzySearchScore } from "#/lib/fuzzy-search";
 import { cn } from "#/lib/utils";
 
 interface DataTableProps<TData> {
@@ -28,7 +33,10 @@ interface DataTableProps<TData> {
   data: TData[];
   searchPlaceholder?: string;
   getSearchText?: (row: TData) => string;
+  showSearchInput?: boolean;
+  showRowCount?: boolean;
   defaultColumn?: Partial<ColumnDef<TData, unknown>> | undefined;
+  initialState?: InitialTableState | undefined;
 }
 
 interface SortButtonProps<TData> {
@@ -43,8 +51,7 @@ function SortButton<TData>({ column, children }: SortButtonProps<TData>) {
     <button
       type="button"
       className="flex items-center gap-2"
-      onClick={() => column.toggleSorting(sortDirection === "asc")}
-    >
+      onClick={() => column.toggleSorting(sortDirection === "asc")}>
       {children}
       <span
         className={cn(
@@ -54,8 +61,7 @@ function SortButton<TData>({ column, children }: SortButtonProps<TData>) {
             : sortDirection === "desc"
               ? "text-red-500"
               : "text-gray-500",
-        )}
-      >
+        )}>
         {sortDirection === "asc" ? (
           <CaretUpIcon />
         ) : sortDirection === "desc" ? (
@@ -73,52 +79,60 @@ export function DataTable<TData>({
   data,
   searchPlaceholder = "Filter rows...",
   getSearchText,
+  showSearchInput = true,
+  showRowCount = true,
   defaultColumn,
+  initialState,
 }: DataTableProps<TData>) {
-  const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
-
-  const normalizedFilter = globalFilter.trim().toLowerCase();
   const safeGetSearchText = getSearchText ?? (() => "");
 
   const table = useReactTable({
     data,
     columns,
     state: {
-      sorting,
       globalFilter,
     },
-    onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
-    globalFilterFn: (row) =>
-      safeGetSearchText(row.original).toLowerCase().includes(normalizedFilter),
+    globalFilterFn: (row, _columnId, filterValue) =>
+      getFuzzySearchScore(
+        safeGetSearchText(row.original),
+        String(filterValue ?? ""),
+      ) !== null,
     defaultColumn,
+    initialState,
   });
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <Input
-          value={globalFilter}
-          onChange={(event) => setGlobalFilter(event.target.value)}
-          placeholder={searchPlaceholder}
-          className="w-full md:max-w-sm"
-        />
-        <div className="text-muted-foreground text-sm">
-          {table.getFilteredRowModel().rows.length.toLocaleString()} results
+      {showSearchInput || showRowCount ? (
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          {showSearchInput ? (
+            <Input
+              value={globalFilter}
+              onChange={(event) => setGlobalFilter(event.target.value)}
+              placeholder={searchPlaceholder}
+              className="w-full md:max-w-sm"
+            />
+          ) : null}
+          {showRowCount ? (
+            <div className="text-muted-foreground text-sm">
+              {table.getFilteredRowModel().rows.length.toLocaleString()} results
+            </div>
+          ) : null}
         </div>
-      </div>
+      ) : null}
 
       <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
+            <TableRow key={headerGroup.id} className="bg-accent">
               {headerGroup.headers.map((header) => (
-                <TableHead key={header.id}>
+                <TableHead key={header.id} className="h-10">
                   {header.isPlaceholder
                     ? null
                     : (() => {
@@ -157,8 +171,7 @@ export function DataTable<TData>({
             <TableRow>
               <TableCell
                 colSpan={columns.length}
-                className="text-muted-foreground h-24 text-center"
-              >
+                className="text-muted-foreground h-24 text-center">
                 No stations match this filter.
               </TableCell>
             </TableRow>
@@ -172,8 +185,7 @@ export function DataTable<TData>({
           variant="outline"
           size="sm"
           onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
+          disabled={!table.getCanPreviousPage()}>
           Previous
         </Button>
         <Button
@@ -181,8 +193,7 @@ export function DataTable<TData>({
           variant="outline"
           size="sm"
           onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
+          disabled={!table.getCanNextPage()}>
           Next
         </Button>
       </div>
