@@ -1,5 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { DataTable } from "#/components/data-table";
 import { insightsTableColumns } from "#/components/insights-table-columns";
 import { LastUpdated } from "#/components/last-updated";
 import { Badge } from "#/components/ui/badge";
@@ -10,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "#/components/ui/card";
+import { DataTable } from "#/components/ui/data-table";
 import type {
   InsightsLeaderboardStation,
   PedalMapInsightsData,
@@ -82,7 +82,8 @@ function LeaderboardCard({
           return (
             <div
               key={`${title}-${station.stationId}`}
-              className="flex items-center justify-between gap-3">
+              className="flex items-center justify-between gap-3"
+            >
               <div className="flex min-w-0 flex-col gap-1">
                 <div className="truncate font-medium">{station.name}</div>
                 <div className="flex items-center gap-2">
@@ -132,7 +133,7 @@ function InsightsContent({ data }: { data: PedalMapInsightsData }) {
               <p className="text-muted-foreground max-w-3xl text-sm md:text-base">
                 This table is reading live station availability and rollup
                 metrics from the shared Convex deployment via
-                <code className="mx-1 rounded bg-muted px-1.5 py-0.5 text-xs">
+                <code className="bg-muted mx-1 rounded px-1.5 py-0.5 text-xs">
                   pedalMap:getInsightsTableData
                 </code>
                 and exposes the leaderboard data alongside per-station table

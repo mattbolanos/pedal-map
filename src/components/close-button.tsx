@@ -21,7 +21,7 @@ export function CloseButton({
     <Button
       type={type ?? "button"}
       size="icon-sm"
-      variant="destructive"
+      variant="secondary"
       aria-label={ariaLabel ?? "Close"}
       className={cn("shrink-0 shadow-sm active:scale-[0.97]", className)}
       {...props}
