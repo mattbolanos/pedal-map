@@ -5,6 +5,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { Toaster } from "#/components/ui/sonner";
+import ConvexRootProvider from "#/integrations/convex/root-provider";
 import TanStackQueryProvider from "#/integrations/tanstack-query/root-provider";
 import appCss from "#/styles.css?url";
 
@@ -61,7 +62,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body className="bg-background font-sans wrap-anywhere antialiased">
-        <TanStackQueryProvider>{children}</TanStackQueryProvider>
+        <TanStackQueryProvider>
+          <ConvexRootProvider>{children}</ConvexRootProvider>
+        </TanStackQueryProvider>
         <Scripts />
         <Toaster />
       </body>

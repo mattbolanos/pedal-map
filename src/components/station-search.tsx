@@ -283,8 +283,7 @@ function MobileStationSearchResults({
               key={station.station_id}
               type="button"
               className="hover:bg-accent focus-visible:border-ring focus-visible:ring-ring/50 flex w-full items-center gap-2 rounded-xl p-2 text-left text-sm transition-colors outline-none focus-visible:ring-[3px]"
-              onClick={() => onSelectStation(station)}
-            >
+              onClick={() => onSelectStation(station)}>
               <StationSearchResultContent
                 distanceLabel={distanceLabelsByStationId.get(
                   station.station_id,
@@ -514,8 +513,7 @@ export function StationSearch({
         aria-label="Search stations"
         variant="outline"
         onClick={() => setOpen(true)}
-        className="size-10 md:h-9 md:w-auto"
-      >
+        className="size-10 md:h-9 md:w-auto">
         <MagnifyingGlassIcon className="size-5 md:size-4" />
         <span className="hidden md:block">Search</span>
         <KbdGroup>
@@ -580,8 +578,7 @@ export function StationSearch({
                       value={station.name}
                       keywords={[station.short_name ?? ""].filter(Boolean)}
                       onSelect={() => handleSelectStation(station)}
-                      hideCheckIcon
-                    >
+                      hideCheckIcon>
                       <StationSearchResultContent
                         distanceLabel={distanceLabelsByStationId.get(
                           station.station_id,

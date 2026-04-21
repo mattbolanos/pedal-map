@@ -76,8 +76,7 @@ function StationDetails({
               {bikes > 0 && (
                 <span
                   className="font-medium tabular-nums"
-                  style={{ color: availabilityColorCss(ratio, isActive) }}
-                >
+                  style={{ color: availabilityColorCss(ratio, isActive) }}>
                   {pct}%
                 </span>
               )}
@@ -121,8 +120,7 @@ function StationDetails({
       )}
       <time
         dateTime={station.last_reported?.toString()}
-        className="text-[11px] tabular-nums"
-      >
+        className="text-[11px] tabular-nums">
         Updated {getRelativeTime(station.last_reported)}
       </time>
     </div>
@@ -142,8 +140,7 @@ function StationBadges({ station }: StationTooltipProps) {
       {regionBadge ? (
         <Badge
           variant={regionBadge.badgeVariant}
-          aria-label={`Region: ${regionBadge.label}`}
-        >
+          aria-label={`Region: ${regionBadge.label}`}>
           {regionBadge.label}
         </Badge>
       ) : null}

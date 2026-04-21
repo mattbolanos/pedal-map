@@ -28,6 +28,7 @@ interface DataTableProps<TData> {
   data: TData[];
   searchPlaceholder?: string;
   getSearchText?: (row: TData) => string;
+  defaultColumn?: Partial<ColumnDef<TData, unknown>> | undefined;
 }
 
 interface SortButtonProps<TData> {
@@ -72,6 +73,7 @@ export function DataTable<TData>({
   data,
   searchPlaceholder = "Filter rows...",
   getSearchText,
+  defaultColumn,
 }: DataTableProps<TData>) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = useState("");
@@ -94,6 +96,7 @@ export function DataTable<TData>({
     getPaginationRowModel: getPaginationRowModel(),
     globalFilterFn: (row) =>
       safeGetSearchText(row.original).toLowerCase().includes(normalizedFilter),
+    defaultColumn,
   });
 
   return (
