@@ -1,6 +1,7 @@
 import { queryOptions } from "@tanstack/react-query";
 import { ConvexHttpClient } from "convex/browser";
 import { makeFunctionReference } from "convex/server";
+import type { StationRegionId } from "./station-region";
 
 export interface InsightsSummary {
   sampledAt: number | null;
@@ -48,7 +49,7 @@ export interface InsightsStationRow {
   lat: number;
   lon: number;
   capacity: number | null;
-  regionId: string | null;
+  regionId: StationRegionId;
   shortName: string | null;
   hasKiosk: boolean | null;
   externalId: string | null;
