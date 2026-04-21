@@ -1,4 +1,7 @@
-import type { ColumnDef, SortingState } from "@tanstack/react-table";
+import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
+import { CaretUpIcon } from "@phosphor-icons/react/dist/csr/CaretUp";
+import { CaretUpDownIcon } from "@phosphor-icons/react/dist/csr/CaretUpDown";
+import type { Column, ColumnDef, SortingState } from "@tanstack/react-table";
 import {
   flexRender,
   getCoreRowModel,
@@ -7,7 +10,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { Button } from "#/components/ui/button";
 import { Input } from "#/components/ui/input";
 import {
@@ -18,12 +21,50 @@ import {
   TableHeader,
   TableRow,
 } from "#/components/ui/table";
+import { cn } from "#/lib/utils";
 
 interface DataTableProps<TData> {
   columns: ColumnDef<TData>[];
   data: TData[];
   searchPlaceholder?: string;
   getSearchText?: (row: TData) => string;
+}
+
+interface SortButtonProps<TData> {
+  column: Column<TData>;
+  children: ReactNode;
+}
+
+function SortButton<TData>({ column, children }: SortButtonProps<TData>) {
+  const sortDirection = column.getIsSorted();
+
+  return (
+    <button
+      type="button"
+      className="flex items-center gap-2"
+      onClick={() => column.toggleSorting(sortDirection === "asc")}
+    >
+      {children}
+      <span
+        className={cn(
+          "text-muted-foreground",
+          sortDirection === "asc"
+            ? "text-green-500"
+            : sortDirection === "desc"
+              ? "text-red-500"
+              : "text-gray-500",
+        )}
+      >
+        {sortDirection === "asc" ? (
+          <CaretUpIcon />
+        ) : sortDirection === "desc" ? (
+          <CaretDownIcon />
+        ) : (
+          <CaretUpDownIcon />
+        )}
+      </span>
+    </button>
+  );
 }
 
 export function DataTable<TData>({
@@ -68,57 +109,68 @@ export function DataTable<TData>({
           {table.getFilteredRowModel().rows.length.toLocaleString()} results
         </div>
       </div>
-      <div className="rounded-2xl border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
+
+      <Table>
+        <TableHeader>
+          {table.getHeaderGroups().map((headerGroup) => (
+            <TableRow key={headerGroup.id}>
+              {headerGroup.headers.map((header) => (
+                <TableHead key={header.id}>
+                  {header.isPlaceholder
+                    ? null
+                    : (() => {
+                        const renderedHeader = flexRender(
                           header.column.columnDef.header,
                           header.getContext(),
-                        )}
-                  </TableHead>
+                        );
+
+                        if (header.column.getCanSort()) {
+                          return (
+                            <SortButton column={header.column}>
+                              {renderedHeader}
+                            </SortButton>
+                          );
+                        }
+
+                        return renderedHeader;
+                      })()}
+                </TableHead>
+              ))}
+            </TableRow>
+          ))}
+        </TableHeader>
+        <TableBody>
+          {table.getRowModel().rows.length > 0 ? (
+            table.getRowModel().rows.map((row) => (
+              <TableRow key={row.id}>
+                {row.getVisibleCells().map((cell) => (
+                  <TableCell key={cell.id}>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </TableCell>
                 ))}
               </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.length > 0 ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="text-muted-foreground h-24 text-center">
-                  No stations match this filter.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell
+                colSpan={columns.length}
+                className="text-muted-foreground h-24 text-center"
+              >
+                No stations match this filter.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+
       <div className="flex items-center justify-end gap-2">
         <Button
           type="button"
           variant="outline"
           size="sm"
           onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}>
+          disabled={!table.getCanPreviousPage()}
+        >
           Previous
         </Button>
         <Button
@@ -126,7 +178,8 @@ export function DataTable<TData>({
           variant="outline"
           size="sm"
           onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}>
+          disabled={!table.getCanNextPage()}
+        >
           Next
         </Button>
       </div>
