@@ -11,7 +11,7 @@ function InsightsPage() {
   const data = useQuery(api.pedalMap.getInsightsTableData);
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 py-8 md:px-8">
+    <main className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-5 py-8">
       {data ? <StationTable data={data.rows} /> : <div>Loading...</div>}
     </main>
   );

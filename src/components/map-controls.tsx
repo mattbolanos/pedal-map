@@ -1,5 +1,6 @@
 import { BicycleIcon } from "@phosphor-icons/react/dist/csr/Bicycle";
 import { ChartLineUpIcon } from "@phosphor-icons/react/dist/csr/ChartLineUp";
+import { InfoIcon } from "@phosphor-icons/react/dist/csr/Info";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import type { CitiBikeStation } from "#/lib/citibike";
@@ -31,8 +32,8 @@ export function MapControls({
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
 
   return (
-    <div className="absolute top-3 right-3 left-3 z-10 md:right-auto">
-      <div className="grid w-fit grid-cols-2 grid-rows-2 gap-1.5 md:grid-cols-1">
+    <div className="absolute top-3 right-3 left-2 z-10 md:right-auto md:left-3">
+      <div className="grid w-fit grid-cols-1 gap-1.5">
         <StationSearch
           stations={stations}
           onSelectStation={onSelectStation}
@@ -63,6 +64,17 @@ export function MapControls({
         >
           <ChartLineUpIcon className="size-5 md:size-4" />
           <span className="hidden md:inline">Insights</span>
+        </Link>
+        <Link
+          to="/about"
+          className={cn(
+            buttonVariants({ variant: "outline" }),
+            "size-10 md:h-9 md:w-auto md:justify-start",
+          )}
+          aria-label="Open about page"
+        >
+          <InfoIcon className="size-5 md:size-4" />
+          <span className="hidden md:inline">About</span>
         </Link>
       </div>
       {stations.length > 0 ? (
