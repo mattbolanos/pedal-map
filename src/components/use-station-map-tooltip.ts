@@ -5,7 +5,7 @@ import {
 } from "@deck.gl/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { clamp } from "#/components/station-map-view-state";
-import { SMALL_TO_MEDIUM_DOTS_ZOOM } from "#/components/station-pins-layer";
+import { DOTS_TO_PINS_ZOOM } from "#/components/station-pins-layer";
 import type { CitiBikeStation } from "#/lib/citibike";
 import {
   DESKTOP_HOVER_LEAVE_DELAY_MS,
@@ -39,7 +39,7 @@ export function useStationMapTooltip({
   const tooltipRef = useRef<HTMLDivElement | null>(null);
   const tooltipPositionFrameRef = useRef<number | null>(null);
   const hoverLeaveTimeoutRef = useRef<number | null>(null);
-  const canHover = viewState.zoom >= SMALL_TO_MEDIUM_DOTS_ZOOM;
+  const canHover = viewState.zoom >= DOTS_TO_PINS_ZOOM;
 
   const clearHoverTimers = useCallback(() => {
     if (hoverLeaveTimeoutRef.current !== null) {

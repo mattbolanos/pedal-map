@@ -1,5 +1,5 @@
 import { BicycleIcon } from "@phosphor-icons/react/dist/csr/Bicycle";
-import { ChartLineUpIcon } from "@phosphor-icons/react/dist/csr/ChartLineUp";
+import { ChargingStationIcon } from "@phosphor-icons/react/dist/csr/ChargingStation";
 import { InfoIcon } from "@phosphor-icons/react/dist/csr/Info";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
@@ -55,15 +55,15 @@ export function MapControls({
           onRequestUserLocation={onRequestUserLocation}
         />
         <Link
-          to="/insights"
+          to="/stations"
           className={cn(
             buttonVariants({ variant: "outline" }),
             "size-10 md:h-9 md:w-auto md:justify-start",
           )}
-          aria-label="Open ride insights"
+          aria-label="Open stations page"
         >
-          <ChartLineUpIcon className="size-5 md:size-4" />
-          <span className="hidden md:inline">Insights</span>
+          <ChargingStationIcon className="size-5 md:size-4" />
+          <span className="hidden md:inline">Stations</span>
         </Link>
         <Link
           to="/about"

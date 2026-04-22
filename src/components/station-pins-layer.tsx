@@ -10,8 +10,8 @@ import {
   pinSize,
 } from "#/lib/station-pin";
 
-export const SMALL_TO_MEDIUM_DOTS_ZOOM = 12;
-const DOTS_TO_PINS_ZOOM = 13.75;
+const SMALL_TO_MEDIUM_DOTS_ZOOM = 12;
+export const DOTS_TO_PINS_ZOOM = 13.75;
 
 function hasValidCoordinates(s: CitiBikeStation) {
   return (

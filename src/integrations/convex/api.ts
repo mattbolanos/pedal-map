@@ -98,7 +98,7 @@ export type PublicApiType = {
     >;
   };
   pedalMap: {
-    getInsightsTableData: FunctionReference<
+    getStationsTableData: FunctionReference<
       "query",
       "public",
       Record<string, never>,

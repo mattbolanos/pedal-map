@@ -5,19 +5,19 @@ import type { api } from "#/integrations/convex/api";
 import { getStationRegion } from "#/lib/station-region";
 import { Badge } from "./ui/badge";
 
-type InsightsData = FunctionReturnType<
-  typeof api.pedalMap.getInsightsTableData
+type StationsData = FunctionReturnType<
+  typeof api.pedalMap.getStationsTableData
 >;
-type InsightsStationRow = InsightsData["rows"][number];
+type StationRow = StationsData["rows"][number];
 
 interface StationTableProps {
-  data: InsightsData["rows"];
+  data: StationsData["rows"];
 }
 
 export function StationTable({ data }: StationTableProps) {
   return (
     <DataTable
-      columns={insightsTableColumns}
+      columns={stationTableColumns}
       data={data}
       searchPlaceholder="Search stations..."
       getSearchText={(row) =>
@@ -39,7 +39,7 @@ export function StationTable({ data }: StationTableProps) {
         },
         sorting: [
           {
-            id: "avgDockAvailabilityPct",
+            id: "avgDocksAvailable",
             desc: true,
           },
         ],
@@ -48,7 +48,7 @@ export function StationTable({ data }: StationTableProps) {
   );
 }
 
-const insightsTableColumns: ColumnDef<InsightsStationRow>[] = [
+const stationTableColumns: ColumnDef<StationRow>[] = [
   {
     accessorKey: "name",
     header: "Station",
