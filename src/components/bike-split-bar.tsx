@@ -34,7 +34,7 @@ export function BikeSplitBar({
               weight="fill"
               className="size-4 text-amber-400 dark:text-amber-300"
             />
-            <span className="text-muted-foreground">Electric</span>
+            <span>Electric</span>
             <span>{electric.toLocaleString()}</span>
           </span>
         )}
@@ -46,7 +46,7 @@ export function BikeSplitBar({
             )}
           >
             <GearSixIcon className="size-4 text-sky-400 dark:text-sky-300" />
-            <span className="text-muted-foreground">Classic</span>
+            <span>Classic</span>
             <span>{classic.toLocaleString()}</span>
           </span>
         )}

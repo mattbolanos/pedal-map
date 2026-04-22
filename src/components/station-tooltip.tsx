@@ -46,7 +46,7 @@ function StatRow({
   return (
     <div className={cn("flex items-center gap-x-1.5", className)}>
       {icon}
-      <span className="text-muted-foreground">{label}</span>
+      <span>{label}</span>
       <span className="ml-auto tabular-nums">{value}</span>
     </div>
   );
@@ -76,11 +76,12 @@ function StationDetails({
               {bikes > 0 && (
                 <span
                   className="font-medium tabular-nums"
-                  style={{ color: availabilityColorCss(ratio, isActive) }}>
+                  style={{ color: availabilityColorCss(ratio, isActive) }}
+                >
                   {pct}%
                 </span>
               )}
-              <span className="text-muted-foreground">Available</span>
+              <span>Available</span>
               <span className="ml-auto tabular-nums">{bikes}</span>
             </div>
             <BikeSplitBar
@@ -120,7 +121,8 @@ function StationDetails({
       )}
       <time
         dateTime={station.last_reported?.toString()}
-        className="text-[11px] tabular-nums">
+        className="text-muted-foreground text-[11px] tabular-nums"
+      >
         Updated {getRelativeTime(station.last_reported)}
       </time>
     </div>
@@ -140,7 +142,8 @@ function StationBadges({ station }: StationTooltipProps) {
       {regionBadge ? (
         <Badge
           variant={regionBadge.badgeVariant}
-          aria-label={`Region: ${regionBadge.label}`}>
+          aria-label={`Region: ${regionBadge.label}`}
+        >
           {regionBadge.label}
         </Badge>
       ) : null}

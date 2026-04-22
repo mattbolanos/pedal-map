@@ -133,7 +133,10 @@ export function MapSummary({
             className="[&_svg]:size-5"
             classic={totalClassicBikes}
           />
-          <LastUpdated lastReported={lastUpdated} className="text-xs" />
+          <LastUpdated
+            lastReported={lastUpdated}
+            className="text-muted-foreground text-xs"
+          />
         </CardContent>
       </Card>
     </div>
