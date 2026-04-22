@@ -29,9 +29,13 @@ export function StationTable({ data }: StationTableProps) {
       }
       defaultColumn={{
         cell: ({ getValue }) => (
-          <span className="tabular-nums">{getValue() as string | number}</span>
+          <span className="tabular-nums">
+            {(getValue() as string | number).toLocaleString(undefined, {
+              minimumFractionDigits: 1,
+              maximumFractionDigits: 1,
+            })}
+          </span>
         ),
-        sortUndefined: "first",
       }}
       initialState={{
         pagination: {

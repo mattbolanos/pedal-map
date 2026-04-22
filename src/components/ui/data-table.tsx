@@ -51,7 +51,8 @@ function SortButton<TData>({ column, children }: SortButtonProps<TData>) {
     <button
       type="button"
       className="flex items-center gap-2"
-      onClick={() => column.toggleSorting(sortDirection === "asc")}>
+      onClick={column.getToggleSortingHandler()}
+    >
       {children}
       <span
         className={cn(
@@ -61,7 +62,8 @@ function SortButton<TData>({ column, children }: SortButtonProps<TData>) {
             : sortDirection === "desc"
               ? "text-red-500"
               : "text-gray-500",
-        )}>
+        )}
+      >
         {sortDirection === "asc" ? (
           <CaretUpIcon />
         ) : sortDirection === "desc" ? (
@@ -171,7 +173,8 @@ export function DataTable<TData>({
             <TableRow>
               <TableCell
                 colSpan={columns.length}
-                className="text-muted-foreground h-24 text-center">
+                className="text-muted-foreground h-24 text-center"
+              >
                 No stations match this filter.
               </TableCell>
             </TableRow>
@@ -185,7 +188,8 @@ export function DataTable<TData>({
           variant="outline"
           size="sm"
           onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}>
+          disabled={!table.getCanPreviousPage()}
+        >
           Previous
         </Button>
         <Button
@@ -193,7 +197,8 @@ export function DataTable<TData>({
           variant="outline"
           size="sm"
           onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}>
+          disabled={!table.getCanNextPage()}
+        >
           Next
         </Button>
       </div>
