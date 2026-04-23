@@ -51,14 +51,15 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning className="dark">
       <head>
+        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: <theme came with the template> */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         {process.env.REACT_SCAN_ENABLED === "true" && (
           <script
             crossOrigin="anonymous"
+            async
             src="//unpkg.com/react-scan/dist/auto.global.js"
           />
         )}
-        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: <theme came with the template> */}
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <HeadContent />
       </head>
       <body className="bg-background font-sans wrap-anywhere antialiased">
