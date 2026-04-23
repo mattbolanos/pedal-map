@@ -211,7 +211,8 @@ function MobileStationSearchResults({
               key={station.station_id}
               type="button"
               className="hover:bg-accent focus-visible:border-ring focus-visible:ring-ring/50 flex w-full items-center gap-2 rounded-xl p-2 text-left text-sm transition-colors outline-none focus-visible:ring-[3px]"
-              onClick={() => onSelectStation(station)}>
+              onClick={() => onSelectStation(station)}
+            >
               <StationSearchResultContent
                 distanceLabel={distanceLabelsByStationId.get(
                   station.station_id,
@@ -440,7 +441,7 @@ export function StationSearch({
     <>
       {useMobileSearch ? (
         <Drawer open={open} onOpenChange={onOpenChange}>
-          <DrawerContent className="max-h-[80vh]">
+          <DrawerContent className="max-h-[60vh]">
             <DrawerHeader className="gap-1.5">
               <div className="flex items-center justify-between gap-2">
                 <DrawerTitle className="text-left">Search stations</DrawerTitle>
@@ -496,7 +497,8 @@ export function StationSearch({
                       value={station.name}
                       keywords={[station.short_name ?? ""].filter(Boolean)}
                       onSelect={() => handleSelectStation(station)}
-                      hideCheckIcon>
+                      hideCheckIcon
+                    >
                       <StationSearchResultContent
                         distanceLabel={distanceLabelsByStationId.get(
                           station.station_id,
