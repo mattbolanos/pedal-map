@@ -8,7 +8,7 @@ const DOT_R = 11;
 const SELECTED_GLOW_R = 31;
 const SELECTED_RING_R = 28.5;
 const SELECTED_INNER_RING_R = 26.75;
-const BUCKET_STEP = 0.05;
+const BUCKET_STEP = 0.01;
 
 export const ICON_RES = RES;
 export const ICON_SIZE_SCALE = RES / ICON_VISUAL_RES;
@@ -45,7 +45,7 @@ export function getPinIconUrl(bucket: number, selected = false): string {
 
   const progress =
     bucket > 0
-      ? `<path d="${arcD(bucket)}" fill="none" stroke="white" stroke-width="${RING_W}" stroke-linecap="round"/>`
+      ? `<path d="${arcD(bucket)}" fill="none" stroke="white" stroke-width="${RING_W}" stroke-linecap="butt"/>`
       : "";
   const selectedAccent = selected
     ? [
@@ -73,6 +73,18 @@ export function bucketRatio(ratio: number): number {
   return (
     Math.round(Math.max(0, Math.min(1, ratio)) / BUCKET_STEP) * BUCKET_STEP
   );
+}
+
+export function stationAvailabilityRatio(
+  bikesAvailable: number | undefined,
+  capacity: number | undefined,
+): number {
+  const bikes = bikesAvailable ?? 0;
+  const totalCapacity = capacity ?? 0;
+
+  if (totalCapacity <= 0) return 0;
+
+  return Math.max(0, Math.min(1, bikes / totalCapacity));
 }
 
 type RGBA = [number, number, number, number];

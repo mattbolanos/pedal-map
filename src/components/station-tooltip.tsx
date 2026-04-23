@@ -4,7 +4,10 @@ import { LetterCirclePIcon } from "@phosphor-icons/react/dist/csr/LetterCircleP"
 import { WrenchIcon } from "@phosphor-icons/react/dist/csr/Wrench";
 import type { CitiBikeStation } from "#/lib/citibike";
 import { isStationActive } from "#/lib/station";
-import { availabilityColorCss } from "#/lib/station-pin";
+import {
+  availabilityColorCss,
+  stationAvailabilityRatio,
+} from "#/lib/station-pin";
 import { getStationRegion } from "#/lib/station-region";
 import { cn, getRelativeTime } from "#/lib/utils";
 import { BikeSplitBar } from "./bike-split-bar";
@@ -63,7 +66,7 @@ function StationDetails({
   const capacity = count(station.capacity);
   const disabledBikes = count(station.num_bikes_disabled);
   const isActive = isStationActive(station);
-  const ratio = capacity > 0 ? bikes / capacity : 0;
+  const ratio = stationAvailabilityRatio(bikes, capacity);
   const pct = Math.round(ratio * 100);
 
   return (
@@ -76,8 +79,7 @@ function StationDetails({
               {bikes > 0 && (
                 <span
                   className="font-medium tabular-nums"
-                  style={{ color: availabilityColorCss(ratio, isActive) }}
-                >
+                  style={{ color: availabilityColorCss(ratio, isActive) }}>
                   {pct}%
                 </span>
               )}
@@ -121,8 +123,7 @@ function StationDetails({
       )}
       <time
         dateTime={station.last_reported?.toString()}
-        className="text-muted-foreground text-[11px] tabular-nums"
-      >
+        className="text-muted-foreground text-[11px] tabular-nums">
         Updated {getRelativeTime(station.last_reported)}
       </time>
     </div>
@@ -142,8 +143,7 @@ function StationBadges({ station }: StationTooltipProps) {
       {regionBadge ? (
         <Badge
           variant={regionBadge.badgeVariant}
-          aria-label={`Region: ${regionBadge.label}`}
-        >
+          aria-label={`Region: ${regionBadge.label}`}>
           {regionBadge.label}
         </Badge>
       ) : null}
