@@ -441,7 +441,7 @@ export function StationSearch({
     <>
       {useMobileSearch ? (
         <Drawer open={open} onOpenChange={onOpenChange}>
-          <DrawerContent className="max-h-[60vh]">
+          <DrawerContent>
             <DrawerHeader className="gap-1.5">
               <div className="flex items-center justify-between gap-2">
                 <DrawerTitle className="text-left">Search stations</DrawerTitle>
