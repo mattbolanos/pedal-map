@@ -51,7 +51,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning className="dark">
       <head>
-        {process.env.NODE_ENV !== "production" && (
+        {process.env.REACT_SCAN_ENABLED === "true" && (
           <script
             crossOrigin="anonymous"
             src="//unpkg.com/react-scan/dist/auto.global.js"
