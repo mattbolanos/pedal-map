@@ -1,4 +1,3 @@
-import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/csr/MagnifyingGlass";
 import { MapPinAreaIcon } from "@phosphor-icons/react/dist/csr/MapPinArea";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { useDeferredValue, useMemo, useState } from "react";
@@ -27,7 +26,6 @@ import {
 import { cn } from "#/lib/utils";
 import { CloseButton } from "./close-button";
 import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
 import {
   Command,
   CommandDialog,
@@ -46,7 +44,6 @@ import {
   DrawerTitle,
 } from "./ui/drawer";
 import { Input } from "./ui/input";
-import { Kbd, KbdGroup } from "./ui/kbd";
 
 const MAX_VISIBLE_STATIONS = 50;
 const MAX_NEARBY_STATIONS = 8;
@@ -91,6 +88,8 @@ const REGION_GROUP_INDEX = new Map<StationGroupHeading, number>(
 );
 
 interface StationSearchProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   stations: CitiBikeStation[];
   onSelectStation: (station: CitiBikeStation) => void;
   userLocation: UserLocationState;
@@ -228,11 +227,12 @@ function MobileStationSearchResults({
 }
 
 export function StationSearch({
+  open,
+  onOpenChange,
   stations,
   onSelectStation,
   userLocation,
 }: StationSearchProps) {
-  const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const isMobile = useIsMobile();
   const isTouchDevice = useIsTouchDevice();
@@ -428,29 +428,18 @@ export function StationSearch({
     }));
   }, [defaultVisibleGroups, hasMoreResults, normalizedQuery, visibleStations]);
 
-  useHotkey("Mod+K", () => setOpen(true));
+  useHotkey("Mod+K", () => onOpenChange(true));
 
   const handleSelectStation = (station: CitiBikeStation) => {
     onSelectStation(station);
     setQuery("");
-    setOpen(false);
+    onOpenChange(false);
   };
 
   return (
-    <div>
-      <Button
-        aria-label="Search stations"
-        variant="outline"
-        onClick={() => setOpen(true)}
-        className="size-10 md:h-9 md:w-auto">
-        <MagnifyingGlassIcon className="size-5 md:size-4" />
-        <span className="hidden md:block">Search</span>
-        <KbdGroup>
-          <Kbd>⌘ K</Kbd>
-        </KbdGroup>
-      </Button>
+    <>
       {useMobileSearch ? (
-        <Drawer open={open} onOpenChange={setOpen}>
+        <Drawer open={open} onOpenChange={onOpenChange}>
           <DrawerContent className="max-h-[80vh]">
             <DrawerHeader className="gap-1.5">
               <div className="flex items-center justify-between gap-2">
@@ -490,7 +479,7 @@ export function StationSearch({
           </DrawerContent>
         </Drawer>
       ) : (
-        <CommandDialog open={open} onOpenChange={setOpen}>
+        <CommandDialog open={open} onOpenChange={onOpenChange}>
           <Command shouldFilter={false}>
             <CommandInput
               placeholder="Search stations..."
@@ -522,6 +511,6 @@ export function StationSearch({
           </Command>
         </CommandDialog>
       )}
-    </div>
+    </>
   );
 }
