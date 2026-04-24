@@ -19,6 +19,7 @@
   --secondary: oklch(0.967 0.001 286.375);
   --secondary-foreground: oklch(0.21 0.006 285.885);
   --muted: oklch(0.963 0.002 197.1);
+  --table-row-hover: color-mix(in oklch, var(--background) 50%, var(--muted) 50%);
   --muted-foreground: oklch(0.56 0.021 213.5);
   --accent: oklch(90.443% 0.00106 11.851);
   --accent-foreground: oklch(0.218 0.008 223.9);
@@ -54,6 +55,7 @@
   --secondary: oklch(0.28 0.02 210);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(16.332% 0.0036 229.245);
+  --table-row-hover: color-mix(in oklch, var(--background) 50%, var(--muted) 50%);
   --muted-foreground: oklch(0.723 0.014 214.4);
   --accent: oklch(0.26 0.015 210);
   --accent-foreground: oklch(99.238% 0.00252 260.123);

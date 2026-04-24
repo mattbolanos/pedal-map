@@ -32,6 +32,10 @@ import { cn } from "#/lib/utils";
 declare module "@tanstack/react-table" {
   interface ColumnMeta<TData extends RowData, TValue> {
     className?: string;
+    cellClassName?: string;
+    headerButtonClassName?: string;
+    headerClassName?: string;
+    sticky?: "left";
   }
 }
 
@@ -73,7 +77,7 @@ function SortButton<TData>({ column, children }: SortButtonProps<TData>) {
       type="button"
       className={cn(
         "group/sortable -mr-1 ml-auto flex items-center gap-1",
-        column.columnDef.meta?.className,
+        column.columnDef.meta?.headerButtonClassName,
       )}
       onClick={column.getToggleSortingHandler()}
     >
@@ -167,6 +171,35 @@ interface GroupBoundaryInfo {
   dividerIds: Set<string>;
 }
 
+function hasStickyLeftDividerBeforeColumn(
+  columnId: string,
+  visibleColumnIds: string[],
+  stickyColumnIds: Set<string>,
+) {
+  const columnIdx = visibleColumnIds.indexOf(columnId);
+
+  return (
+    columnIdx > 0 && stickyColumnIds.has(visibleColumnIds[columnIdx - 1] ?? "")
+  );
+}
+
+function getStickyCellClasses(
+  sticky: "left" | undefined,
+  surface: "body" | "header",
+) {
+  if (sticky !== "left") {
+    return undefined;
+  }
+
+  return cn(
+    "sticky left-0 z-20 bg-clip-padding",
+    "after:bg-border after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-px after:content-['']",
+    surface === "body"
+      ? "bg-background transition-colors group-hover/row:bg-[var(--table-row-hover)]"
+      : "bg-accent",
+  );
+}
+
 function getGroupBoundaries(
   resolvedGroups: ResolvedHeaderGroup[],
   visibleColumnIds: string[],
@@ -187,13 +220,31 @@ function getGroupBoundaries(
   return { dividerIds };
 }
 
-function ColumnGroupHeaderRow({ groups }: { groups: ResolvedHeaderGroup[] }) {
+function ColumnGroupHeaderRow({
+  groups,
+  stickyColumnIds,
+  visibleColumnIds,
+}: {
+  groups: ResolvedHeaderGroup[];
+  stickyColumnIds: Set<string>;
+  visibleColumnIds: string[];
+}) {
   let cellColIdx = 0;
 
   return (
     <TableRow className="bg-accent hover:bg-accent">
       {groups.map((group) => {
-        const needsLeftBorder = Boolean(group.label) && cellColIdx > 0;
+        const startColumnId = visibleColumnIds[cellColIdx];
+        const needsLeftBorder =
+          Boolean(group.label) &&
+          cellColIdx > 0 &&
+          !hasStickyLeftDividerBeforeColumn(
+            startColumnId,
+            visibleColumnIds,
+            stickyColumnIds,
+          );
+        const isSticky =
+          group.colSpan === 1 && stickyColumnIds.has(startColumnId);
         cellColIdx += group.colSpan;
 
         return (
@@ -203,9 +254,9 @@ function ColumnGroupHeaderRow({ groups }: { groups: ResolvedHeaderGroup[] }) {
             scope={group.label ? "colgroup" : undefined}
             aria-hidden={group.label ? undefined : true}
             className={cn(
-              "text-muted-foreground h-8 border-b-0 text-center text-[11px] tracking-[0.16em] uppercase",
+              "h-7 border-b-0 text-center text-xs tracking-wide uppercase md:text-xs",
               needsLeftBorder && "border-border/70 border-l",
-              "first:rounded-tl-xl last:rounded-tr-xl",
+              getStickyCellClasses(isSticky ? "left" : undefined, "header"),
               group.className,
             )}
           >
@@ -251,15 +302,18 @@ function DataTable<TData>({
     initialState,
   });
   const visibleLeafColumns = table.getVisibleLeafColumns();
+  const visibleColumnIds = visibleLeafColumns.map((column) => column.id);
+  const stickyColumnIds = new Set(
+    visibleLeafColumns
+      .filter((column) => column.columnDef.meta?.sticky === "left")
+      .map((column) => column.id),
+  );
   const resolvedColumnGroups =
     columnGroups && columnGroups.length > 0
       ? getResolvedColumnGroups(visibleLeafColumns, columnGroups)
       : null;
   const groupBoundaries = resolvedColumnGroups
-    ? getGroupBoundaries(
-        resolvedColumnGroups,
-        visibleLeafColumns.map((column) => column.id),
-      )
+    ? getGroupBoundaries(resolvedColumnGroups, visibleColumnIds)
     : null;
 
   return (
@@ -282,91 +336,112 @@ function DataTable<TData>({
         </div>
       ) : null}
 
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            {resolvedColumnGroups ? (
-              <ColumnGroupHeaderRow groups={resolvedColumnGroups} />
-            ) : null}
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow
-                key={headerGroup.id}
-                className="bg-accent hover:bg-accent"
-              >
-                {headerGroup.headers.map((header) => {
-                  const columnId = header.column.id;
-                  const hasDivider = groupBoundaries?.dividerIds.has(columnId);
-
-                  return (
-                    <TableHead
-                      key={header.id}
-                      scope="col"
-                      className={cn(
-                        "h-10 whitespace-nowrap",
-                        hasDivider && "border-border/70 border-l",
-                        !resolvedColumnGroups &&
-                          "first:rounded-tl-xl last:rounded-tr-xl",
-                        header.column.getIsSorted() && "text-foreground",
-                        header.column.columnDef.meta?.className,
-                      )}
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : (() => {
-                            const renderedHeader = flexRender(
-                              header.column.columnDef.header,
-                              header.getContext(),
-                            );
-
-                            if (header.column.getCanSort()) {
-                              return (
-                                <SortButton column={header.column}>
-                                  {renderedHeader}
-                                </SortButton>
-                              );
-                            }
-
-                            return renderedHeader;
-                          })()}
-                    </TableHead>
+      <Table className="w-max min-w-full">
+        <TableHeader>
+          {resolvedColumnGroups ? (
+            <ColumnGroupHeaderRow
+              groups={resolvedColumnGroups}
+              stickyColumnIds={stickyColumnIds}
+              visibleColumnIds={visibleColumnIds}
+            />
+          ) : null}
+          {table.getHeaderGroups().map((headerGroup) => (
+            <TableRow
+              key={headerGroup.id}
+              className="bg-accent hover:bg-accent"
+            >
+              {headerGroup.headers.map((header) => {
+                const columnId = header.column.id;
+                const hasDivider =
+                  groupBoundaries?.dividerIds.has(columnId) &&
+                  !hasStickyLeftDividerBeforeColumn(
+                    columnId,
+                    visibleColumnIds,
+                    stickyColumnIds,
                   );
-                })}
+
+                return (
+                  <TableHead
+                    key={header.id}
+                    scope="col"
+                    className={cn(
+                      "h-10 whitespace-nowrap",
+                      hasDivider && "border-border/70 border-l",
+                      getStickyCellClasses(
+                        header.column.columnDef.meta?.sticky,
+                        "header",
+                      ),
+
+                      header.column.getIsSorted() && "text-foreground",
+                      header.column.columnDef.meta?.className,
+                      header.column.columnDef.meta?.headerClassName,
+                    )}
+                  >
+                    {header.isPlaceholder
+                      ? null
+                      : (() => {
+                          const renderedHeader = flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          );
+
+                          if (header.column.getCanSort()) {
+                            return (
+                              <SortButton column={header.column}>
+                                {renderedHeader}
+                              </SortButton>
+                            );
+                          }
+
+                          return renderedHeader;
+                        })()}
+                  </TableHead>
+                );
+              })}
+            </TableRow>
+          ))}
+        </TableHeader>
+        <TableBody>
+          {table.getRowModel().rows.length > 0 ? (
+            table.getRowModel().rows.map((row) => (
+              <TableRow key={row.id}>
+                {row.getVisibleCells().map((cell) => (
+                  <TableCell
+                    key={cell.id}
+                    className={cn(
+                      "text-right whitespace-nowrap",
+                      groupBoundaries?.dividerIds.has(cell.column.id) &&
+                        !hasStickyLeftDividerBeforeColumn(
+                          cell.column.id,
+                          visibleColumnIds,
+                          stickyColumnIds,
+                        ) &&
+                        "border-border/70 border-l",
+                      getStickyCellClasses(
+                        cell.column.columnDef.meta?.sticky,
+                        "body",
+                      ),
+                      cell.column.columnDef.meta?.className,
+                      cell.column.columnDef.meta?.cellClassName,
+                    )}
+                  >
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </TableCell>
+                ))}
               </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.length > 0 ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      className={cn(
-                        "text-right whitespace-nowrap",
-                        cell.column.columnDef.meta?.className,
-                      )}
-                    >
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="text-muted-foreground h-24 text-center"
-                >
-                  No stations match this filter.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell
+                colSpan={columns.length}
+                className="text-muted-foreground h-24 text-center"
+              >
+                No stations match this filter.
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
       <div className="-mt-2 flex items-center justify-end gap-2">
         <Button
           type="button"

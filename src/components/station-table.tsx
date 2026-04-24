@@ -14,13 +14,6 @@ type StationsData = FunctionReturnType<
 >;
 type StationRow = StationsData["rows"][number];
 
-const PERCENT_COLUMN_IDS = new Set([
-  "avgDockAvailabilityPct",
-  "avgOccupancyPct",
-  "pickupReliabilityPct",
-  "dropoffReliabilityPct",
-]);
-
 interface StationTableProps {
   data: StationsData["rows"];
 }
@@ -37,19 +30,22 @@ function getCapacityRatio(value: number | null, capacity: number | null) {
   return clampRatio(value / capacity);
 }
 
-function getColumnColorRatio(
-  columnId: string,
-  value: number | null,
-  row: StationRow,
+function renderNumberCell(
+  formatOptions?: Intl.NumberFormatOptions,
+  className = "tabular-nums",
 ) {
-  if (PERCENT_COLUMN_IDS.has(columnId)) {
-    return value === null ? null : clampRatio(value);
-  }
+  return function NumberCell({ getValue }: { getValue: () => unknown }) {
+    const value = getValue() as number | null;
 
-  return getCapacityRatio(value, row.capacity);
+    return (
+      <span className={className}>
+        {value === null ? "--" : value.toLocaleString(undefined, formatOptions)}
+      </span>
+    );
+  };
 }
 
-function renderPercentCell(columnId: string) {
+function renderPercentCell() {
   return function PercentCell({
     getValue,
     row,
@@ -67,7 +63,7 @@ function renderPercentCell(columnId: string) {
           minimumFractionDigits: 1,
           style: "percent",
         }}
-        ratio={getColumnColorRatio(columnId, value, row.original)}
+        ratio={value}
         value={value}
       />
     );
@@ -89,13 +85,13 @@ export function StationTable({ data }: StationTableProps) {
         ].join(" ")
       }
       defaultColumn={{
-        cell: ({ column, getValue, row }) => {
+        cell: ({ getValue, row }) => {
           const value = getValue() as number | null;
 
           return (
             <ColorCell
               active={row.original.isActive}
-              ratio={getColumnColorRatio(column.id, value, row.original)}
+              ratio={getCapacityRatio(value, row.original.capacity)}
               value={value}
             />
           );
@@ -107,7 +103,7 @@ export function StationTable({ data }: StationTableProps) {
         },
         sorting: [
           {
-            id: "avgDocksAvailable",
+            id: "bikesAvailable",
             desc: true,
           },
         ],
@@ -118,21 +114,21 @@ export function StationTable({ data }: StationTableProps) {
 
 const stationTableColumnGroups: DataTableColumnGroup[] = [
   {
-    label: "Available Now",
+    label: "Available",
     columnIds: [
+      "capacity",
       "bikesAvailable",
       "ebikesAvailable",
-      "classicBikesAvailable",
-      "docksAvailable",
+      "currentEbikeShare",
     ],
   },
   {
-    label: "Avg Availability",
+    label: "Average",
     columnIds: [
+      "sampleCount",
       "avgBikesAvailable",
       "avgEbikesAvailable",
-      "avgClassicBikesAvailable",
-      "avgDocksAvailable",
+      "avgEbikeShare",
       "avgDockAvailabilityPct",
       "avgOccupancyPct",
     ],
@@ -144,13 +140,21 @@ const stationTableColumns: ColumnDef<StationRow>[] = [
     accessorKey: "name",
     header: "Station",
     meta: {
-      className: "text-left ml-0",
+      cellClassName:
+        "w-36 min-w-36 max-w-36 md:w-48 md:min-w-48 md:max-w-48 overflow-hidden text-left",
+      headerButtonClassName: "ml-0 w-full justify-start",
+      headerClassName:
+        "w-36 min-w-36 max-w-36 md:w-48 md:min-w-48 md:max-w-48 text-left",
+      sticky: "left",
     },
     cell: ({ row }) => (
-      <div className="w-48">
-        <span className="text-sm text-[14px]">{row.original.name}</span>
+      <div
+        className="flex w-full min-w-0 items-center gap-2"
+        title={row.original.name}
+      >
+        <span className="block min-w-0 truncate">{row.original.name}</span>
         {row.original.isActive === false ? (
-          <Badge variant="offline" aria-label="Offline" className="ml-2">
+          <Badge variant="offline" aria-label="Offline" className="shrink-0">
             Offline
           </Badge>
         ) : null}
@@ -161,15 +165,7 @@ const stationTableColumns: ColumnDef<StationRow>[] = [
   {
     accessorKey: "capacity",
     header: "Capacity",
-    cell: ({ getValue }) => {
-      const value = getValue() as number | null;
-
-      return (
-        <span className="tabular-nums">
-          {value === null ? "--" : value.toLocaleString()}
-        </span>
-      );
-    },
+    cell: renderNumberCell(),
   },
   {
     accessorKey: "bikesAvailable",
@@ -177,16 +173,27 @@ const stationTableColumns: ColumnDef<StationRow>[] = [
   },
   {
     accessorKey: "ebikesAvailable",
-    header: "Electric",
+    header: "E-Bikes",
   },
   {
-    accessorFn: (row) => (row.bikesAvailable ?? 0) - (row.ebikesAvailable ?? 0),
-    id: "classicBikesAvailable",
-    header: "Classic",
+    accessorFn: (row) => {
+      if (
+        row.ebikesAvailable === null ||
+        row.bikesAvailable === null ||
+        row.bikesAvailable <= 0
+      ) {
+        return null;
+      }
+
+      return clampRatio(row.ebikesAvailable / row.bikesAvailable);
+    },
+    id: "currentEbikeShare",
+    header: "E-Bike %",
+    cell: renderPercentCell(),
   },
   {
-    accessorKey: "docksAvailable",
-    header: "Docks",
+    accessorKey: "sampleCount",
+    header: "Samples",
   },
   {
     accessorKey: "avgBikesAvailable",
@@ -194,26 +201,32 @@ const stationTableColumns: ColumnDef<StationRow>[] = [
   },
   {
     accessorKey: "avgEbikesAvailable",
-    header: "Electric",
+    header: "E-Bikes",
   },
   {
-    accessorFn: (row) =>
-      (row.avgBikesAvailable ?? 0) - (row.avgEbikesAvailable ?? 0),
-    id: "avgClassicBikesAvailable",
-    header: "Classic",
-  },
-  {
-    accessorKey: "avgDocksAvailable",
-    header: "Docks",
+    accessorFn: (row) => {
+      if (
+        row.avgEbikesAvailable === null ||
+        row.avgBikesAvailable === null ||
+        row.avgBikesAvailable <= 0
+      ) {
+        return null;
+      }
+
+      return clampRatio(row.avgEbikesAvailable / row.avgBikesAvailable);
+    },
+    id: "avgEbikeShare",
+    header: "E-Bike %",
+    cell: renderPercentCell(),
   },
   {
     accessorKey: "avgDockAvailabilityPct",
     header: "Dock %",
-    cell: renderPercentCell("avgDockAvailabilityPct"),
+    cell: renderPercentCell(),
   },
   {
     accessorKey: "avgOccupancyPct",
     header: "Occ %",
-    cell: renderPercentCell("avgOccupancyPct"),
+    cell: renderPercentCell(),
   },
 ];

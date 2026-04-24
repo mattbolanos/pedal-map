@@ -97,7 +97,7 @@ const COLOR_STOPS: { t: number; c: RGBA }[] = [
   { t: 0, c: [239, 68, 68, 225] },
   { t: 0.32, c: [242, 178, 68, 225] },
   { t: 0.68, c: [52, 172, 120, 225] },
-  { t: 1, c: [38, 158, 108, 225] },
+  { t: 1, c: [70, 183, 131, 225] },
 ];
 
 const INACTIVE_COLOR: RGBA = [163, 172, 178, 160]; // muted-foreground neutral: [R, G, B, A]
