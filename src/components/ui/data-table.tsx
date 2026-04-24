@@ -1,4 +1,8 @@
+import { CaretDoubleLeftIcon } from "@phosphor-icons/react/dist/csr/CaretDoubleLeft";
+import { CaretDoubleRightIcon } from "@phosphor-icons/react/dist/csr/CaretDoubleRight";
 import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
+import { CaretLeftIcon } from "@phosphor-icons/react/dist/csr/CaretLeft";
+import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
 import { CaretUpIcon } from "@phosphor-icons/react/dist/csr/CaretUp";
 import { CaretUpDownIcon } from "@phosphor-icons/react/dist/csr/CaretUpDown";
 import type {
@@ -192,8 +196,8 @@ function getStickyCellClasses(
   }
 
   return cn(
-    "sticky left-0 z-20 bg-clip-padding",
-    "after:bg-border after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-px after:content-['']",
+    "sticky left-0 z-20 bg-clip-border",
+    "after:bg-border/70 after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-px after:content-['']",
     surface === "body"
       ? "bg-background transition-colors group-hover/row:bg-[var(--table-row-hover)]"
       : "bg-accent",
@@ -442,25 +446,55 @@ function DataTable<TData>({
           )}
         </TableBody>
       </Table>
-      <div className="-mt-2 flex items-center justify-end gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          Previous
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          Next
-        </Button>
+      <div className="-mt-3 flex items-center justify-end">
+        <div className="flex items-center gap-x-1.5">
+          <span className="mr-1.5 text-xs tabular-nums">
+            Page {table.getState().pagination.pageIndex + 1} of{" "}
+            {table.getPageCount()}
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            aria-label="Go to first page"
+            onClick={() => table.firstPage()}
+            disabled={!table.getCanPreviousPage()}
+          >
+            <CaretDoubleLeftIcon />
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            aria-label="Go to previous page"
+            onClick={() => table.previousPage()}
+            disabled={!table.getCanPreviousPage()}
+          >
+            <CaretLeftIcon />
+          </Button>
+
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            aria-label="Go to next page"
+            onClick={() => table.nextPage()}
+            disabled={!table.getCanNextPage()}
+          >
+            <CaretRightIcon />
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon-sm"
+            aria-label="Go to last page"
+            onClick={() => table.lastPage()}
+            disabled={!table.getCanNextPage()}
+          >
+            <CaretDoubleRightIcon />
+          </Button>
+        </div>
       </div>
     </div>
   );

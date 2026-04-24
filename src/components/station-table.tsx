@@ -114,7 +114,7 @@ export function StationTable({ data }: StationTableProps) {
 
 const stationTableColumnGroups: DataTableColumnGroup[] = [
   {
-    label: "Available",
+    label: "Latest",
     columnIds: [
       "capacity",
       "bikesAvailable",
@@ -125,7 +125,6 @@ const stationTableColumnGroups: DataTableColumnGroup[] = [
   {
     label: "Average",
     columnIds: [
-      "sampleCount",
       "avgBikesAvailable",
       "avgEbikesAvailable",
       "avgEbikeShare",
@@ -192,10 +191,6 @@ const stationTableColumns: ColumnDef<StationRow>[] = [
     cell: renderPercentCell(),
   },
   {
-    accessorKey: "sampleCount",
-    header: "Samples",
-  },
-  {
     accessorKey: "avgBikesAvailable",
     header: "Bikes",
   },
@@ -228,5 +223,9 @@ const stationTableColumns: ColumnDef<StationRow>[] = [
     accessorKey: "avgOccupancyPct",
     header: "Occ %",
     cell: renderPercentCell(),
+  },
+  {
+    accessorKey: "sumTurnover",
+    header: "Turnover",
   },
 ];
