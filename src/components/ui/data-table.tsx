@@ -1,11 +1,11 @@
+import { ArrowDownIcon } from "@phosphor-icons/react/dist/csr/ArrowDown";
+import { ArrowsDownUpIcon } from "@phosphor-icons/react/dist/csr/ArrowsDownUp";
+import { ArrowUpIcon } from "@phosphor-icons/react/dist/csr/ArrowUp";
 import { BookOpenTextIcon } from "@phosphor-icons/react/dist/csr/BookOpenText";
 import { CaretDoubleLeftIcon } from "@phosphor-icons/react/dist/csr/CaretDoubleLeft";
 import { CaretDoubleRightIcon } from "@phosphor-icons/react/dist/csr/CaretDoubleRight";
-import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
 import { CaretLeftIcon } from "@phosphor-icons/react/dist/csr/CaretLeft";
 import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
-import { CaretUpIcon } from "@phosphor-icons/react/dist/csr/CaretUp";
-import { CaretUpDownIcon } from "@phosphor-icons/react/dist/csr/CaretUpDown";
 import type {
   Column,
   ColumnDef,
@@ -108,32 +108,37 @@ interface ResolvedHeaderGroup {
 
 function SortButton<TData>({ column, children }: SortButtonProps<TData>) {
   const sortDirection = column.getIsSorted();
+  const buttonClassName = column.columnDef.meta?.headerButtonClassName;
+  const headerClassName = column.columnDef.meta?.headerClassName;
+  const isLeftAligned =
+    buttonClassName?.includes("justify-start") ||
+    headerClassName?.includes("text-left");
 
   return (
     <button
       type="button"
       className={cn(
         "group/sortable ml-auto flex items-center gap-1",
-        column.columnDef.meta?.headerButtonClassName,
+        !isLeftAligned && "flex-row-reverse",
+        buttonClassName,
       )}
       onClick={column.getToggleSortingHandler()}
     >
       {children}
       <span
         className={cn(
-          sortDirection === "asc"
-            ? "text-rose-500"
-            : sortDirection === "desc"
-              ? "text-emerald-500"
-              : "text-muted-foreground group-hover/sortable:text-foreground transition-colors",
+          "flex w-4 shrink-0 justify-center transition-opacity duration-75",
+          sortDirection
+            ? "opacity-100"
+            : "opacity-0 group-hover/sortable:opacity-100",
         )}
       >
         {sortDirection === "asc" ? (
-          <CaretUpIcon />
+          <ArrowUpIcon />
         ) : sortDirection === "desc" ? (
-          <CaretDownIcon />
+          <ArrowDownIcon />
         ) : (
-          <CaretUpDownIcon />
+          <ArrowsDownUpIcon />
         )}
       </span>
     </button>

@@ -114,15 +114,6 @@ export function StationTable({ data }: StationTableProps) {
 
 const stationTableColumnGroups: DataTableColumnGroup[] = [
   {
-    label: "Latest",
-    columnIds: [
-      "bikesAvailable",
-      "ebikesAvailable",
-      "currentEbikeShare",
-      "currentOccupancyPct",
-    ],
-  },
-  {
     label: "Average",
     columnIds: [
       "avgBikesAvailable",
@@ -132,6 +123,15 @@ const stationTableColumnGroups: DataTableColumnGroup[] = [
       "avgDockAvailabilityPct",
       "avgOccupancyPct",
       "pressureScore",
+    ],
+  },
+  {
+    label: "Latest",
+    columnIds: [
+      "bikesAvailable",
+      "ebikesAvailable",
+      "currentEbikeShare",
+      "currentOccupancyPct",
     ],
   },
 ];
@@ -194,38 +194,6 @@ const stationTableColumns: ColumnDef<StationRow>[] = [
     ),
   },
   {
-    accessorKey: "bikesAvailable",
-    header: "Bikes",
-    cell: WholeNumberAvailabilityCell,
-  },
-  {
-    accessorKey: "ebikesAvailable",
-    header: "E-Bikes",
-    cell: WholeNumberAvailabilityCell,
-  },
-  {
-    accessorFn: (row) => {
-      if (
-        row.ebikesAvailable === null ||
-        row.bikesAvailable === null ||
-        row.bikesAvailable <= 0
-      ) {
-        return null;
-      }
-
-      return clampRatio(row.ebikesAvailable / row.bikesAvailable);
-    },
-    id: "currentEbikeShare",
-    header: "E-Bike %",
-    cell: PercentCell,
-  },
-
-  {
-    accessorKey: "currentOccupancyPct",
-    header: "Occ %",
-    cell: PercentCell,
-  },
-  {
     accessorKey: "avgBikesAvailable",
     header: "Bikes",
   },
@@ -262,6 +230,37 @@ const stationTableColumns: ColumnDef<StationRow>[] = [
   {
     accessorKey: "pressureScore",
     header: "Pressure",
+    cell: PercentCell,
+  },
+  {
+    accessorKey: "bikesAvailable",
+    header: "Bikes",
+    cell: WholeNumberAvailabilityCell,
+  },
+  {
+    accessorKey: "ebikesAvailable",
+    header: "E-Bikes",
+    cell: WholeNumberAvailabilityCell,
+  },
+  {
+    accessorFn: (row) => {
+      if (
+        row.ebikesAvailable === null ||
+        row.bikesAvailable === null ||
+        row.bikesAvailable <= 0
+      ) {
+        return null;
+      }
+
+      return clampRatio(row.ebikesAvailable / row.bikesAvailable);
+    },
+    id: "currentEbikeShare",
+    header: "E-Bike %",
+    cell: PercentCell,
+  },
+  {
+    accessorKey: "currentOccupancyPct",
+    header: "Occ %",
     cell: PercentCell,
   },
 ];
