@@ -1,3 +1,4 @@
+import { BookOpenTextIcon } from "@phosphor-icons/react/dist/csr/BookOpenText";
 import { CaretDoubleLeftIcon } from "@phosphor-icons/react/dist/csr/CaretDoubleLeft";
 import { CaretDoubleRightIcon } from "@phosphor-icons/react/dist/csr/CaretDoubleRight";
 import { CaretDownIcon } from "@phosphor-icons/react/dist/csr/CaretDown";
@@ -21,7 +22,25 @@ import {
 } from "@tanstack/react-table";
 import { type ReactNode, useState } from "react";
 import { Button } from "#/components/ui/button";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "#/components/ui/drawer";
 import { Input } from "#/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverDescription,
+  PopoverHeader,
+  PopoverTitle,
+  PopoverTrigger,
+} from "#/components/ui/popover";
 import {
   Table,
   TableBody,
@@ -49,10 +68,24 @@ interface DataTableColumnGroup {
   className?: string;
 }
 
+interface DataTableGlossaryItem {
+  id?: string;
+  term: ReactNode;
+  description: ReactNode;
+}
+
+interface DataTableGlossary {
+  items: DataTableGlossaryItem[];
+  title?: ReactNode;
+  description?: ReactNode;
+  triggerLabel?: ReactNode;
+}
+
 interface DataTableProps<TData> {
   columns: ColumnDef<TData>[];
   data: TData[];
   columnGroups?: DataTableColumnGroup[];
+  glossary?: DataTableGlossary;
   searchPlaceholder?: string;
   getSearchText?: (row: TData) => string;
   showSearchInput?: boolean;
@@ -80,7 +113,7 @@ function SortButton<TData>({ column, children }: SortButtonProps<TData>) {
     <button
       type="button"
       className={cn(
-        "group/sortable -mr-0.5 ml-auto flex items-center gap-1",
+        "group/sortable ml-auto flex items-center gap-1",
         column.columnDef.meta?.headerButtonClassName,
       )}
       onClick={column.getToggleSortingHandler()}
@@ -258,7 +291,7 @@ function ColumnGroupHeaderRow({
             scope={group.label ? "colgroup" : undefined}
             aria-hidden={group.label ? undefined : true}
             className={cn(
-              "h-7 border-b-0 text-center text-xs tracking-wide uppercase md:text-xs",
+              "text-foreground h-7 border-b-0 text-center tracking-wide uppercase",
               needsLeftBorder && "border-border/70 border-l",
               getStickyCellClasses(isSticky ? "left" : undefined, "header"),
               group.className,
@@ -272,10 +305,110 @@ function ColumnGroupHeaderRow({
   );
 }
 
+function GlossaryTerms({ glossary }: { glossary: DataTableGlossary }) {
+  return (
+    <dl className="divide-border/60 divide-y">
+      {glossary.items.map((item, index) => (
+        <div
+          key={item.id ?? String(item.term)}
+          className={cn(
+            "flex flex-col gap-0.5",
+            index === 0 ? "pb-2" : "py-2",
+            index === glossary.items.length - 1 && "pb-0",
+          )}
+        >
+          <dt className="text-foreground text-xs leading-5 font-medium">
+            {item.term}
+          </dt>
+          <dd className="text-muted-foreground text-xs leading-5 text-pretty">
+            {item.description}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function DataTableGlossaryView({ glossary }: { glossary: DataTableGlossary }) {
+  if (glossary.items.length === 0) {
+    return null;
+  }
+
+  const title = glossary.title ?? "Glossary";
+  const description = glossary.description;
+  const triggerLabel = glossary.triggerLabel ?? title;
+
+  return (
+    <>
+      <Popover>
+        <PopoverTrigger
+          render={
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="hidden h-9 gap-1.5 md:inline-flex"
+            >
+              <BookOpenTextIcon />
+              {triggerLabel}
+            </Button>
+          }
+        />
+        <PopoverContent
+          align="end"
+          className="w-[min(22rem,calc(100vw-2rem))] gap-3"
+        >
+          <PopoverHeader>
+            <PopoverTitle className="text-sm">{title}</PopoverTitle>
+            {description ? (
+              <PopoverDescription className="text-xs leading-5">
+                {description}
+              </PopoverDescription>
+            ) : null}
+          </PopoverHeader>
+          <div className="-mr-2 max-h-[60svh] overflow-y-auto pr-2">
+            <GlossaryTerms glossary={glossary} />
+          </div>
+        </PopoverContent>
+      </Popover>
+      <Drawer>
+        <DrawerTrigger asChild>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="bg-background/95 fixed top-10 right-3 z-50 h-9 w-9 gap-1.5 shadow-sm backdrop-blur md:hidden md:w-auto"
+          >
+            <BookOpenTextIcon />
+            <span className="hidden md:block">{triggerLabel}</span>
+          </Button>
+        </DrawerTrigger>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>{title}</DrawerTitle>
+            {description ? (
+              <DrawerDescription>{description}</DrawerDescription>
+            ) : null}
+          </DrawerHeader>
+          <div className="max-h-[calc(75svh-7rem)] overflow-y-auto px-4 pb-6">
+            <GlossaryTerms glossary={glossary} />
+          </div>
+          <DrawerFooter>
+            <DrawerClose asChild>
+              <Button variant="secondary">Close</Button>
+            </DrawerClose>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
+    </>
+  );
+}
+
 function DataTable<TData>({
   columns,
   data,
   columnGroups,
+  glossary,
   searchPlaceholder = "Filter rows...",
   getSearchText,
   showSearchInput = true,
@@ -322,24 +455,23 @@ function DataTable<TData>({
 
   return (
     <div className="space-y-4">
-      {showSearchInput || showRowCount ? (
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      {showSearchInput || glossary ? (
+        <div className="flex items-center gap-2">
           {showSearchInput ? (
             <Input
               value={globalFilter}
               onChange={(event) => setGlobalFilter(event.target.value)}
               placeholder={searchPlaceholder}
-              className="w-full md:max-w-sm"
+              className="w-full rounded-[10px] sm:max-w-sm"
             />
           ) : null}
-          {showRowCount ? (
-            <div className="text-muted-foreground text-sm">
-              {table.getFilteredRowModel().rows.length.toLocaleString()} results
+          {glossary ? (
+            <div className="contents md:ml-auto md:block md:shrink-0">
+              <DataTableGlossaryView glossary={glossary} />
             </div>
           ) : null}
         </div>
       ) : null}
-
       <Table className="w-max min-w-full">
         <TableHeader>
           {resolvedColumnGroups ? (
@@ -369,7 +501,7 @@ function DataTable<TData>({
                     key={header.id}
                     scope="col"
                     className={cn(
-                      "h-10 whitespace-nowrap",
+                      "h-9 whitespace-nowrap",
                       hasDivider && "border-border/70 border-l",
                       getStickyCellClasses(
                         header.column.columnDef.meta?.sticky,
@@ -446,9 +578,14 @@ function DataTable<TData>({
           )}
         </TableBody>
       </Table>
-      <div className="-mt-3 flex items-center justify-end">
-        <div className="flex items-center gap-x-1.5">
-          <span className="mr-1.5 text-xs tabular-nums">
+      <div className="-mt-1 flex items-center">
+        {showRowCount ? (
+          <span className="text-muted-foreground text-xs tabular-nums">
+            {table.getFilteredRowModel().rows.length.toLocaleString()} results
+          </span>
+        ) : null}
+        <div className="ml-auto flex items-center gap-x-1.5">
+          <span className="text-muted-foreground mr-1.5 text-xs tabular-nums">
             Page {table.getState().pagination.pageIndex + 1} of{" "}
             {table.getPageCount()}
           </span>
@@ -500,4 +637,9 @@ function DataTable<TData>({
   );
 }
 
-export { type DataTableColumnGroup, resolveDataTableColumnGroups, DataTable };
+export {
+  type DataTableColumnGroup,
+  type DataTableGlossary,
+  resolveDataTableColumnGroups,
+  DataTable,
+};

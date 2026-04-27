@@ -3,6 +3,7 @@ import type { FunctionReturnType } from "convex/server";
 import {
   DataTable,
   type DataTableColumnGroup,
+  type DataTableGlossary,
 } from "#/components/ui/data-table";
 import type { api } from "#/integrations/convex/api";
 import { getStationRegion } from "#/lib/station-region";
@@ -34,23 +35,6 @@ const WHOLE_NUMBER_FORMAT: Intl.NumberFormatOptions = {
   maximumFractionDigits: 0,
   minimumFractionDigits: 0,
 };
-
-function NumberCell({
-  getValue,
-  formatOptions,
-  className = "tabular-nums",
-}: CellContext<StationRow, unknown> & {
-  formatOptions?: Intl.NumberFormatOptions;
-  className?: string;
-}) {
-  const value = getValue() as number | null;
-
-  return (
-    <span className={className}>
-      {value === null ? "--" : value.toLocaleString(undefined, formatOptions)}
-    </span>
-  );
-}
 
 function PercentCell({ getValue, row }: CellContext<StationRow, unknown>) {
   const value = getValue() as number | null;
@@ -91,6 +75,7 @@ export function StationTable({ data }: StationTableProps) {
       columns={stationTableColumns}
       columnGroups={stationTableColumnGroups}
       data={data}
+      glossary={stationTableGlossary}
       searchPlaceholder="Search stations..."
       getSearchText={(row) =>
         [
@@ -118,7 +103,7 @@ export function StationTable({ data }: StationTableProps) {
         },
         sorting: [
           {
-            id: "bikesAvailable",
+            id: "avgBikesAvailable",
             desc: true,
           },
         ],
@@ -131,7 +116,6 @@ const stationTableColumnGroups: DataTableColumnGroup[] = [
   {
     label: "Latest",
     columnIds: [
-      "capacity",
       "bikesAvailable",
       "ebikesAvailable",
       "currentEbikeShare",
@@ -147,17 +131,41 @@ const stationTableColumnGroups: DataTableColumnGroup[] = [
       "avgDocksAvailable",
       "avgDockAvailabilityPct",
       "avgOccupancyPct",
-    ],
-  },
-  {
-    label: "Reliability",
-    columnIds: [
-      "pickupReliabilityPct",
-      "dropoffReliabilityPct",
       "pressureScore",
     ],
   },
 ];
+
+const stationTableGlossary: DataTableGlossary = {
+  title: "Station Metrics",
+  triggerLabel: "Glossary",
+  items: [
+    {
+      id: "e-bike-share",
+      term: "E-Bike %",
+      description:
+        "Share of available bikes that are electric bikes. Blank values mean no bikes are currently available.",
+    },
+    {
+      id: "occupancy",
+      term: "Occ %",
+      description:
+        "Share of station capacity currently occupied by bikes. Higher values mean fewer open docks.",
+    },
+    {
+      id: "dock-availability",
+      term: "Dock %",
+      description:
+        "Average share of capacity available as open docks. Higher values usually mean easier returns.",
+    },
+    {
+      id: "pressure",
+      term: "Pressure",
+      description:
+        "Relative station demand signal. Higher values indicate stations that more often run tight on bikes or docks.",
+    },
+  ],
+};
 
 const stationTableColumns: ColumnDef<StationRow>[] = [
   {
@@ -184,12 +192,6 @@ const stationTableColumns: ColumnDef<StationRow>[] = [
         ) : null}
       </div>
     ),
-  },
-
-  {
-    accessorKey: "capacity",
-    header: "Capacity",
-    cell: NumberCell,
   },
   {
     accessorKey: "bikesAvailable",
@@ -248,10 +250,6 @@ const stationTableColumns: ColumnDef<StationRow>[] = [
     cell: PercentCell,
   },
   {
-    accessorKey: "avgDocksAvailable",
-    header: "Docks",
-  },
-  {
     accessorKey: "avgDockAvailabilityPct",
     header: "Dock %",
     cell: PercentCell,
@@ -259,16 +257,6 @@ const stationTableColumns: ColumnDef<StationRow>[] = [
   {
     accessorKey: "avgOccupancyPct",
     header: "Occ %",
-    cell: PercentCell,
-  },
-  {
-    accessorKey: "pickupReliabilityPct",
-    header: "Pickup %",
-    cell: PercentCell,
-  },
-  {
-    accessorKey: "dropoffReliabilityPct",
-    header: "Dropoff %",
     cell: PercentCell,
   },
   {
