@@ -301,6 +301,51 @@ export type PublicApiType = {
         }>;
       }
     >;
+    getAvailabilityMapProfile: FunctionReference<
+      "query",
+      "public",
+      {
+        days: number;
+        profileType: "all" | "weekday" | "weekend";
+        resolution: "hour" | "slot";
+      },
+      {
+        daysRequested: number;
+        generatedAt: number;
+        profileType: "all" | "weekday" | "weekend";
+        resolution: "hour" | "slot";
+        sampledDayCount: number;
+        slots: Array<{
+          profileType: "all" | "weekday" | "weekend";
+          slotIndex: number;
+          slotLabel: string;
+          stationMetrics: Array<{
+            activeSampleCount: number;
+            avgBikesAvailable: number | null;
+            avgClassicBikesAvailable: number | null;
+            avgDockAvailabilityPct: number | null;
+            avgDocksAvailable: number | null;
+            avgEbikesAvailable: number | null;
+            avgOccupancyPct: number | null;
+            avgTurnover: number | null;
+            emptyRate: number | null;
+            fullRate: number | null;
+            sampleCount: number;
+            stationId: string;
+          }>;
+        }>;
+        stations: Array<{
+          capacity: number | null;
+          isActive: boolean;
+          lat: number;
+          lon: number;
+          name: string;
+          regionId: string | null;
+          shortName: string | null;
+          stationId: string;
+        }>;
+      }
+    >;
     getSystemAvailabilityProfile: FunctionReference<
       "query",
       "public",

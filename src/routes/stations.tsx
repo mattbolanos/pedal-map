@@ -1,12 +1,16 @@
 import { ArrowBendUpLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowBendUpLeft";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
-import { StationTable } from "#/components/station-table";
+import { StationTable, StationTableSkeleton } from "#/components/station-table";
 import { buttonVariants } from "#/components/ui/button";
 import { api } from "#/integrations/convex/api";
+import { prewarmStationsTableData } from "#/integrations/convex/root-provider";
 import { cn } from "#/lib/utils";
 
 export const Route = createFileRoute("/stations")({
+  loader: () => {
+    prewarmStationsTableData();
+  },
   component: StationsPage,
 });
 
@@ -23,7 +27,7 @@ function StationsPage() {
         <ArrowBendUpLeftIcon className="size-5 md:size-4" />
         Back
       </Link>
-      {data ? <StationTable data={data.rows} /> : <div>Loading...</div>}
+      {data ? <StationTable data={data.rows} /> : <StationTableSkeleton />}
     </div>
   );
 }

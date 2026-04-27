@@ -6,6 +6,10 @@ import { CaretDoubleLeftIcon } from "@phosphor-icons/react/dist/csr/CaretDoubleL
 import { CaretDoubleRightIcon } from "@phosphor-icons/react/dist/csr/CaretDoubleRight";
 import { CaretLeftIcon } from "@phosphor-icons/react/dist/csr/CaretLeft";
 import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
+import {
+  SortAscendingIcon,
+  SortDescendingIcon,
+} from "@phosphor-icons/react/dist/ssr";
 import type {
   Cell,
   Column,
@@ -713,7 +717,6 @@ function DataTable<TData>({
             </NativeSelect>
             <Button
               type="button"
-              variant="outline"
               size="icon-sm"
               aria-label={
                 currentSort?.desc
@@ -731,7 +734,11 @@ function DataTable<TData>({
                 ]);
               }}
             >
-              {currentSort?.desc ? <ArrowDownIcon /> : <ArrowUpIcon />}
+              {currentSort?.desc ? (
+                <SortAscendingIcon />
+              ) : (
+                <SortDescendingIcon />
+              )}
             </Button>
           </div>
         ) : null}

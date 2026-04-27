@@ -9,6 +9,18 @@ import type { api } from "#/integrations/convex/api";
 import { getStationRegion } from "#/lib/station-region";
 import { ColorCell } from "./color-cell";
 import { Badge } from "./ui/badge";
+import { Button } from "./ui/button";
+import { Card, CardContent, CardHeader } from "./ui/card";
+import { ClearableInput } from "./ui/clearable-input";
+import { Skeleton } from "./ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "./ui/table";
 
 type StationsData = FunctionReturnType<
   typeof api.pedalMap.getStationsTableData
@@ -35,6 +47,43 @@ const WHOLE_NUMBER_FORMAT: Intl.NumberFormatOptions = {
   maximumFractionDigits: 0,
   minimumFractionDigits: 0,
 };
+
+const STATION_TABLE_SKELETON_COLUMNS = [
+  { key: "station", label: "Station" },
+  { key: "avg-bikes", label: "Bikes" },
+  { key: "avg-electric", label: "Electric" },
+  { key: "avg-electric-percent", label: "Electric %" },
+  { key: "pressure", label: "Pressure" },
+  { key: "turnover", label: "Turnover" },
+  { key: "arrivals", label: "Arrivals" },
+  { key: "departures", label: "Departures" },
+  { key: "avg-occupancy", label: "Occ %" },
+  { key: "latest-bikes", label: "Bikes" },
+  { key: "latest-electric", label: "Electric" },
+  { key: "latest-classic", label: "Classic" },
+  { key: "latest-occupancy", label: "Occ %" },
+] as const;
+
+const STATION_TABLE_SKELETON_GROUPS = [
+  { key: "station", label: "", colSpan: 1 },
+  { key: "average", label: "Average", colSpan: 8 },
+  { key: "latest", label: "Latest", colSpan: 4 },
+] as const;
+
+const STATION_TABLE_SKELETON_ROWS = Array.from(
+  { length: 10 },
+  (_, index) => `station-table-skeleton-row-${index}`,
+);
+
+const STATION_TABLE_MOBILE_SKELETON_ROWS = Array.from(
+  { length: 6 },
+  (_, index) => `station-table-mobile-skeleton-row-${index}`,
+);
+
+const STATION_TABLE_MOBILE_METRICS = Array.from(
+  { length: 6 },
+  (_, index) => `station-table-mobile-skeleton-metric-${index}`,
+);
 
 function PercentCell({ getValue, row }: CellContext<StationRow, unknown>) {
   const value = getValue() as number | null;
@@ -109,6 +158,116 @@ export function StationTable({ data }: StationTableProps) {
   );
 }
 
+export function StationTableSkeleton() {
+  return (
+    <div className="flex flex-col gap-4" aria-busy="true" aria-live="polite">
+      <div className="flex items-center gap-2">
+        <ClearableInput
+          disabled
+          value=""
+          placeholder="Search stations..."
+          clearLabel="Clear table search"
+          className="w-full rounded-[10px] sm:max-w-sm"
+        />
+      </div>
+      <div className="md:hidden">
+        <div className="mb-3 flex items-center gap-2">
+          <Skeleton className="h-9 min-w-0 flex-1" />
+          <Button
+            type="button"
+            size="icon-sm"
+            disabled
+            aria-label="Sort selected column descending"
+          />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {STATION_TABLE_MOBILE_SKELETON_ROWS.map((row) => (
+            <Card key={row} size="sm" className="gap-2.5 rounded-xl">
+              <CardHeader>
+                <Skeleton className="h-4 w-3/4" />
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-3 gap-3">
+                  {STATION_TABLE_MOBILE_METRICS.map((metric) => (
+                    <div
+                      key={`${row}-${metric}`}
+                      className="flex min-w-0 flex-col items-center gap-1.5 px-1"
+                    >
+                      <Skeleton className="h-3 w-12 max-w-full" />
+                      <Skeleton className="h-4 w-8" />
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+      <div className="hidden md:block">
+        <Table className="w-max min-w-full">
+          <TableHeader>
+            <TableRow className="bg-accent hover:bg-accent">
+              {STATION_TABLE_SKELETON_GROUPS.map((group) => (
+                <TableHead
+                  key={group.key}
+                  colSpan={group.colSpan}
+                  aria-hidden={group.label ? undefined : true}
+                  className="text-foreground h-7 border-b-0 text-center tracking-wide uppercase"
+                >
+                  {group.label}
+                </TableHead>
+              ))}
+            </TableRow>
+            <TableRow className="bg-accent hover:bg-accent">
+              {STATION_TABLE_SKELETON_COLUMNS.map((column) => (
+                <TableHead
+                  key={column.key}
+                  scope="col"
+                  className="h-9 whitespace-nowrap"
+                >
+                  {column.label}
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {STATION_TABLE_SKELETON_ROWS.map((row) => (
+              <TableRow key={row}>
+                {STATION_TABLE_SKELETON_COLUMNS.map((column) => (
+                  <TableCell
+                    key={`${row}-${column.key}`}
+                    className="text-right whitespace-nowrap"
+                  >
+                    <Skeleton
+                      className={
+                        column.key === "station"
+                          ? "h-5 w-36 md:w-44"
+                          : "ml-auto h-5 w-10"
+                      }
+                    />
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      <div className="-mt-1 flex items-center justify-between">
+        <Skeleton className="hidden h-8 w-24 md:block" />
+        <div className="flex w-full items-center justify-between gap-x-3 md:ml-auto md:w-fit md:justify-end">
+          <Skeleton className="h-4 w-28" />
+          <div className="ml-auto flex items-center gap-x-1.5">
+            <Button type="button" variant="outline" size="icon-sm" disabled />
+            <Button type="button" variant="outline" size="icon-sm" disabled />
+            <Button type="button" variant="outline" size="icon-sm" disabled />
+            <Button type="button" variant="outline" size="icon-sm" disabled />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const stationTableColumnGroups: DataTableColumnGroup[] = [
   {
     label: "Average",
@@ -116,11 +275,11 @@ const stationTableColumnGroups: DataTableColumnGroup[] = [
       "avgBikesAvailable",
       "avgEbikesAvailable",
       "avgEbikeShare",
-      "avgOccupancyPct",
       "pressureScore",
       "sumTurnover",
       "sumInferredArrivals",
       "sumInferredDepartures",
+      "avgOccupancyPct",
     ],
   },
   {
@@ -226,11 +385,7 @@ const stationTableColumns: ColumnDef<StationRow>[] = [
     header: "Electric %",
     cell: PercentCell,
   },
-  {
-    accessorKey: "avgOccupancyPct",
-    header: "Occ %",
-    cell: PercentCell,
-  },
+
   {
     accessorKey: "pressureScore",
     header: "Pressure",
@@ -250,6 +405,11 @@ const stationTableColumns: ColumnDef<StationRow>[] = [
     accessorKey: "sumInferredDepartures",
     header: "Departures",
     cell: WholeNumberAvailabilityCell,
+  },
+  {
+    accessorKey: "avgOccupancyPct",
+    header: "Occ %",
+    cell: PercentCell,
   },
   {
     accessorKey: "bikesAvailable",
