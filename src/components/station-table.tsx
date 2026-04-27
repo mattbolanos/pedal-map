@@ -1,4 +1,4 @@
-import type { ColumnDef } from "@tanstack/react-table";
+import type { CellContext, ColumnDef } from "@tanstack/react-table";
 import type { FunctionReturnType } from "convex/server";
 import {
   DataTable,
@@ -30,44 +30,59 @@ function getCapacityRatio(value: number | null, capacity: number | null) {
   return clampRatio(value / capacity);
 }
 
-function renderNumberCell(
-  formatOptions?: Intl.NumberFormatOptions,
-  className = "tabular-nums",
-) {
-  return function NumberCell({ getValue }: { getValue: () => unknown }) {
-    const value = getValue() as number | null;
+const WHOLE_NUMBER_FORMAT: Intl.NumberFormatOptions = {
+  maximumFractionDigits: 0,
+  minimumFractionDigits: 0,
+};
 
-    return (
-      <span className={className}>
-        {value === null ? "--" : value.toLocaleString(undefined, formatOptions)}
-      </span>
-    );
-  };
+function NumberCell({
+  getValue,
+  formatOptions,
+  className = "tabular-nums",
+}: CellContext<StationRow, unknown> & {
+  formatOptions?: Intl.NumberFormatOptions;
+  className?: string;
+}) {
+  const value = getValue() as number | null;
+
+  return (
+    <span className={className}>
+      {value === null ? "--" : value.toLocaleString(undefined, formatOptions)}
+    </span>
+  );
 }
 
-function renderPercentCell() {
-  return function PercentCell({
-    getValue,
-    row,
-  }: {
-    getValue: () => unknown;
-    row: { original: StationRow };
-  }) {
-    const value = getValue() as number | null;
+function PercentCell({ getValue, row }: CellContext<StationRow, unknown>) {
+  const value = getValue() as number | null;
 
-    return (
-      <ColorCell
-        active={row.original.isActive}
-        formatOptions={{
-          maximumFractionDigits: 1,
-          minimumFractionDigits: 1,
-          style: "percent",
-        }}
-        ratio={value}
-        value={value}
-      />
-    );
-  };
+  return (
+    <ColorCell
+      active={row.original.isActive}
+      formatOptions={{
+        maximumFractionDigits: 1,
+        minimumFractionDigits: 1,
+        style: "percent",
+      }}
+      ratio={value}
+      value={value}
+    />
+  );
+}
+
+function WholeNumberAvailabilityCell({
+  getValue,
+  row,
+}: CellContext<StationRow, unknown>) {
+  const value = getValue() as number | null;
+
+  return (
+    <ColorCell
+      active={row.original.isActive}
+      formatOptions={WHOLE_NUMBER_FORMAT}
+      ratio={getCapacityRatio(value, row.original.capacity)}
+      value={value}
+    />
+  );
 }
 
 export function StationTable({ data }: StationTableProps) {
@@ -120,6 +135,7 @@ const stationTableColumnGroups: DataTableColumnGroup[] = [
       "bikesAvailable",
       "ebikesAvailable",
       "currentEbikeShare",
+      "currentOccupancyPct",
     ],
   },
   {
@@ -128,8 +144,17 @@ const stationTableColumnGroups: DataTableColumnGroup[] = [
       "avgBikesAvailable",
       "avgEbikesAvailable",
       "avgEbikeShare",
+      "avgDocksAvailable",
       "avgDockAvailabilityPct",
       "avgOccupancyPct",
+    ],
+  },
+  {
+    label: "Reliability",
+    columnIds: [
+      "pickupReliabilityPct",
+      "dropoffReliabilityPct",
+      "pressureScore",
     ],
   },
 ];
@@ -164,15 +189,17 @@ const stationTableColumns: ColumnDef<StationRow>[] = [
   {
     accessorKey: "capacity",
     header: "Capacity",
-    cell: renderNumberCell(),
+    cell: NumberCell,
   },
   {
     accessorKey: "bikesAvailable",
     header: "Bikes",
+    cell: WholeNumberAvailabilityCell,
   },
   {
     accessorKey: "ebikesAvailable",
     header: "E-Bikes",
+    cell: WholeNumberAvailabilityCell,
   },
   {
     accessorFn: (row) => {
@@ -188,7 +215,13 @@ const stationTableColumns: ColumnDef<StationRow>[] = [
     },
     id: "currentEbikeShare",
     header: "E-Bike %",
-    cell: renderPercentCell(),
+    cell: PercentCell,
+  },
+
+  {
+    accessorKey: "currentOccupancyPct",
+    header: "Occ %",
+    cell: PercentCell,
   },
   {
     accessorKey: "avgBikesAvailable",
@@ -212,20 +245,35 @@ const stationTableColumns: ColumnDef<StationRow>[] = [
     },
     id: "avgEbikeShare",
     header: "E-Bike %",
-    cell: renderPercentCell(),
+    cell: PercentCell,
+  },
+  {
+    accessorKey: "avgDocksAvailable",
+    header: "Docks",
   },
   {
     accessorKey: "avgDockAvailabilityPct",
     header: "Dock %",
-    cell: renderPercentCell(),
+    cell: PercentCell,
   },
   {
     accessorKey: "avgOccupancyPct",
     header: "Occ %",
-    cell: renderPercentCell(),
+    cell: PercentCell,
   },
   {
-    accessorKey: "sumTurnover",
-    header: "Turnover",
+    accessorKey: "pickupReliabilityPct",
+    header: "Pickup %",
+    cell: PercentCell,
+  },
+  {
+    accessorKey: "dropoffReliabilityPct",
+    header: "Dropoff %",
+    cell: PercentCell,
+  },
+  {
+    accessorKey: "pressureScore",
+    header: "Pressure",
+    cell: PercentCell,
   },
 ];

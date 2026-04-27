@@ -152,4 +152,9 @@ a {
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
+
+  button:disabled,
+  [role="button"]:disabled {
+    cursor: not-allowed;
+  }
 }

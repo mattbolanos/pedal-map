@@ -80,7 +80,7 @@ function SortButton<TData>({ column, children }: SortButtonProps<TData>) {
     <button
       type="button"
       className={cn(
-        "group/sortable -mr-1 ml-auto flex items-center gap-1",
+        "group/sortable -mr-0.5 ml-auto flex items-center gap-1",
         column.columnDef.meta?.headerButtonClassName,
       )}
       onClick={column.getToggleSortingHandler()}
