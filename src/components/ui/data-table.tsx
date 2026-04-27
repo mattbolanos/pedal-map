@@ -118,7 +118,7 @@ function SortButton<TData>({ column, children }: SortButtonProps<TData>) {
     <button
       type="button"
       className={cn(
-        "group/sortable ml-auto flex items-center gap-1",
+        "group/sortable ml-auto flex items-center gap-0.5 md:gap-1",
         !isLeftAligned && "flex-row-reverse",
         buttonClassName,
       )}
@@ -382,7 +382,7 @@ function DataTableGlossaryView({ glossary }: { glossary: DataTableGlossary }) {
             type="button"
             variant="outline"
             size="sm"
-            className="bg-background/95 fixed top-11 right-3 z-50 size-8 gap-1.5 shadow-sm backdrop-blur md:hidden md:w-auto"
+            className="bg-background/95 fixed top-11 right-3 z-50 size-9 gap-1.5 shadow-sm backdrop-blur md:hidden md:w-auto"
           >
             <BookOpenTextIcon />
             <span className="hidden md:block">{triggerLabel}</span>
@@ -467,8 +467,8 @@ function DataTable<TData>({
       : Math.min(pageIndex * pageSize + 1, filteredRowCount);
   const pageEnd = Math.min((pageIndex + 1) * pageSize, filteredRowCount);
   const paginationLabel = showRowCount
-    ? `${pageStart.toLocaleString()}-${pageEnd.toLocaleString()} of ${filteredRowCount.toLocaleString()} • Page ${currentPage.toLocaleString()} of ${pageCount.toLocaleString()}`
-    : `Page ${currentPage.toLocaleString()} of ${pageCount.toLocaleString()}`;
+    ? `${pageStart.toLocaleString()}-${pageEnd.toLocaleString()} / ${filteredRowCount.toLocaleString()} • Page ${currentPage.toLocaleString()} / ${pageCount.toLocaleString()}`
+    : `Page ${currentPage.toLocaleString()} / ${pageCount.toLocaleString()}`;
 
   return (
     <div className="space-y-4">
@@ -590,13 +590,13 @@ function DataTable<TData>({
           )}
         </TableBody>
       </Table>
-      <div className="-mt-1 flex items-start justify-between">
+      <div className="-mt-1 flex items-center justify-between">
         {glossary ? <DataTableGlossaryView glossary={glossary} /> : null}
-        <div className="ml-auto flex items-center justify-end gap-x-3">
-          <span className="text-muted-foreground text-xs tabular-nums">
+        <div className="flex w-full items-center justify-between gap-x-3 md:ml-auto md:w-fit md:justify-end">
+          <div className="text-muted-foreground text-[11px] tabular-nums md:text-xs">
             {paginationLabel}
-          </span>
-          <div className="flex items-center gap-x-1.5">
+          </div>
+          <div className="ml-auto flex items-center gap-x-1.5">
             <Button
               type="button"
               variant="outline"
@@ -604,6 +604,7 @@ function DataTable<TData>({
               aria-label="Go to first page"
               onClick={() => table.firstPage()}
               disabled={!table.getCanPreviousPage()}
+              className="size-7 md:size-8"
             >
               <CaretDoubleLeftIcon />
             </Button>
@@ -615,6 +616,7 @@ function DataTable<TData>({
               aria-label="Go to previous page"
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
+              className="size-7 md:size-8"
             >
               <CaretLeftIcon />
             </Button>
@@ -626,6 +628,7 @@ function DataTable<TData>({
               aria-label="Go to next page"
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
+              className="size-7 md:size-8"
             >
               <CaretRightIcon />
             </Button>
@@ -636,6 +639,7 @@ function DataTable<TData>({
               aria-label="Go to last page"
               onClick={() => table.lastPage()}
               disabled={!table.getCanNextPage()}
+              className="size-7 md:size-8"
             >
               <CaretDoubleRightIcon />
             </Button>
