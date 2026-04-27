@@ -5,6 +5,7 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { Toaster } from "#/components/ui/sonner";
+import ConvexRootProvider from "#/integrations/convex/root-provider";
 import TanStackQueryProvider from "#/integrations/tanstack-query/root-provider";
 import appCss from "#/styles.css?url";
 
@@ -50,8 +51,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning className="dark">
       <head>
-        {process.env.NODE_ENV !== "production" && (
+        {process.env.REACT_SCAN_ENABLED === "true" && (
           <script
+            async
             crossOrigin="anonymous"
             src="//unpkg.com/react-scan/dist/auto.global.js"
           />
@@ -60,8 +62,10 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <HeadContent />
       </head>
-      <body className="font-sans wrap-anywhere antialiased">
-        <TanStackQueryProvider>{children}</TanStackQueryProvider>
+      <body className="bg-background font-sans wrap-anywhere antialiased">
+        <TanStackQueryProvider>
+          <ConvexRootProvider>{children}</ConvexRootProvider>
+        </TanStackQueryProvider>
         <Scripts />
         <Toaster />
       </body>

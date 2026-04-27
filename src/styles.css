@@ -19,6 +19,7 @@
   --secondary: oklch(0.967 0.001 286.375);
   --secondary-foreground: oklch(0.21 0.006 285.885);
   --muted: oklch(0.963 0.002 197.1);
+  --table-row-hover: color-mix(in oklch, var(--background) 50%, var(--muted) 50%);
   --muted-foreground: oklch(0.56 0.021 213.5);
   --accent: oklch(90.443% 0.00106 11.851);
   --accent-foreground: oklch(0.218 0.008 223.9);
@@ -31,7 +32,7 @@
   --chart-3: oklch(0.546 0.245 262.881);
   --chart-4: oklch(0.488 0.243 264.376);
   --chart-5: oklch(0.424 0.199 265.638);
-  --radius: 0.675rem;
+  --radius: 0.65rem;
   --sidebar: oklch(0.987 0.002 197.1);
   --sidebar-foreground: oklch(0.148 0.004 228.8);
   --sidebar-primary: oklch(0.546 0.245 262.881);
@@ -43,22 +44,23 @@
 }
 
 .dark {
-  --background: oklch(0.148 0.004 228.8);
+  --background: oklch(0.21 0.01 210);
   --foreground: oklch(0.987 0.002 197.1);
   --card: oklch(16.332% 0.0036 229.245);
   --card-foreground: oklch(0.987 0.002 197.1);
   --popover: oklch(0.168 0.006 200.9);
   --popover-foreground: oklch(0.987 0.002 197.1);
-  --primary: oklch(0.424 0.199 265.638);
+  --primary: oklch(0.6 0.06 210);
   --primary-foreground: oklch(0.97 0.014 254.604);
   --secondary: oklch(0.28 0.02 210);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(16.332% 0.0036 229.245);
+  --table-row-hover: color-mix(in oklch, var(--background) 50%, var(--muted) 50%);
   --muted-foreground: oklch(0.723 0.014 214.4);
   --accent: oklch(0.26 0.015 210);
   --accent-foreground: oklch(99.238% 0.00252 260.123);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
+  --border: oklch(1 0 0 / 11.5%);
   --input: oklch(0.34 0.02 210);
   --ring: oklch(0.56 0.021 213.5);
   --chart-1: oklch(0.809 0.105 251.813);
@@ -126,7 +128,6 @@ body,
 body {
   margin: 0;
   font-family: var(--font-sans);
-  background-color: var(--bg-base);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -150,5 +151,10 @@ a {
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;
+  }
+
+  button:disabled,
+  [role="button"]:disabled {
+    cursor: not-allowed;
   }
 }

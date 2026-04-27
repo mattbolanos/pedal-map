@@ -4,7 +4,10 @@ import { LetterCirclePIcon } from "@phosphor-icons/react/dist/csr/LetterCircleP"
 import { WrenchIcon } from "@phosphor-icons/react/dist/csr/Wrench";
 import type { CitiBikeStation } from "#/lib/citibike";
 import { isStationActive } from "#/lib/station";
-import { availabilityColorCss } from "#/lib/station-pin";
+import {
+  availabilityColorCss,
+  stationAvailabilityRatio,
+} from "#/lib/station-pin";
 import { getStationRegion } from "#/lib/station-region";
 import { cn, getRelativeTime } from "#/lib/utils";
 import { BikeSplitBar } from "./bike-split-bar";
@@ -46,7 +49,7 @@ function StatRow({
   return (
     <div className={cn("flex items-center gap-x-1.5", className)}>
       {icon}
-      <span className="text-muted-foreground">{label}</span>
+      <span>{label}</span>
       <span className="ml-auto tabular-nums">{value}</span>
     </div>
   );
@@ -63,7 +66,7 @@ function StationDetails({
   const capacity = count(station.capacity);
   const disabledBikes = count(station.num_bikes_disabled);
   const isActive = isStationActive(station);
-  const ratio = capacity > 0 ? bikes / capacity : 0;
+  const ratio = stationAvailabilityRatio(bikes, capacity);
   const pct = Math.round(ratio * 100);
 
   return (
@@ -81,7 +84,7 @@ function StationDetails({
                   {pct}%
                 </span>
               )}
-              <span className="text-muted-foreground">Available</span>
+              <span>Available</span>
               <span className="ml-auto tabular-nums">{bikes}</span>
             </div>
             <BikeSplitBar
@@ -121,7 +124,7 @@ function StationDetails({
       )}
       <time
         dateTime={station.last_reported?.toString()}
-        className="text-[11px] tabular-nums"
+        className="text-muted-foreground text-[11px] tabular-nums"
       >
         Updated {getRelativeTime(station.last_reported)}
       </time>
@@ -203,10 +206,8 @@ export const StationDrawer = ({ station }: StationTooltipProps) => (
           <CloseButton className="-mr-1" aria-label="Close station details" />
         </DrawerClose>
       </div>
-      <DrawerDescription className="text-left">
-        <span className="sr-only">Station details</span>
-        <StationBadges station={station} />
-      </DrawerDescription>
+      <StationBadges station={station} />
+      <DrawerDescription className="sr-only">Station details</DrawerDescription>
     </DrawerHeader>
     <StationDetails station={station} className="px-4" />
   </DrawerContent>

@@ -27,15 +27,6 @@ import type { CitiBikeStation } from "#/lib/citibike";
 import { citiBikeStationsQueryOptions } from "#/lib/citibike";
 import { NYC_METRO_BOUNDS } from "#/lib/geo";
 import {
-  getUserLocationToast,
-  hasActiveUserLocation,
-  INITIAL_USER_LOCATION_STATE,
-  requestCurrentUserLocation,
-  type UserLocationState,
-} from "#/lib/user-location";
-import { MapControls } from "./map-controls";
-import { MapSummary } from "./map-summary";
-import {
   DESKTOP_SELECTED_STATION_X_RATIO,
   DESKTOP_SELECTED_STATION_Y_RATIO,
   INITIAL_VIEW_STATE,
@@ -46,7 +37,16 @@ import {
   STATION_HIT_AREA,
   TOOLTIP_VIEWPORT_PADDING,
   USER_LOCATION_TOAST_ID,
-} from "./station-map.constants";
+} from "#/lib/station-map";
+import {
+  getUserLocationToast,
+  hasActiveUserLocation,
+  INITIAL_USER_LOCATION_STATE,
+  requestCurrentUserLocation,
+  type UserLocationState,
+} from "#/lib/user-location";
+import { MapControls } from "./map-controls";
+import { MapSummary } from "./map-summary";
 import type { HoveredStation } from "./station-map.types";
 import { useStationMapLayers } from "./use-station-map-layers";
 import { useStationMapTooltip } from "./use-station-map-tooltip";

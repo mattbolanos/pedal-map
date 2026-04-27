@@ -31,7 +31,7 @@ export function NearbyButton({
     <Button
       variant={hasLocationIssue ? "destructive" : "outline"}
       className={cn(
-        "w-9 md:w-auto md:justify-start",
+        "size-10 md:h-9 md:w-auto md:justify-start",
         hasActiveLocation && "bg-secondary! ring-1",
       )}
       aria-label={locationAriaLabel}
@@ -41,7 +41,7 @@ export function NearbyButton({
           : onRequestUserLocation
       }
     >
-      <CrosshairSimpleIcon className="size-4.5 md:size-4" />
+      <CrosshairSimpleIcon className="size-5 md:size-4" />
       <span className="hidden md:block">Nearby</span>
     </Button>
   );

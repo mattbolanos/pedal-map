@@ -8,10 +8,11 @@ import {
   ICON_RES,
   ICON_SIZE_SCALE,
   pinSize,
+  stationAvailabilityRatio,
 } from "#/lib/station-pin";
 
-export const SMALL_TO_MEDIUM_DOTS_ZOOM = 12;
-const DOTS_TO_PINS_ZOOM = 13.75;
+const SMALL_TO_MEDIUM_DOTS_ZOOM = 12;
+export const DOTS_TO_PINS_ZOOM = 13.75;
 
 function hasValidCoordinates(s: CitiBikeStation) {
   return (
@@ -25,10 +26,7 @@ function hasValidCoordinates(s: CitiBikeStation) {
 }
 
 function availabilityRatio(s: CitiBikeStation): number {
-  const bikes = s.num_bikes_available ?? 0;
-  const docks = s.num_docks_available ?? 0;
-  const total = bikes + docks;
-  return total === 0 ? 0 : bikes / total;
+  return stationAvailabilityRatio(s.num_bikes_available, s.capacity);
 }
 
 function isActive(s: CitiBikeStation): boolean {

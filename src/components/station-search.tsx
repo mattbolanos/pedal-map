@@ -1,10 +1,14 @@
-import { MagnifyingGlassIcon } from "@phosphor-icons/react/dist/csr/MagnifyingGlass";
 import { MapPinAreaIcon } from "@phosphor-icons/react/dist/csr/MapPinArea";
 import { useHotkey } from "@tanstack/react-hotkeys";
 import { useDeferredValue, useMemo, useState } from "react";
 import { useIsMobile } from "#/hooks/use-mobile";
 import { useIsTouchDevice } from "#/hooks/use-touch-device";
 import type { CitiBikeStation } from "#/lib/citibike";
+import {
+  createFuzzySearchValue,
+  type FuzzySearchValue,
+  getFuzzySearchScore,
+} from "#/lib/fuzzy-search";
 import {
   formatDistance,
   type GeoCoordinates,
@@ -22,7 +26,6 @@ import {
 import { cn } from "#/lib/utils";
 import { CloseButton } from "./close-button";
 import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
 import {
   Command,
   CommandDialog,
@@ -41,18 +44,15 @@ import {
   DrawerTitle,
 } from "./ui/drawer";
 import { Input } from "./ui/input";
-import { Kbd, KbdGroup } from "./ui/kbd";
 
 const MAX_VISIBLE_STATIONS = 50;
 const MAX_NEARBY_STATIONS = 8;
-const SEARCH_SEPARATOR_PATTERN = /[^a-z0-9]+/g;
 
 type StationGroupHeading = StationRegionLabel | "Other";
 
 interface SearchableStation {
   originalIndex: number;
-  searchableText: string;
-  searchableTokens: string[];
+  searchableValue: FuzzySearchValue;
   station: CitiBikeStation;
 }
 
@@ -88,6 +88,8 @@ const REGION_GROUP_INDEX = new Map<StationGroupHeading, number>(
 );
 
 interface StationSearchProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   stations: CitiBikeStation[];
   onSelectStation: (station: CitiBikeStation) => void;
   userLocation: UserLocationState;
@@ -111,80 +113,6 @@ function compareStationSearchResults(
     distanceA - distanceB ||
     resultA.originalIndex - resultB.originalIndex
   );
-}
-
-function normalizeSearchText(value: string) {
-  return value.toLowerCase().replace(SEARCH_SEPARATOR_PATTERN, " ").trim();
-}
-
-function getSearchTokens(value: string) {
-  return normalizeSearchText(value).split(/\s+/).filter(Boolean);
-}
-
-function getBestTokenMatch(queryToken: string, searchableTokens: string[]) {
-  let bestScore = 0;
-  let bestIndex = -1;
-
-  searchableTokens.forEach((token, index) => {
-    const score =
-      token === queryToken
-        ? 120
-        : token.startsWith(queryToken)
-          ? 90
-          : token.includes(queryToken)
-            ? 60
-            : 0;
-
-    if (score > bestScore) {
-      bestScore = score;
-      bestIndex = index;
-    }
-  });
-
-  return { index: bestIndex, score: bestScore };
-}
-
-function getStationSearchScore(
-  searchableStation: SearchableStation,
-  normalizedQuery: string,
-  queryTokens: string[],
-) {
-  let score = 0;
-  const tokenPositions: number[] = [];
-
-  if (searchableStation.searchableText.startsWith(normalizedQuery)) {
-    score += 240;
-  } else if (searchableStation.searchableText.includes(normalizedQuery)) {
-    score += 180;
-  }
-
-  for (const queryToken of queryTokens) {
-    const tokenMatch = getBestTokenMatch(
-      queryToken,
-      searchableStation.searchableTokens,
-    );
-
-    if (tokenMatch.score === 0) {
-      return null;
-    }
-
-    score += tokenMatch.score;
-    tokenPositions.push(tokenMatch.index);
-  }
-
-  const isInQueryOrder = tokenPositions.every(
-    (position, index) => index === 0 || position > tokenPositions[index - 1],
-  );
-
-  if (isInQueryOrder) {
-    score += 80;
-    score += Math.max(
-      0,
-      24 - (tokenPositions[tokenPositions.length - 1] - tokenPositions[0]),
-    );
-  }
-
-  return score;
 }
 
 function getStationCoordinates(station: CitiBikeStation): GeoCoordinates {
@@ -300,34 +228,36 @@ function MobileStationSearchResults({
 }
 
 export function StationSearch({
+  open,
+  onOpenChange,
   stations,
   onSelectStation,
   userLocation,
 }: StationSearchProps) {
-  const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const isMobile = useIsMobile();
   const isTouchDevice = useIsTouchDevice();
   const useMobileSearch = isMobile || isTouchDevice;
   const deferredQuery = useDeferredValue(query);
-  const normalizedQuery = normalizeSearchText(deferredQuery);
+  const querySearchValue = useMemo(
+    () => createFuzzySearchValue(deferredQuery),
+    [deferredQuery],
+  );
+  const normalizedQuery = querySearchValue.normalizedText;
   const activeUserCoordinates = hasActiveUserLocation(userLocation)
     ? userLocation.coords
     : null;
 
-  const searchableStations = useMemo(
+  const searchableStations = useMemo<SearchableStation[]>(
     () =>
       stations.map((station, originalIndex) => {
-        const searchableText = normalizeSearchText(
-          [station.name, station.short_name, station.station_id]
-            .filter(Boolean)
-            .join(" "),
-        );
-
         return {
           originalIndex,
-          searchableText,
-          searchableTokens: getSearchTokens(searchableText),
+          searchableValue: createFuzzySearchValue(
+            [station.name, station.short_name, station.station_id]
+              .filter(Boolean)
+              .join(" "),
+          ),
           station,
         };
       }),
@@ -428,15 +358,13 @@ export function StationSearch({
         };
       }
 
-      const queryTokens = getSearchTokens(normalizedQuery);
       const topResults: StationSearchResult[] = [];
       let matchCount = 0;
 
       for (const searchableStation of searchableStations) {
-        const score = getStationSearchScore(
-          searchableStation,
-          normalizedQuery,
-          queryTokens,
+        const score = getFuzzySearchScore(
+          searchableStation.searchableValue,
+          querySearchValue,
         );
 
         if (score === null) {
@@ -480,6 +408,7 @@ export function StationSearch({
     }, [
       defaultVisibleStations,
       normalizedQuery,
+      querySearchValue,
       searchableStations,
       stationDistanceMetersById,
     ]);
@@ -500,31 +429,19 @@ export function StationSearch({
     }));
   }, [defaultVisibleGroups, hasMoreResults, normalizedQuery, visibleStations]);
 
-  useHotkey("Mod+K", () => setOpen(true));
+  useHotkey("Mod+K", () => onOpenChange(true));
 
   const handleSelectStation = (station: CitiBikeStation) => {
     onSelectStation(station);
     setQuery("");
-    setOpen(false);
+    onOpenChange(false);
   };
 
   return (
-    <div>
-      <Button
-        aria-label="Search stations"
-        variant="outline"
-        onClick={() => setOpen(true)}
-        className="w-9 md:w-auto"
-      >
-        <MagnifyingGlassIcon className="size-4.5 md:size-4" />
-        <span className="hidden md:block">Search</span>
-        <KbdGroup>
-          <Kbd>⌘ K</Kbd>
-        </KbdGroup>
-      </Button>
+    <>
       {useMobileSearch ? (
-        <Drawer open={open} onOpenChange={setOpen}>
-          <DrawerContent className="max-h-[80vh]">
+        <Drawer open={open} onOpenChange={onOpenChange}>
+          <DrawerContent>
             <DrawerHeader className="gap-1.5">
               <div className="flex items-center justify-between gap-2">
                 <DrawerTitle className="text-left">Search stations</DrawerTitle>
@@ -563,7 +480,7 @@ export function StationSearch({
           </DrawerContent>
         </Drawer>
       ) : (
-        <CommandDialog open={open} onOpenChange={setOpen}>
+        <CommandDialog open={open} onOpenChange={onOpenChange}>
           <Command shouldFilter={false}>
             <CommandInput
               placeholder="Search stations..."
@@ -596,6 +513,6 @@ export function StationSearch({
           </Command>
         </CommandDialog>
       )}
-    </div>
+    </>
   );
 }

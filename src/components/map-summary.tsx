@@ -56,10 +56,7 @@ export function MapSummary({
   return (
     <div
       aria-hidden={ariaHidden}
-      className={cn(
-        "pointer-events-none absolute top-3 right-3 z-10",
-        className,
-      )}
+      className={cn("pointer-events-none fixed top-3 right-3 z-50", className)}
     >
       <Card
         className={cn(
@@ -133,7 +130,10 @@ export function MapSummary({
             className="[&_svg]:size-5"
             classic={totalClassicBikes}
           />
-          <LastUpdated lastReported={lastUpdated} className="text-xs" />
+          <LastUpdated
+            lastReported={lastUpdated}
+            className="text-muted-foreground text-xs"
+          />
         </CardContent>
       </Card>
     </div>
