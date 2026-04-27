@@ -7,6 +7,7 @@ import { CaretDoubleRightIcon } from "@phosphor-icons/react/dist/csr/CaretDouble
 import { CaretLeftIcon } from "@phosphor-icons/react/dist/csr/CaretLeft";
 import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
 import type {
+  Cell,
   Column,
   ColumnDef,
   InitialTableState,
@@ -20,8 +21,10 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { type ReactNode, useState } from "react";
+import { isValidElement, type ReactNode, useState } from "react";
 import { Button } from "#/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
+import { ClearableInput } from "#/components/ui/clearable-input";
 import {
   Drawer,
   DrawerClose,
@@ -32,7 +35,11 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "#/components/ui/drawer";
-import { Input } from "#/components/ui/input";
+import {
+  NativeSelect,
+  NativeSelectOptGroup,
+  NativeSelectOption,
+} from "#/components/ui/native-select";
 import {
   Popover,
   PopoverContent,
@@ -56,6 +63,9 @@ declare module "@tanstack/react-table" {
   interface ColumnMeta<TData extends RowData, TValue> {
     className?: string;
     cellClassName?: string;
+    mobileHidden?: boolean;
+    mobileLabel?: ReactNode;
+    mobilePriority?: "title" | "content";
     headerButtonClassName?: string;
     headerClassName?: string;
     sticky?: "left";
@@ -104,6 +114,12 @@ interface ResolvedHeaderGroup {
   colSpan: number;
   label: ReactNode;
   className?: string;
+}
+
+interface SortSelectColumnGroup<TData> {
+  key: string;
+  label?: string;
+  columns: Column<TData, unknown>[];
 }
 
 function SortButton<TData>({ column, children }: SortButtonProps<TData>) {
@@ -209,6 +225,70 @@ function getResolvedColumnGroups<TData>(
   );
 }
 
+function getPlainTextFromReactNode(node: ReactNode): string {
+  if (node === null || node === undefined || typeof node === "boolean") {
+    return "";
+  }
+
+  if (typeof node === "string" || typeof node === "number") {
+    return String(node);
+  }
+
+  if (Array.isArray(node)) {
+    return node.map(getPlainTextFromReactNode).join("");
+  }
+
+  if (isValidElement<{ children?: ReactNode }>(node)) {
+    return getPlainTextFromReactNode(node.props.children);
+  }
+
+  return "";
+}
+
+function getSortSelectColumnGroups<TData>(
+  resolvedGroups: ResolvedHeaderGroup[] | null,
+  visibleColumns: Column<TData, unknown>[],
+): SortSelectColumnGroup<TData>[] {
+  const sortableColumnsById = new Map(
+    visibleColumns
+      .filter((column) => column.getCanSort())
+      .map((column) => [column.id, column]),
+  );
+
+  if (!resolvedGroups) {
+    return [
+      {
+        key: "ungrouped",
+        columns: [...sortableColumnsById.values()],
+      },
+    ];
+  }
+
+  const visibleColumnIds = visibleColumns.map((column) => column.id);
+  const selectGroups: SortSelectColumnGroup<TData>[] = [];
+  let columnIndex = 0;
+
+  for (const group of resolvedGroups) {
+    const groupColumns = visibleColumnIds
+      .slice(columnIndex, columnIndex + group.colSpan)
+      .map((columnId) => sortableColumnsById.get(columnId))
+      .filter((column): column is Column<TData, unknown> => Boolean(column));
+    const label = getPlainTextFromReactNode(group.label).trim();
+
+    if (groupColumns.length > 0) {
+      selectGroups.push({
+        key: group.key,
+        label: label || undefined,
+        columns: groupColumns,
+      });
+    }
+
+    columnIndex += group.colSpan;
+  }
+
+  return selectGroups;
+}
+
 interface GroupBoundaryInfo {
   dividerIds: Set<string>;
 }
@@ -260,6 +340,97 @@ function getGroupBoundaries(
   }
 
   return { dividerIds };
+}
+
+function getMobileColumnLabel<TData>(
+  column: Column<TData, unknown>,
+): ReactNode {
+  const mobileLabel = column.columnDef.meta?.mobileLabel;
+
+  if (mobileLabel) {
+    return mobileLabel;
+  }
+
+  if (
+    typeof column.columnDef.header === "string" ||
+    typeof column.columnDef.header === "number"
+  ) {
+    return column.columnDef.header;
+  }
+
+  return column.id;
+}
+
+function getMobileCardColumnIds(
+  resolvedGroups: ResolvedHeaderGroup[] | null,
+  visibleColumnIds: string[],
+) {
+  if (!resolvedGroups) {
+    return new Set(visibleColumnIds.slice(1));
+  }
+
+  let columnIndex = 0;
+
+  for (const group of resolvedGroups) {
+    const groupColumnIds = visibleColumnIds.slice(
+      columnIndex,
+      columnIndex + group.colSpan,
+    );
+
+    if (group.label && groupColumnIds.length > 0) {
+      return new Set(groupColumnIds);
+    }
+
+    columnIndex += group.colSpan;
+  }
+
+  return new Set(visibleColumnIds.slice(1));
+}
+
+function MobileMetricGrid<TData>({ cells }: { cells: Cell<TData, unknown>[] }) {
+  return (
+    <dl className="grid grid-cols-3 gap-x-2 gap-y-2.5">
+      {cells.map((cell) => (
+        <div
+          key={cell.id}
+          className="flex min-w-0 flex-col items-center gap-1.5 px-1"
+        >
+          <dt className="text-muted-foreground max-w-full truncate text-[11px] leading-none">
+            {getMobileColumnLabel(cell.column)}
+          </dt>
+          <dd className="text-foreground text-sm leading-none font-medium tabular-nums">
+            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+          </dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function MobileDataCard<TData>({
+  titleCell,
+  metricCells,
+}: {
+  titleCell: Cell<TData, unknown> | undefined;
+  metricCells: Cell<TData, unknown>[];
+}) {
+  return (
+    <Card size="sm" className="gap-2.5 rounded-xl">
+      {titleCell ? (
+        <CardHeader>
+          <CardTitle className="text-sm text-pretty">
+            {flexRender(
+              titleCell.column.columnDef.cell,
+              titleCell.getContext(),
+            )}
+          </CardTitle>
+        </CardHeader>
+      ) : null}
+      <CardContent>
+        <MobileMetricGrid cells={metricCells} />
+      </CardContent>
+    </Card>
+  );
 }
 
 function ColumnGroupHeaderRow({
@@ -457,6 +628,22 @@ function DataTable<TData>({
   const groupBoundaries = resolvedColumnGroups
     ? getGroupBoundaries(resolvedColumnGroups, visibleColumnIds)
     : null;
+
+  const mobileCardColumnIds = getMobileCardColumnIds(
+    resolvedColumnGroups,
+    visibleColumnIds,
+  );
+  const sortableColumns = visibleLeafColumns.filter((column) =>
+    column.getCanSort(),
+  );
+  const sortSelectColumnGroups = getSortSelectColumnGroups(
+    resolvedColumnGroups,
+    visibleLeafColumns,
+  );
+  const currentSort = table.getState().sorting[0];
+  const currentSortColumn = currentSort
+    ? table.getColumn(currentSort.id)
+    : null;
   const filteredRowCount = table.getFilteredRowModel().rows.length;
   const { pageIndex, pageSize } = table.getState().pagination;
   const pageCount = Math.max(table.getPageCount(), 1);
@@ -475,121 +662,225 @@ function DataTable<TData>({
       {showSearchInput || glossary ? (
         <div className="flex items-center gap-2">
           {showSearchInput ? (
-            <Input
+            <ClearableInput
               value={globalFilter}
-              onChange={(event) => setGlobalFilter(event.target.value)}
+              onValueChange={setGlobalFilter}
               placeholder={searchPlaceholder}
+              clearLabel="Clear table search"
               className="w-full rounded-[10px] sm:max-w-sm"
             />
           ) : null}
         </div>
       ) : null}
-      <Table className="w-max min-w-full">
-        <TableHeader>
-          {resolvedColumnGroups ? (
-            <ColumnGroupHeaderRow
-              groups={resolvedColumnGroups}
-              stickyColumnIds={stickyColumnIds}
-              visibleColumnIds={visibleColumnIds}
-            />
-          ) : null}
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow
-              key={headerGroup.id}
-              className="bg-accent hover:bg-accent"
+      <div className="md:hidden">
+        {sortableColumns.length > 0 ? (
+          <div className="mb-3 flex items-center gap-2">
+            <NativeSelect
+              value={currentSort?.id ?? ""}
+              onChange={(event) => {
+                const columnId = event.target.value;
+
+                if (!columnId) {
+                  table.setSorting([]);
+                  return;
+                }
+
+                table.setSorting([{ id: columnId, desc: currentSort?.desc }]);
+              }}
+              aria-label="Sort rows by"
+              className="min-w-0 flex-1"
             >
-              {headerGroup.headers.map((header) => {
-                const columnId = header.column.id;
-                const hasDivider =
-                  groupBoundaries?.dividerIds.has(columnId) &&
-                  !hasStickyLeftDividerBeforeColumn(
-                    columnId,
-                    visibleColumnIds,
-                    stickyColumnIds,
-                  );
+              <NativeSelectOption value="" disabled>
+                Sort by
+              </NativeSelectOption>
+              {sortSelectColumnGroups.map((group) =>
+                group.label ? (
+                  <NativeSelectOptGroup key={group.key} label={group.label}>
+                    {group.columns.map((column) => (
+                      <NativeSelectOption key={column.id} value={column.id}>
+                        {getMobileColumnLabel(column)}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelectOptGroup>
+                ) : (
+                  group.columns.map((column) => (
+                    <NativeSelectOption key={column.id} value={column.id}>
+                      {getMobileColumnLabel(column)}
+                    </NativeSelectOption>
+                  ))
+                ),
+              )}
+            </NativeSelect>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              aria-label={
+                currentSort?.desc
+                  ? "Sort selected column ascending"
+                  : "Sort selected column descending"
+              }
+              disabled={!currentSortColumn}
+              onClick={() => {
+                if (!currentSortColumn) {
+                  return;
+                }
 
-                return (
-                  <TableHead
-                    key={header.id}
-                    scope="col"
-                    className={cn(
-                      "h-9 whitespace-nowrap",
-                      hasDivider && "border-border/70 border-l",
-                      getStickyCellClasses(
-                        header.column.columnDef.meta?.sticky,
-                        "header",
-                      ),
+                table.setSorting([
+                  { id: currentSortColumn.id, desc: !currentSort?.desc },
+                ]);
+              }}
+            >
+              {currentSort?.desc ? <ArrowDownIcon /> : <ArrowUpIcon />}
+            </Button>
+          </div>
+        ) : null}
+        {table.getRowModel().rows.length > 0 ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {table.getRowModel().rows.map((row) => {
+              const visibleCells = row
+                .getVisibleCells()
+                .filter((cell) => !cell.column.columnDef.meta?.mobileHidden);
+              const titleCell =
+                visibleCells.find(
+                  (cell) =>
+                    cell.column.columnDef.meta?.mobilePriority === "title",
+                ) ?? visibleCells[0];
+              const contentCells = visibleCells.filter(
+                (cell) =>
+                  cell.id !== titleCell?.id &&
+                  cell.column.columnDef.meta?.mobilePriority !== "title",
+              );
+              const mobileMetricCells = contentCells.filter((cell) =>
+                mobileCardColumnIds.has(cell.column.id),
+              );
 
-                      header.column.getIsSorted() && "text-foreground",
-                      header.column.columnDef.meta?.className,
-                      header.column.columnDef.meta?.headerClassName,
-                    )}
-                  >
-                    {header.isPlaceholder
-                      ? null
-                      : (() => {
-                          const renderedHeader = flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          );
-
-                          if (header.column.getCanSort()) {
-                            return (
-                              <SortButton column={header.column}>
-                                {renderedHeader}
-                              </SortButton>
-                            );
-                          }
-
-                          return renderedHeader;
-                        })()}
-                  </TableHead>
-                );
-              })}
-            </TableRow>
-          ))}
-        </TableHeader>
-        <TableBody>
-          {table.getRowModel().rows.length > 0 ? (
-            table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id}>
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell
-                    key={cell.id}
-                    className={cn(
-                      "text-right whitespace-nowrap",
-                      groupBoundaries?.dividerIds.has(cell.column.id) &&
-                        !hasStickyLeftDividerBeforeColumn(
-                          cell.column.id,
-                          visibleColumnIds,
-                          stickyColumnIds,
-                        ) &&
-                        "border-border/70 border-l",
-                      getStickyCellClasses(
-                        cell.column.columnDef.meta?.sticky,
-                        "body",
-                      ),
-                      cell.column.columnDef.meta?.className,
-                      cell.column.columnDef.meta?.cellClassName,
-                    )}
-                  >
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell
-                colSpan={columns.length}
-                className="text-muted-foreground h-24 text-center"
+              return (
+                <MobileDataCard
+                  key={row.id}
+                  titleCell={titleCell}
+                  metricCells={mobileMetricCells.slice(0, 6)}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-muted-foreground rounded-xl border py-10 text-center text-sm">
+            No stations match this filter.
+          </div>
+        )}
+      </div>
+      <div className="hidden md:block">
+        <Table className="w-max min-w-full">
+          <TableHeader>
+            {resolvedColumnGroups ? (
+              <ColumnGroupHeaderRow
+                groups={resolvedColumnGroups}
+                stickyColumnIds={stickyColumnIds}
+                visibleColumnIds={visibleColumnIds}
+              />
+            ) : null}
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow
+                key={headerGroup.id}
+                className="bg-accent hover:bg-accent"
               >
-                No stations match this filter.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+                {headerGroup.headers.map((header) => {
+                  const columnId = header.column.id;
+                  const hasDivider =
+                    groupBoundaries?.dividerIds.has(columnId) &&
+                    !hasStickyLeftDividerBeforeColumn(
+                      columnId,
+                      visibleColumnIds,
+                      stickyColumnIds,
+                    );
+
+                  return (
+                    <TableHead
+                      key={header.id}
+                      scope="col"
+                      className={cn(
+                        "h-9 whitespace-nowrap",
+                        hasDivider && "border-border/70 border-l",
+                        getStickyCellClasses(
+                          header.column.columnDef.meta?.sticky,
+                          "header",
+                        ),
+
+                        header.column.getIsSorted() && "text-foreground",
+                        header.column.columnDef.meta?.className,
+                        header.column.columnDef.meta?.headerClassName,
+                      )}
+                    >
+                      {header.isPlaceholder
+                        ? null
+                        : (() => {
+                            const renderedHeader = flexRender(
+                              header.column.columnDef.header,
+                              header.getContext(),
+                            );
+
+                            if (header.column.getCanSort()) {
+                              return (
+                                <SortButton column={header.column}>
+                                  {renderedHeader}
+                                </SortButton>
+                              );
+                            }
+
+                            return renderedHeader;
+                          })()}
+                    </TableHead>
+                  );
+                })}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows.length > 0 ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow key={row.id}>
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell
+                      key={cell.id}
+                      className={cn(
+                        "text-right whitespace-nowrap",
+                        groupBoundaries?.dividerIds.has(cell.column.id) &&
+                          !hasStickyLeftDividerBeforeColumn(
+                            cell.column.id,
+                            visibleColumnIds,
+                            stickyColumnIds,
+                          ) &&
+                          "border-border/70 border-l",
+                        getStickyCellClasses(
+                          cell.column.columnDef.meta?.sticky,
+                          "body",
+                        ),
+                        cell.column.columnDef.meta?.className,
+                        cell.column.columnDef.meta?.cellClassName,
+                      )}
+                    >
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="text-muted-foreground h-24 text-center"
+                >
+                  No stations match this filter.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
       <div className="-mt-1 flex items-center justify-between">
         {glossary ? <DataTableGlossaryView glossary={glossary} /> : null}
         <div className="flex w-full items-center justify-between gap-x-3 md:ml-auto md:w-fit md:justify-end">

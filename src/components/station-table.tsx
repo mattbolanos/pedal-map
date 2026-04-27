@@ -116,10 +116,11 @@ const stationTableColumnGroups: DataTableColumnGroup[] = [
       "avgBikesAvailable",
       "avgEbikesAvailable",
       "avgEbikeShare",
-      "avgDocksAvailable",
-      "avgDockAvailabilityPct",
       "avgOccupancyPct",
       "pressureScore",
+      "sumTurnover",
+      "sumInferredArrivals",
+      "sumInferredDepartures",
     ],
   },
   {
@@ -127,7 +128,7 @@ const stationTableColumnGroups: DataTableColumnGroup[] = [
     columnIds: [
       "bikesAvailable",
       "ebikesAvailable",
-      "currentEbikeShare",
+      "classicBikesAvailable",
       "currentOccupancyPct",
     ],
   },
@@ -139,27 +140,38 @@ const stationTableGlossary: DataTableGlossary = {
   items: [
     {
       id: "e-bike-share",
-      term: "E-Bike %",
+      term: "Electric %",
       description:
-        "Share of available bikes that are electric bikes. Blank values mean no bikes are currently available.",
+        "Average electric bikes divided by average total bikes for the day. Blank values mean no bikes were available in the averaged samples.",
     },
     {
       id: "occupancy",
       term: "Occ %",
       description:
-        "Share of station capacity currently occupied by bikes. Higher values mean fewer open docks.",
+        "Bikes available divided by station capacity. Average columns use the day's sampled occupancy; latest columns use the most recent station status.",
     },
     {
       id: "dock-availability",
       term: "Dock %",
       description:
-        "Average share of capacity available as open docks. Higher values usually mean easier returns.",
+        "Docks available divided by station capacity. Capacity comes from station information, with a status-based fallback when needed.",
     },
     {
       id: "pressure",
       term: "Pressure",
       description:
-        "Relative station demand signal. Higher values indicate stations that more often run tight on bikes or docks.",
+        "Share of today's samples where the station was either empty or full. Requires at least six samples.",
+    },
+    {
+      id: "turnover",
+      term: "Turnover",
+      description:
+        "Sum of inferred arrivals and departures across today's samples, based on changes in bikes available between samples.",
+    },
+    {
+      id: "classic",
+      term: "Classic",
+      description: "The total number of non-electric bikes available.",
     },
   ],
 };
@@ -170,10 +182,10 @@ const stationTableColumns: ColumnDef<StationRow>[] = [
     header: "Station",
     meta: {
       cellClassName:
-        "w-30 min-w-30 max-w-30 md:w-48 md:min-w-48 md:max-w-48 overflow-hidden text-left",
+        "w-30 min-w-30 max-w-30 md:w-42 md:min-w-42 md:max-w-42 overflow-hidden text-left",
       headerButtonClassName: "ml-0 w-full justify-start",
       headerClassName:
-        "w-30 min-w-30 max-w-30 md:w-48 md:min-w-48 md:max-w-48 text-left",
+        "w-30 min-w-30 max-w-30 md:w-42 md:min-w-42 md:max-w-42 text-left",
       sticky: "left",
     },
     cell: ({ row }) => (
@@ -196,7 +208,7 @@ const stationTableColumns: ColumnDef<StationRow>[] = [
   },
   {
     accessorKey: "avgEbikesAvailable",
-    header: "E-Bikes",
+    header: "Electric",
   },
   {
     accessorFn: (row) => {
@@ -211,12 +223,7 @@ const stationTableColumns: ColumnDef<StationRow>[] = [
       return clampRatio(row.avgEbikesAvailable / row.avgBikesAvailable);
     },
     id: "avgEbikeShare",
-    header: "E-Bike %",
-    cell: PercentCell,
-  },
-  {
-    accessorKey: "avgDockAvailabilityPct",
-    header: "Dock %",
+    header: "Electric %",
     cell: PercentCell,
   },
   {
@@ -230,30 +237,41 @@ const stationTableColumns: ColumnDef<StationRow>[] = [
     cell: PercentCell,
   },
   {
+    accessorKey: "sumTurnover",
+    header: "Turnover",
+    cell: WholeNumberAvailabilityCell,
+  },
+  {
+    accessorKey: "sumInferredArrivals",
+    header: "Arrivals",
+    cell: WholeNumberAvailabilityCell,
+  },
+  {
+    accessorKey: "sumInferredDepartures",
+    header: "Departures",
+    cell: WholeNumberAvailabilityCell,
+  },
+  {
     accessorKey: "bikesAvailable",
     header: "Bikes",
     cell: WholeNumberAvailabilityCell,
   },
   {
     accessorKey: "ebikesAvailable",
-    header: "E-Bikes",
+    header: "Electric",
     cell: WholeNumberAvailabilityCell,
   },
   {
+    id: "classicBikesAvailable",
     accessorFn: (row) => {
-      if (
-        row.ebikesAvailable === null ||
-        row.bikesAvailable === null ||
-        row.bikesAvailable <= 0
-      ) {
+      if (row.bikesAvailable === null || row.ebikesAvailable === null) {
         return null;
       }
 
-      return clampRatio(row.ebikesAvailable / row.bikesAvailable);
+      return row.bikesAvailable - row.ebikesAvailable;
     },
-    id: "currentEbikeShare",
-    header: "E-Bike %",
-    cell: PercentCell,
+    header: "Classic",
+    cell: WholeNumberAvailabilityCell,
   },
   {
     accessorKey: "currentOccupancyPct",
