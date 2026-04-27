@@ -14,7 +14,7 @@ function StationsPage() {
   const data = useQuery(api.pedalMap.getStationsTableData);
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-6 px-5 py-10 md:py-16">
+    <div className="route-padding max-w-6xl">
       <Link
         to="/"
         aria-label="Go back home"

@@ -98,9 +98,6 @@ export function StationTable({ data }: StationTableProps) {
         },
       }}
       initialState={{
-        pagination: {
-          pageSize: 15,
-        },
         sorting: [
           {
             id: "avgBikesAvailable",
@@ -173,10 +170,10 @@ const stationTableColumns: ColumnDef<StationRow>[] = [
     header: "Station",
     meta: {
       cellClassName:
-        "w-36 min-w-36 max-w-36 md:w-48 md:min-w-48 md:max-w-48 overflow-hidden text-left",
+        "w-30 min-w-30 max-w-30 md:w-48 md:min-w-48 md:max-w-48 overflow-hidden text-left",
       headerButtonClassName: "ml-0 w-full justify-start",
       headerClassName:
-        "w-36 min-w-36 max-w-36 md:w-48 md:min-w-48 md:max-w-48 text-left",
+        "w-30 min-w-30 max-w-30 md:w-48 md:min-w-48 md:max-w-48 text-left",
       sticky: "left",
     },
     cell: ({ row }) => (

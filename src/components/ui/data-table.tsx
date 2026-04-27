@@ -352,7 +352,7 @@ function DataTableGlossaryView({ glossary }: { glossary: DataTableGlossary }) {
               type="button"
               variant="outline"
               size="sm"
-              className="hidden h-9 gap-1.5 md:inline-flex"
+              className="hidden h-8 gap-1.5 md:inline-flex"
             >
               <BookOpenTextIcon />
               {triggerLabel}
@@ -382,7 +382,7 @@ function DataTableGlossaryView({ glossary }: { glossary: DataTableGlossary }) {
             type="button"
             variant="outline"
             size="sm"
-            className="bg-background/95 fixed top-10 right-3 z-50 h-9 w-9 gap-1.5 shadow-sm backdrop-blur md:hidden md:w-auto"
+            className="bg-background/95 fixed top-11 right-3 z-50 size-8 gap-1.5 shadow-sm backdrop-blur md:hidden md:w-auto"
           >
             <BookOpenTextIcon />
             <span className="hidden md:block">{triggerLabel}</span>
@@ -457,6 +457,18 @@ function DataTable<TData>({
   const groupBoundaries = resolvedColumnGroups
     ? getGroupBoundaries(resolvedColumnGroups, visibleColumnIds)
     : null;
+  const filteredRowCount = table.getFilteredRowModel().rows.length;
+  const { pageIndex, pageSize } = table.getState().pagination;
+  const pageCount = Math.max(table.getPageCount(), 1);
+  const currentPage = Math.min(pageIndex + 1, pageCount);
+  const pageStart =
+    filteredRowCount === 0
+      ? 0
+      : Math.min(pageIndex * pageSize + 1, filteredRowCount);
+  const pageEnd = Math.min((pageIndex + 1) * pageSize, filteredRowCount);
+  const paginationLabel = showRowCount
+    ? `${pageStart.toLocaleString()}-${pageEnd.toLocaleString()} of ${filteredRowCount.toLocaleString()} • Page ${currentPage.toLocaleString()} of ${pageCount.toLocaleString()}`
+    : `Page ${currentPage.toLocaleString()} of ${pageCount.toLocaleString()}`;
 
   return (
     <div className="space-y-4">
@@ -469,11 +481,6 @@ function DataTable<TData>({
               placeholder={searchPlaceholder}
               className="w-full rounded-[10px] sm:max-w-sm"
             />
-          ) : null}
-          {glossary ? (
-            <div className="contents md:ml-auto md:block md:shrink-0">
-              <DataTableGlossaryView glossary={glossary} />
-            </div>
           ) : null}
         </div>
       ) : null}
@@ -583,59 +590,56 @@ function DataTable<TData>({
           )}
         </TableBody>
       </Table>
-      <div className="-mt-1 flex items-center">
-        {showRowCount ? (
+      <div className="-mt-1 flex items-start justify-between">
+        {glossary ? <DataTableGlossaryView glossary={glossary} /> : null}
+        <div className="ml-auto flex items-center justify-end gap-x-3">
           <span className="text-muted-foreground text-xs tabular-nums">
-            {table.getFilteredRowModel().rows.length.toLocaleString()} results
+            {paginationLabel}
           </span>
-        ) : null}
-        <div className="ml-auto flex items-center gap-x-1.5">
-          <span className="text-muted-foreground mr-1.5 text-xs tabular-nums">
-            Page {table.getState().pagination.pageIndex + 1} of{" "}
-            {table.getPageCount()}
-          </span>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon-sm"
-            aria-label="Go to first page"
-            onClick={() => table.firstPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            <CaretDoubleLeftIcon />
-          </Button>
+          <div className="flex items-center gap-x-1.5">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              aria-label="Go to first page"
+              onClick={() => table.firstPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              <CaretDoubleLeftIcon />
+            </Button>
 
-          <Button
-            type="button"
-            variant="outline"
-            size="icon-sm"
-            aria-label="Go to previous page"
-            onClick={() => table.previousPage()}
-            disabled={!table.getCanPreviousPage()}
-          >
-            <CaretLeftIcon />
-          </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              aria-label="Go to previous page"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              <CaretLeftIcon />
+            </Button>
 
-          <Button
-            type="button"
-            variant="outline"
-            size="icon-sm"
-            aria-label="Go to next page"
-            onClick={() => table.nextPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            <CaretRightIcon />
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon-sm"
-            aria-label="Go to last page"
-            onClick={() => table.lastPage()}
-            disabled={!table.getCanNextPage()}
-          >
-            <CaretDoubleRightIcon />
-          </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              aria-label="Go to next page"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              <CaretRightIcon />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              aria-label="Go to last page"
+              onClick={() => table.lastPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              <CaretDoubleRightIcon />
+            </Button>
+          </div>
         </div>
       </div>
     </div>

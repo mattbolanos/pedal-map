@@ -9,7 +9,7 @@ export const Route = createFileRoute("/about")({
 
 function AboutPage() {
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6 px-5 py-10 md:py-16">
+    <div className="route-padding max-w-3xl">
       <Link
         to="/"
         aria-label="Go back home"
