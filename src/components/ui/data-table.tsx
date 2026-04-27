@@ -389,7 +389,7 @@ function getMobileCardColumnIds(
 
 function MobileMetricGrid<TData>({ cells }: { cells: Cell<TData, unknown>[] }) {
   return (
-    <dl className="grid grid-cols-3 gap-x-2 gap-y-2.5">
+    <dl className="grid grid-cols-3 gap-3">
       {cells.map((cell) => (
         <div
           key={cell.id}
