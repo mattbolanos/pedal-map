@@ -1,6 +1,6 @@
 {
-  "short_name": "TanStack App",
-  "name": "Create TanStack App Sample",
+  "short_name": "Pedal Map",
+  "name": "Pedal Map",
   "icons": [
     {
       "src": "favicon.ico",
@@ -8,14 +8,16 @@
       "type": "image/x-icon"
     },
     {
-      "src": "logo192.png",
+      "src": "web-app-manifest-192x192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "maskable"
     },
     {
-      "src": "logo512.png",
+      "src": "web-app-manifest-512x512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "maskable"
     }
   ],
   "start_url": ".",

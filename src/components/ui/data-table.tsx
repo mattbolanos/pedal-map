@@ -6,10 +6,8 @@ import { CaretDoubleLeftIcon } from "@phosphor-icons/react/dist/csr/CaretDoubleL
 import { CaretDoubleRightIcon } from "@phosphor-icons/react/dist/csr/CaretDoubleRight";
 import { CaretLeftIcon } from "@phosphor-icons/react/dist/csr/CaretLeft";
 import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
-import {
-  SortAscendingIcon,
-  SortDescendingIcon,
-} from "@phosphor-icons/react/dist/ssr";
+import { SortAscendingIcon } from "@phosphor-icons/react/dist/csr/SortAscending";
+import { SortDescendingIcon } from "@phosphor-icons/react/dist/csr/SortDescending";
 import type {
   Cell,
   Column,

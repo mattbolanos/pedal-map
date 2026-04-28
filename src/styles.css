@@ -160,5 +160,9 @@ a {
 }
 
 .route-padding {
-  @apply px-5 py-10 md:py-20 mx-auto w-full space-y-6;
+  @apply px-5 py-10 md:py-20 mx-auto w-full;
+}
+
+.text-link {
+  @apply hover:border-teal-500/80 hover:text-teal-500/80 border-teal-500 inline-flex text-teal-500 items-center gap-0.5 border-b;
 }

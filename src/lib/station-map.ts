@@ -1,12 +1,13 @@
 import type { MapViewState } from "@deck.gl/core";
+import { MIN_ZOOM } from "#/components/station-map-view-state";
 
 export const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 export const MAP_STYLE_URL = "mapbox://styles/mapbox/dark-v11";
 
 export const INITIAL_VIEW_STATE: MapViewState = {
   longitude: -73.9651,
-  latitude: 40.7,
-  zoom: 13.0,
+  latitude: 40.76,
+  zoom: MIN_ZOOM,
   bearing: 0,
   pitch: 0,
 };
