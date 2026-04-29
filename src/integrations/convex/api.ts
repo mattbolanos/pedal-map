@@ -305,17 +305,27 @@ export type PublicApiType = {
       "query",
       "public",
       {
+        dayGrouping?: "all" | "dayType" | "dayOfWeek";
         days: number;
+        hours?: Array<number>;
+        includeInactiveStations?: boolean;
+        minActiveSamples?: number;
         profileType: "all" | "weekday" | "weekend";
         resolution: "hour" | "slot";
+        stationIds?: Array<string>;
+        weekdays?: Array<number>;
       },
       {
+        dayGrouping: "all" | "dayType" | "dayOfWeek";
         daysRequested: number;
         generatedAt: number;
         profileType: "all" | "weekday" | "weekend";
         resolution: "hour" | "slot";
         sampledDayCount: number;
         slots: Array<{
+          dayGrouping: "all" | "dayType" | "dayOfWeek";
+          dayLabel: string | null;
+          dayOfWeek: number | null;
           profileType: "all" | "weekday" | "weekend";
           slotIndex: number;
           slotLabel: string;
