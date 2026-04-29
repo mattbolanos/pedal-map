@@ -1,5 +1,5 @@
-import { anyApi, type FunctionReference } from "convex/server";
-import type { GenericId as Id } from "convex/values";
+import { type FunctionReference, anyApi } from "convex/server";
+import { type GenericId as Id } from "convex/values";
 
 export const api: PublicApiType = anyApi as unknown as PublicApiType;
 export const internal: InternalApiType = anyApi as unknown as InternalApiType;
@@ -323,6 +323,26 @@ export type PublicApiType = {
         resolution: "hour" | "slot";
         sampledDayCount: number;
         slots: Array<{
+          cellMetrics: Array<{
+            activeSampleCount: number;
+            avgBikesAvailable: number | null;
+            avgClassicBikesAvailable: number | null;
+            avgDockAvailabilityPct: number | null;
+            avgDocksAvailable: number | null;
+            avgEbikesAvailable: number | null;
+            avgOccupancyPct: number | null;
+            avgTurnover: number | null;
+            cellKey: string;
+            dropoffReliabilityPct: number | null;
+            ebikeUnavailableRate: number | null;
+            emptyRate: number | null;
+            fullRate: number | null;
+            lat: number;
+            lon: number;
+            pickupReliabilityPct: number | null;
+            sampleCount: number;
+            stationCount: number;
+          }>;
           dayGrouping: "all" | "dayType" | "dayOfWeek";
           dayLabel: string | null;
           dayOfWeek: number | null;
