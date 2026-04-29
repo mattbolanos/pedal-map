@@ -1,3 +1,4 @@
+import { Link, useNavigate } from "@tanstack/react-router";
 import type { CellContext, ColumnDef } from "@tanstack/react-table";
 import type { FunctionReturnType } from "convex/server";
 import {
@@ -119,6 +120,8 @@ function WholeNumberAvailabilityCell({
 }
 
 export function StationTable({ data }: StationTableProps) {
+  const navigate = useNavigate();
+
   return (
     <DataTable
       columns={stationTableColumns}
@@ -133,6 +136,14 @@ export function StationTable({ data }: StationTableProps) {
           getStationRegion(row.regionId, row.stationId)?.label ?? "",
         ].join(" ")
       }
+      getMobileCardAction={(row) => ({
+        ariaLabel: `View ${row.name} station profile`,
+        onClick: () =>
+          navigate({
+            to: "/stations/$id",
+            params: { id: row.stationId },
+          }),
+      })}
       defaultColumn={{
         cell: ({ getValue, row }) => {
           const value = getValue() as number | null;
@@ -341,10 +352,10 @@ const stationTableColumns: ColumnDef<StationRow>[] = [
     header: "Station",
     meta: {
       cellClassName:
-        "w-30 min-w-30 max-w-30 md:w-42 md:min-w-42 md:max-w-42 overflow-hidden text-left",
+        "w-30 min-w-30 max-w-30 md:w-48 md:min-w-48 md:max-w-48 overflow-hidden text-left",
       headerButtonClassName: "ml-0 w-full justify-start",
       headerClassName:
-        "w-30 min-w-30 max-w-30 md:w-42 md:min-w-42 md:max-w-42 text-left",
+        "w-30 min-w-30 max-w-30 md:w-48 md:min-w-48 md:max-w-48 text-left",
       sticky: "left",
     },
     cell: ({ row }) => (
@@ -352,7 +363,17 @@ const stationTableColumns: ColumnDef<StationRow>[] = [
         className="flex w-full min-w-0 items-center gap-2"
         title={row.original.name}
       >
-        <span className="block min-w-0 truncate">{row.original.name}</span>
+        <span className="block min-w-0 truncate font-medium md:hidden">
+          {row.original.name}
+        </span>
+        <Link
+          to="/stations/$id"
+          params={{ id: row.original.stationId }}
+          aria-label={`View ${row.original.name} station profile`}
+          className="hidden min-w-0 truncate font-medium underline-offset-4 transition-colors hover:text-teal-500/80 hover:underline md:block"
+        >
+          {row.original.name}
+        </Link>
         {row.original.isActive === false ? (
           <Badge variant="offline" aria-label="Offline" className="shrink-0">
             Offline

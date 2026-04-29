@@ -104,6 +104,9 @@ interface DataTableProps<TData> {
   showRowCount?: boolean;
   defaultColumn?: Partial<ColumnDef<TData, unknown>> | undefined;
   initialState?: InitialTableState | undefined;
+  getMobileCardAction?:
+    | ((row: TData) => MobileCardAction | undefined)
+    | undefined;
 }
 
 interface SortButtonProps<TData> {
@@ -122,6 +125,11 @@ interface SortSelectColumnGroup<TData> {
   key: string;
   label?: string;
   columns: Column<TData, unknown>[];
+}
+
+interface MobileCardAction {
+  ariaLabel?: string;
+  onClick: () => void;
 }
 
 function SortButton<TData>({ column, children }: SortButtonProps<TData>) {
@@ -410,14 +418,39 @@ function MobileMetricGrid<TData>({ cells }: { cells: Cell<TData, unknown>[] }) {
 }
 
 function MobileDataCard<TData>({
+  action,
   titleCell,
   metricCells,
 }: {
+  action?: MobileCardAction;
   titleCell: Cell<TData, unknown> | undefined;
   metricCells: Cell<TData, unknown>[];
 }) {
+  const isInteractive = Boolean(action);
+
   return (
-    <Card size="sm" className="gap-2.5 rounded-xl">
+    <Card
+      size="sm"
+      className={cn(
+        "gap-2.5 rounded-xl",
+        isInteractive &&
+          "focus-visible:border-ring focus-visible:ring-ring/50 ring-foreground/10 hover:ring-foreground/40 hover:bg-card/60 cursor-pointer shadow-sm transition-[transform,box-shadow,--tw-ring-color] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] focus-visible:ring-[3px] active:scale-[0.99] active:shadow-sm motion-safe:hover:shadow-md",
+      )}
+      onClick={action?.onClick}
+      onKeyDown={
+        action
+          ? (event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                action.onClick();
+              }
+            }
+          : undefined
+      }
+      role={isInteractive ? "link" : undefined}
+      tabIndex={isInteractive ? 0 : undefined}
+      aria-label={action?.ariaLabel}
+    >
       {titleCell ? (
         <CardHeader>
           <CardTitle className="text-sm text-pretty">
@@ -593,6 +626,7 @@ function DataTable<TData>({
   showRowCount = true,
   defaultColumn,
   initialState,
+  getMobileCardAction,
 }: DataTableProps<TData>) {
   const [globalFilter, setGlobalFilter] = useState("");
   const safeGetSearchText = getSearchText ?? (() => "");
@@ -763,6 +797,7 @@ function DataTable<TData>({
               return (
                 <MobileDataCard
                   key={row.id}
+                  action={getMobileCardAction?.(row.original)}
                   titleCell={titleCell}
                   metricCells={mobileMetricCells.slice(0, 6)}
                 />

@@ -80,6 +80,8 @@ export function StationMap() {
     clearHoveredStation,
     containerRef,
     handleHover,
+    handleTooltipPointerEnter,
+    handleTooltipPointerLeave,
     hoveredStation,
     markStationInteraction,
     projectStationPosition,
@@ -314,7 +316,9 @@ export function StationMap() {
         lastUpdated={citiBikeStations?.lastUpdated}
       />
       <DeckGL
-        controller
+        controller={{
+          touchRotate: true,
+        }}
         getCursor={({ isDragging }) => (isDragging ? "grabbing" : "grab")}
         layers={layers}
         onClick={handleMapClick}
@@ -346,6 +350,8 @@ export function StationMap() {
 
       {hoveredStation ? (
         <HoveredStationTooltipOverlay
+          onTooltipPointerEnter={handleTooltipPointerEnter}
+          onTooltipPointerLeave={handleTooltipPointerLeave}
           station={hoveredStation.station}
           tooltipPosition={tooltipPosition}
           tooltipRef={setTooltipRef}

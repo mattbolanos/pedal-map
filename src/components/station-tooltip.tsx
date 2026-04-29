@@ -2,6 +2,7 @@ import { BicycleIcon } from "@phosphor-icons/react/dist/csr/Bicycle";
 import { ChargingStationIcon } from "@phosphor-icons/react/dist/csr/ChargingStation";
 import { LetterCirclePIcon } from "@phosphor-icons/react/dist/csr/LetterCircleP";
 import { WrenchIcon } from "@phosphor-icons/react/dist/csr/Wrench";
+import { Link } from "@tanstack/react-router";
 import type { CitiBikeStation } from "#/lib/citibike";
 import { isStationActive } from "#/lib/station";
 import {
@@ -13,6 +14,7 @@ import { cn, getRelativeTime } from "#/lib/utils";
 import { BikeSplitBar } from "./bike-split-bar";
 import { CloseButton } from "./close-button";
 import { Badge } from "./ui/badge";
+import { buttonVariants } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import {
   DrawerClose,
@@ -52,6 +54,31 @@ function StatRow({
       <span>{label}</span>
       <span className="ml-auto tabular-nums">{value}</span>
     </div>
+  );
+}
+
+function StationProfileLink({
+  station,
+  className,
+  onClick,
+}: StationTooltipProps & {
+  className?: string;
+  onClick?: () => void;
+}) {
+  return (
+    <Link
+      to="/stations/$id"
+      params={{ id: station.station_id }}
+      onClick={onClick}
+      aria-label={`View ${station.name} station profile`}
+      className={cn(
+        buttonVariants({ variant: "default" }),
+
+        className,
+      )}
+    >
+      View station profile
+    </Link>
   );
 }
 
@@ -165,8 +192,11 @@ export const StationTooltip = ({ station }: StationTooltipProps) => (
       <CardTitle className="min-w-0 text-balance">{station.name}</CardTitle>
       <StationBadges station={station} />
     </CardHeader>
-    <CardContent className="p-0">
+    <CardContent className="space-y-3 p-0">
       <StationDetails station={station} className="px-4" />
+      <div className="px-3 pb-3">
+        <StationProfileLink station={station} />
+      </div>
     </CardContent>
   </Card>
 );
@@ -192,6 +222,7 @@ export const StationPopoverPanel = ({
       ) : null}
     </div>
     <StationDetails station={station} />
+    <StationProfileLink station={station} onClick={onClose} />
   </div>
 );
 
@@ -209,6 +240,11 @@ export const StationDrawer = ({ station }: StationTooltipProps) => (
       <StationBadges station={station} />
       <DrawerDescription className="sr-only">Station details</DrawerDescription>
     </DrawerHeader>
-    <StationDetails station={station} className="px-4" />
+    <div className="space-y-3 px-4">
+      <StationDetails station={station} />
+      <DrawerClose asChild>
+        <StationProfileLink station={station} />
+      </DrawerClose>
+    </div>
   </DrawerContent>
 );

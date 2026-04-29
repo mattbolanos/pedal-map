@@ -39,6 +39,7 @@ export function useStationMapTooltip({
   const tooltipRef = useRef<HTMLDivElement | null>(null);
   const tooltipPositionFrameRef = useRef<number | null>(null);
   const hoverLeaveTimeoutRef = useRef<number | null>(null);
+  const isPointerOverTooltipRef = useRef(false);
   const canHover = viewState.zoom >= DOTS_TO_PINS_ZOOM;
 
   const clearHoverTimers = useCallback(() => {
@@ -55,6 +56,7 @@ export function useStationMapTooltip({
     }
 
     clearHoverTimers();
+    isPointerOverTooltipRef.current = false;
 
     if (hoveredStationIdRef.current !== null) {
       hoveredStationIdRef.current = null;
@@ -192,7 +194,8 @@ export function useStationMapTooltip({
   const scheduleHoverClear = useCallback(() => {
     if (
       hoveredStationIdRef.current === null ||
-      hoverLeaveTimeoutRef.current !== null
+      hoverLeaveTimeoutRef.current !== null ||
+      isPointerOverTooltipRef.current
     ) {
       return;
     }
@@ -238,6 +241,16 @@ export function useStationMapTooltip({
     [canHover, isMobile, scheduleHoverClear, scheduleHoveredStation],
   );
 
+  const handleTooltipPointerEnter = useCallback(() => {
+    isPointerOverTooltipRef.current = true;
+    clearHoverTimers();
+  }, [clearHoverTimers]);
+
+  const handleTooltipPointerLeave = useCallback(() => {
+    isPointerOverTooltipRef.current = false;
+    scheduleHoverClear();
+  }, [scheduleHoverClear]);
+
   const markStationInteraction = useCallback((stationId: string | null) => {
     hoveredStationIdRef.current = stationId;
   }, []);
@@ -264,6 +277,8 @@ export function useStationMapTooltip({
     clearHoveredStation,
     containerRef,
     handleHover,
+    handleTooltipPointerEnter,
+    handleTooltipPointerLeave,
     hoveredStation,
     markStationInteraction,
     projectStationPosition,
