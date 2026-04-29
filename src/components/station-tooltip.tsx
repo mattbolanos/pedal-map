@@ -71,13 +71,9 @@ function StationProfileLink({
       params={{ id: station.station_id }}
       onClick={onClick}
       aria-label={`View ${station.name} station profile`}
-      className={cn(
-        buttonVariants({ variant: "default" }),
-
-        className,
-      )}
+      className={cn(buttonVariants({ variant: "foreground" }), className)}
     >
-      View station profile
+      Open Station Profile
     </Link>
   );
 }
@@ -242,7 +238,7 @@ export const StationDrawer = ({ station }: StationTooltipProps) => (
     </DrawerHeader>
     <div className="space-y-3 px-4">
       <StationDetails station={station} />
-      <DrawerClose asChild>
+      <DrawerClose asChild className="w-full">
         <StationProfileLink station={station} />
       </DrawerClose>
     </div>

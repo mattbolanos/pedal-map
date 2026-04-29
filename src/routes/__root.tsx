@@ -4,6 +4,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
+import { NotFound } from "#/components/not-found";
 import { Toaster } from "#/components/ui/sonner";
 import ConvexRootProvider from "#/integrations/convex/root-provider";
 import TanStackQueryProvider from "#/integrations/tanstack-query/root-provider";
@@ -106,6 +107,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
       },
     ],
   }),
+  notFoundComponent: () => <NotFound />,
   shellComponent: RootDocument,
 });
 
