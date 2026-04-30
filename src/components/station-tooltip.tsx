@@ -14,12 +14,13 @@ import { cn, getRelativeTime } from "#/lib/utils";
 import { BikeSplitBar } from "./bike-split-bar";
 import { CloseButton } from "./close-button";
 import { Badge } from "./ui/badge";
-import { buttonVariants } from "./ui/button";
+import { Button, buttonVariants } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import {
   DrawerClose,
   DrawerContent,
   DrawerDescription,
+  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
 } from "./ui/drawer";
@@ -238,9 +239,21 @@ export const StationDrawer = ({ station }: StationTooltipProps) => (
     </DrawerHeader>
     <div className="space-y-3 px-4">
       <StationDetails station={station} />
-      <DrawerClose asChild className="w-full">
-        <StationProfileLink station={station} />
-      </DrawerClose>
     </div>
+    <DrawerFooter className="pb-0">
+      <Link
+        to="/stations/$id"
+        params={{ id: station.station_id }}
+        aria-label={`View ${station.name} station profile`}
+        className={buttonVariants({ variant: "foreground" })}
+      >
+        Open Station Profile
+      </Link>
+      <DrawerClose>
+        <Button className="w-full" variant="secondary">
+          Close
+        </Button>
+      </DrawerClose>
+    </DrawerFooter>
   </DrawerContent>
 );
