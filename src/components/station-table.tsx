@@ -10,7 +10,7 @@ import type { api } from "#/integrations/convex/api";
 import { getStationRegion } from "#/lib/station-region";
 import { ColorCell } from "./color-cell";
 import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
+import { Button, buttonVariants } from "./ui/button";
 import { Card, CardContent, CardHeader } from "./ui/card";
 import { ClearableInput } from "./ui/clearable-input";
 import { Skeleton } from "./ui/skeleton";
@@ -370,7 +370,11 @@ const stationTableColumns: ColumnDef<StationRow>[] = [
           to="/stations/$id"
           params={{ id: row.original.stationId }}
           aria-label={`View ${row.original.name} station profile`}
-          className="hidden min-w-0 truncate font-medium underline-offset-4 transition-colors hover:text-teal-500/80 hover:underline md:block"
+          className={buttonVariants({
+            variant: "text-link",
+            size: "text-link",
+            className: "hidden truncate font-medium md:block",
+          })}
         >
           {row.original.name}
         </Link>
