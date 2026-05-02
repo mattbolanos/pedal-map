@@ -1,4 +1,4 @@
-import { ArrowBendUpLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowBendUpLeft";
+import { ArrowUDownLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowUDownLeft";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { Suspense } from "react";
@@ -143,7 +143,7 @@ function StationDetailBackLink() {
       aria-label="Go back to stations"
       className={cn(buttonVariants({ variant: "text" }), "pl-0")}
     >
-      <ArrowBendUpLeftIcon className="size-5 md:size-4" />
+      <ArrowUDownLeftIcon className="size-5 md:size-4" />
       Back
     </Link>
   );

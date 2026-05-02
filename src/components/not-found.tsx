@@ -1,4 +1,4 @@
-import { ArrowBendUpLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowBendUpLeft";
+import { ArrowUDownLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowUDownLeft";
 import { Link } from "@tanstack/react-router";
 import { buttonVariants } from "#/components/ui/button";
 import { cn } from "#/lib/utils";
@@ -25,7 +25,7 @@ export function NotFound({
           to={actionTo}
           className={cn(buttonVariants({ variant: "text" }), "pl-0")}
         >
-          <ArrowBendUpLeftIcon className="size-5 md:size-4" />
+          <ArrowUDownLeftIcon className="size-5 md:size-4" />
           {actionLabel}
         </Link>
       </div>

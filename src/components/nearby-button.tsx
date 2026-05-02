@@ -1,7 +1,7 @@
 import { CrosshairSimpleIcon } from "@phosphor-icons/react/dist/csr/CrosshairSimple";
 import {
+  getUserLocationToast,
   hasActiveUserLocation,
-  hasUserLocationIssue,
   type UserLocationState,
 } from "#/lib/user-location";
 import { cn } from "#/lib/utils";
@@ -19,7 +19,7 @@ export function NearbyButton({
   onRequestUserLocation,
 }: NearbyButtonProps) {
   const hasActiveLocation = hasActiveUserLocation(userLocation);
-  const hasLocationIssue = hasUserLocationIssue(userLocation);
+  const locationToastVariant = getUserLocationToast(userLocation)?.variant;
 
   const locationAriaLabel = hasActiveLocation
     ? "Turn off current location"
@@ -29,7 +29,13 @@ export function NearbyButton({
 
   return (
     <Button
-      variant={hasLocationIssue ? "destructive" : "outline"}
+      variant={
+        locationToastVariant === "warning"
+          ? "warning"
+          : locationToastVariant === "error"
+            ? "destructive"
+            : "outline"
+      }
       className={cn(
         "size-10 md:h-9 md:w-auto md:justify-start",
         hasActiveLocation && "bg-secondary! ring-1",
@@ -39,8 +45,7 @@ export function NearbyButton({
         userLocation.status === "granted"
           ? onClearUserLocation
           : onRequestUserLocation
-      }
-    >
+      }>
       <CrosshairSimpleIcon className="size-5 md:size-4" />
       <span className="hidden md:block">Nearby</span>
     </Button>

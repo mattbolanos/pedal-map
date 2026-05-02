@@ -8,8 +8,8 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import type { CitiBikeStation } from "#/lib/citibike";
 import {
+  getUserLocationToast,
   hasActiveUserLocation,
-  hasUserLocationIssue,
   type UserLocationState,
 } from "#/lib/user-location";
 import { cn } from "#/lib/utils";
@@ -49,7 +49,7 @@ export function MapControls({
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const navigate = useNavigate();
   const hasActiveLocation = hasActiveUserLocation(userLocation);
-  const hasLocationIssue = hasUserLocationIssue(userLocation);
+  const locationToastVariant = getUserLocationToast(userLocation)?.variant;
 
   const nearbyLabel = hasActiveLocation
     ? "Turn off current location"
@@ -71,8 +71,7 @@ export function MapControls({
               <SpeedDialItem>
                 <SpeedDialAction
                   aria-label="Search stations"
-                  onSelect={() => setIsSearchOpen(true)}
-                >
+                  onSelect={() => setIsSearchOpen(true)}>
                   <MagnifyingGlassIcon className="size-5" />
                 </SpeedDialAction>
                 <SpeedDialLabel>Search</SpeedDialLabel>
@@ -83,8 +82,7 @@ export function MapControls({
                   aria-label={
                     isSummaryOpen ? "Hide map summary" : "Show map summary"
                   }
-                  onSelect={() => setIsSummaryOpen((open) => !open)}
-                >
+                  onSelect={() => setIsSummaryOpen((open) => !open)}>
                   <BicycleIcon className="size-5" />
                 </SpeedDialAction>
                 <SpeedDialLabel>
@@ -94,13 +92,14 @@ export function MapControls({
               <SpeedDialItem>
                 <SpeedDialAction
                   className={cn(
-                    hasLocationIssue &&
+                    locationToastVariant === "error" &&
                       "border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20",
+                    locationToastVariant === "warning" &&
+                      "border-warning/30 bg-warning/10 text-warning hover:bg-warning/20",
                     hasActiveLocation && "bg-secondary ring-1",
                   )}
                   aria-label={nearbyLabel}
-                  onSelect={handleNearbyAction}
-                >
+                  onSelect={handleNearbyAction}>
                   <CrosshairSimpleIcon className="size-5" />
                 </SpeedDialAction>
                 <SpeedDialLabel>Nearby</SpeedDialLabel>
@@ -108,8 +107,7 @@ export function MapControls({
               <SpeedDialItem>
                 <SpeedDialAction
                   aria-label="Open stations page"
-                  onSelect={() => navigate({ to: "/stations" })}
-                >
+                  onSelect={() => navigate({ to: "/stations" })}>
                   <ChargingStationIcon className="size-5" />
                 </SpeedDialAction>
                 <SpeedDialLabel>Stations</SpeedDialLabel>
@@ -117,8 +115,7 @@ export function MapControls({
               <SpeedDialItem>
                 <SpeedDialAction
                   aria-label="Open about page"
-                  onSelect={() => navigate({ to: "/about" })}
-                >
+                  onSelect={() => navigate({ to: "/about" })}>
                   <InfoIcon className="size-5" />
                 </SpeedDialAction>
                 <SpeedDialLabel>About</SpeedDialLabel>
@@ -126,8 +123,7 @@ export function MapControls({
             </SpeedDialContent>
             <SpeedDialTrigger
               aria-label="Open map controls"
-              className="shadow-lg [&_svg]:transition-transform [&_svg]:duration-200 [&_svg]:ease-out data-[state=open]:[&_svg]:rotate-45"
-            >
+              className="shadow-lg [&_svg]:transition-transform [&_svg]:duration-200 [&_svg]:ease-out data-[state=open]:[&_svg]:rotate-45">
               <PlusIcon className="size-5" weight="bold" />
             </SpeedDialTrigger>
           </SpeedDial>
@@ -137,8 +133,7 @@ export function MapControls({
             aria-label="Search stations"
             variant="outline"
             onClick={() => setIsSearchOpen(true)}
-            className="size-10 md:h-9 md:w-auto"
-          >
+            className="size-10 md:h-9 md:w-auto">
             <MagnifyingGlassIcon className="size-5 md:size-4" />
             <span className="hidden md:block">Search</span>
             <KbdGroup>
@@ -156,8 +151,7 @@ export function MapControls({
               buttonVariants({ variant: "outline" }),
               "size-10 md:h-9 md:w-auto md:justify-start",
             )}
-            aria-label="Open stations page"
-          >
+            aria-label="Open stations page">
             <ChargingStationIcon className="size-5 md:size-4" />
             <span className="hidden md:inline">Stations</span>
           </Link>
@@ -167,8 +161,7 @@ export function MapControls({
               buttonVariants({ variant: "outline" }),
               "size-10 md:h-9 md:w-auto md:justify-start",
             )}
-            aria-label="Open about page"
-          >
+            aria-label="Open about page">
             <InfoIcon className="size-5 md:size-4" />
             <span className="hidden md:inline">About</span>
           </Link>
