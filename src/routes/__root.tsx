@@ -134,7 +134,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
           </ConvexRootProvider>
         </TanStackQueryProvider>
         <Scripts />
-        <Toaster />
+        <Toaster richColors />
       </body>
     </html>
   );
