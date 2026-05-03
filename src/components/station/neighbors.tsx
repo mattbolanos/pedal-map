@@ -182,7 +182,7 @@ function NearbyStationLink({
       onPointerEnter={() => {
         onPreviewStation(station);
       }}
-      className="hover:bg-accent focus-visible:border-ring focus-visible:ring-ring/50 flex min-h-11 w-full cursor-default items-center gap-2 rounded-xl px-3 py-2 text-left text-sm transition-[background-color,scale] outline-none focus-visible:ring-[3px]"
+      className="hover:bg-accent focus-visible:border-ring focus-visible:ring-ring/50 flex w-full cursor-default items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm transition-[background-color,scale] outline-none focus-visible:ring-[3px]"
     >
       <span className="min-w-0 flex-1 truncate">{station.name}</span>
       <div className="ml-auto flex shrink-0 items-center gap-2 pl-3">

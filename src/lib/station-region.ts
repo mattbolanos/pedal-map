@@ -5,16 +5,19 @@ const STATION_REGIONS = {
     label: "Jersey City",
     badgeVariant: "jerseyCity",
     pinClassName: "text-violet-300",
+    pinColor: [196, 181, 253],
   },
   "71": {
     label: "NYC",
     badgeVariant: "nyc",
     pinClassName: "text-sky-300",
+    pinColor: [125, 211, 252],
   },
   "311": {
     label: "Hoboken",
     badgeVariant: "hoboken",
     pinClassName: "text-pink-300",
+    pinColor: [249, 168, 212],
   },
 } as const satisfies Record<
   string,
@@ -22,6 +25,7 @@ const STATION_REGIONS = {
     label: string;
     badgeVariant: StationRegionBadgeVariant;
     pinClassName: string;
+    pinColor: readonly [number, number, number];
   }
 >;
 

@@ -6,11 +6,14 @@ import { Map as MapView } from "react-map-gl/mapbox";
 import { MAX_ZOOM } from "#/components/station-map-view-state";
 import { usePrefersReducedMotion } from "#/hooks/use-reduced-motion";
 import { MAP_STYLE_URL, MAPBOX_ACCESS_TOKEN } from "#/lib/station-map";
+import { getStationRegion } from "#/lib/station-region";
 
 interface StationLocationMapTileStation {
   lat: number;
   lon: number;
   name: string;
+  regionId: string | null;
+  stationId: string;
 }
 
 interface StationLocationMapTileProps {
@@ -19,13 +22,14 @@ interface StationLocationMapTileProps {
 }
 
 const TILE_PITCH = 38;
-const SELECTED_STATION_COLOR = [83, 138, 148, 255] as const;
-const SELECTED_STATION_GLOW_COLOR = [83, 138, 148, 72] as const;
-const NEARBY_STATION_COLOR = [8, 145, 178, 255] as const;
-const NEARBY_STATION_GLOW_COLOR = [8, 145, 178, 50] as const;
+const FALLBACK_STATION_REGION_COLOR = [114, 130, 138] as const;
+const SELECTED_STATION_ALPHA = 255;
+const SELECTED_STATION_GLOW_ALPHA = 92;
+const NEARBY_STATION_ALPHA = 153;
+const NEARBY_STATION_GLOW_ALPHA = 30;
 const PIN_ICON_SIZE = 64;
-const SELECTED_PIN_SIZE = 38;
-const NEARBY_PIN_SIZE = 28;
+const SELECTED_PIN_SIZE = 36;
+const NEARBY_PIN_SIZE = 30;
 const TILE_CAMERA_MIN_DURATION_MS = 360;
 const TILE_CAMERA_MAX_DURATION_MS = 760;
 const TILE_CAMERA_DISTANCE_DURATION_FACTOR = 90_000;
@@ -39,6 +43,21 @@ const PIN_ICON_URL = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(
 
 const easeInOutCubic = (value: number) =>
   value < 0.5 ? 4 * value ** 3 : 1 - (-2 * value + 2) ** 3 / 2;
+
+function stationRegionColor(station: StationLocationMapTileStation) {
+  return (
+    getStationRegion(station.regionId, station.stationId)?.pinColor ??
+    FALLBACK_STATION_REGION_COLOR
+  );
+}
+
+function stationColor(
+  station: StationLocationMapTileStation,
+  alpha: number,
+): [number, number, number, number] {
+  const [red, green, blue] = stationRegionColor(station);
+  return [red, green, blue, alpha];
+}
 
 function isSameStationLocation(
   stationA: StationLocationMapTileStation,
@@ -58,9 +77,10 @@ function hasValidCoordinates(station: { lat: number; lon: number }) {
   );
 }
 
-function createTileViewState(
-  station: StationLocationMapTileStation,
-): MapViewState {
+function createTileViewState(station: {
+  lat: number;
+  lon: number;
+}): MapViewState {
   return {
     bearing: 0,
     latitude: station.lat,
@@ -111,11 +131,10 @@ export function StationLocationMapTile({
     const nextViewState = createTileViewState({
       lat: stationLat,
       lon: stationLon,
-      name: station.name,
     });
     viewStateRef.current = nextViewState;
     setViewState(nextViewState);
-  }, [hasValidStation, station.name, stationLat, stationLon]);
+  }, [hasValidStation, stationLat, stationLon]);
 
   useEffect(() => {
     if (
@@ -133,7 +152,6 @@ export function StationLocationMapTile({
     const targetViewState = createTileViewState({
       lat: focusedStationLat,
       lon: focusedStationLon,
-      name: focusedStation.name,
     });
 
     if (prefersReducedMotion) {
@@ -196,12 +214,7 @@ export function StationLocationMapTile({
         animationFrameRef.current = null;
       }
     };
-  }, [
-    focusedStation.name,
-    focusedStationLat,
-    focusedStationLon,
-    prefersReducedMotion,
-  ]);
+  }, [focusedStationLat, focusedStationLon, prefersReducedMotion]);
 
   useEffect(() => {
     void pinAnimationKey;
@@ -251,9 +264,10 @@ export function StationLocationMapTile({
       id: "station-location-nearby-glow",
       data: nearbyStations,
       filled: true,
-      getFillColor: NEARBY_STATION_GLOW_COLOR,
+      getFillColor: (nearbyStation) =>
+        stationColor(nearbyStation, NEARBY_STATION_GLOW_ALPHA),
       getPosition: (nearbyStation) => [nearbyStation.lon, nearbyStation.lat],
-      getRadius: NEARBY_PIN_SIZE * 0.48,
+      getRadius: NEARBY_PIN_SIZE * 0.38,
       pickable: false,
       radiusUnits: "pixels",
       stroked: false,
@@ -262,12 +276,13 @@ export function StationLocationMapTile({
       id: "station-location-selected-glow",
       data: [station],
       filled: true,
-      getFillColor: SELECTED_STATION_GLOW_COLOR,
+      getFillColor: (selectedStation) =>
+        stationColor(selectedStation, SELECTED_STATION_GLOW_ALPHA),
       getPosition: (selectedStation) => [
         selectedStation.lon,
         selectedStation.lat,
       ],
-      getRadius: SELECTED_PIN_SIZE * 0.56,
+      getRadius: SELECTED_PIN_SIZE * 0.68,
       pickable: false,
       radiusUnits: "pixels",
       stroked: false,
@@ -278,7 +293,8 @@ export function StationLocationMapTile({
     new IconLayer<StationLocationMapTileStation>({
       id: "station-location-nearby-pin",
       data: nearbyStations,
-      getColor: NEARBY_STATION_COLOR,
+      getColor: (nearbyStation) =>
+        stationColor(nearbyStation, NEARBY_STATION_ALPHA),
       getIcon: () => ({
         anchorY: PIN_ICON_SIZE,
         height: PIN_ICON_SIZE,
@@ -291,7 +307,7 @@ export function StationLocationMapTile({
         NEARBY_PIN_SIZE *
         pinScale *
         (previewStation && isSameStationLocation(nearbyStation, previewStation)
-          ? 1.12
+          ? 1.02
           : 1),
       pickable: false,
       sizeUnits: "pixels",
@@ -306,7 +322,8 @@ export function StationLocationMapTile({
     new IconLayer<StationLocationMapTileStation>({
       id: "station-location-selected-pin",
       data: [station],
-      getColor: SELECTED_STATION_COLOR,
+      getColor: (selectedStation) =>
+        stationColor(selectedStation, SELECTED_STATION_ALPHA),
       getIcon: () => ({
         anchorY: PIN_ICON_SIZE,
         height: PIN_ICON_SIZE,
@@ -339,8 +356,7 @@ export function StationLocationMapTile({
           controller={false}
           getCursor={() => "default"}
           layers={layers}
-          viewState={viewState}
-        >
+          viewState={viewState}>
           <MapView
             attributionControl={false}
             interactive={false}

@@ -74,6 +74,8 @@ function StationProfile({ stationId }: { stationId: string }) {
     lat: number;
     lon: number;
     name: string;
+    regionId: string | null;
+    stationId: string;
   } | null>(null);
 
   if (!station) {
@@ -121,8 +123,7 @@ function StationDetailPage() {
       <Link
         to="/stations"
         aria-label="Go back to stations"
-        className={cn(buttonVariants({ variant: "text" }), "pl-0")}
-      >
+        className={cn(buttonVariants({ variant: "text" }), "pl-0")}>
         <ArrowUDownLeftIcon className="size-5 md:size-4" />
         Stations
       </Link>
