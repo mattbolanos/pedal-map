@@ -1,6 +1,5 @@
-import { MapPinAreaIcon } from "@phosphor-icons/react/dist/csr/MapPinArea";
 import { Link } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { Badge } from "#/components/ui/badge";
 import { Card, CardContent } from "#/components/ui/card";
 import {
@@ -8,8 +7,6 @@ import {
   type GeoCoordinates,
   getDistanceBetweenCoordinates,
 } from "#/lib/geo";
-import { getStationRegion, type StationRegionId } from "#/lib/station-region";
-import { cn } from "#/lib/utils";
 
 interface StationNearbyCurrentStation {
   lat: number;
@@ -36,8 +33,11 @@ interface NearbyStationResult {
 
 interface StationNearbyProps {
   currentStation: StationNearbyCurrentStation;
+  onPreviewStationChange?: (station: StationNearbyStation | null) => void;
   stations: StationNearbyStation[];
 }
+
+const INITIAL_PREVIEW_DELAY_MS = 200;
 
 function getCoordinates(station: { lat: number; lon: number }): GeoCoordinates {
   return {
@@ -80,28 +80,71 @@ function getNearbyStations(
     .slice(0, 5);
 }
 
-export function StationNearby({
+export function StationNeighbors({
   currentStation,
+  onPreviewStationChange,
   stations,
 }: StationNearbyProps) {
+  const activePreviewStationIdRef = useRef<string | null>(null);
+  const previewDelayRef = useRef<number | null>(null);
   const nearbyStations = useMemo(
     () => getNearbyStations(currentStation, stations),
     [currentStation, stations],
   );
+
+  const clearPreviewDelay = () => {
+    if (previewDelayRef.current !== null) {
+      window.clearTimeout(previewDelayRef.current);
+      previewDelayRef.current = null;
+    }
+  };
+
+  const clearPreviewStation = () => {
+    clearPreviewDelay();
+    activePreviewStationIdRef.current = null;
+    onPreviewStationChange?.(null);
+  };
+
+  const previewStation = (station: StationNearbyStation, immediate = false) => {
+    clearPreviewDelay();
+
+    if (
+      activePreviewStationIdRef.current !== null ||
+      activePreviewStationIdRef.current === station.stationId ||
+      immediate
+    ) {
+      activePreviewStationIdRef.current = station.stationId;
+      onPreviewStationChange?.(station);
+      return;
+    }
+
+    previewDelayRef.current = window.setTimeout(() => {
+      activePreviewStationIdRef.current = station.stationId;
+      onPreviewStationChange?.(station);
+      previewDelayRef.current = null;
+    }, INITIAL_PREVIEW_DELAY_MS);
+  };
 
   if (nearbyStations.length === 0) {
     return null;
   }
 
   return (
-    <div className="space-y-3">
+    <div
+      className="flex h-full flex-col gap-3"
+      onPointerLeave={() => {
+        clearPreviewStation();
+      }}
+    >
       <h3>Neighbors</h3>
-      <Card size="sm" className="rounded-lg shadow-xs">
-        <CardContent className="space-y-1">
+      <Card size="sm" className="flex-1 rounded-lg py-2! shadow-xs">
+        <CardContent className="space-y-1 px-1.5!">
           {nearbyStations.map((result) => (
             <NearbyStationLink
               key={result.station.stationId}
               distanceLabel={result.distanceLabel}
+              onClearPreviewStation={clearPreviewStation}
+              onPreviewStation={previewStation}
               station={result.station}
             />
           ))}
@@ -113,23 +156,34 @@ export function StationNearby({
 
 function NearbyStationLink({
   distanceLabel,
+  onClearPreviewStation,
+  onPreviewStation,
   station,
 }: {
   distanceLabel: string;
+  onClearPreviewStation: () => void;
+  onPreviewStation: (
+    station: StationNearbyStation,
+    immediate?: boolean,
+  ) => void;
   station: StationNearbyStation;
 }) {
-  const region = getStationRegion(
-    station.regionId as StationRegionId | null | undefined,
-    station.stationId,
-  );
-
   return (
     <Link
       to="/stations/$id"
       params={{ id: station.stationId }}
       aria-label={`View ${station.name} station profile`}
-      className="hover:bg-accent focus-visible:border-ring focus-visible:ring-ring/50 flex min-h-11 w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm transition-[background-color,scale] outline-none focus-visible:ring-[3px] active:scale-[0.96]">
-      <MapPinAreaIcon className={cn("size-4 shrink-0", region?.pinClassName)} />
+      onBlur={() => {
+        onClearPreviewStation();
+      }}
+      onFocus={() => {
+        onPreviewStation(station, true);
+      }}
+      onPointerEnter={() => {
+        onPreviewStation(station);
+      }}
+      className="hover:bg-accent focus-visible:border-ring focus-visible:ring-ring/50 flex min-h-11 w-full cursor-default items-center gap-2 rounded-xl px-3 py-2 text-left text-sm transition-[background-color,scale] outline-none focus-visible:ring-[3px]"
+    >
       <span className="min-w-0 flex-1 truncate">{station.name}</span>
       <div className="ml-auto flex shrink-0 items-center gap-2 pl-3">
         <span className="text-muted-foreground text-xs tabular-nums">
