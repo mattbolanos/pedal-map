@@ -246,7 +246,7 @@ function areVehicleCountsEqual<T>(
 	return true;
 }
 
-const stationInformationQueryOptions = queryOptions({
+export const stationInformationQueryOptions = queryOptions({
 	queryKey: STATION_INFORMATION_QUERY_KEY,
 	queryFn: ({ signal }) => fetchStationInformation({ signal }),
 	staleTime: 60 * 60 * 1000,

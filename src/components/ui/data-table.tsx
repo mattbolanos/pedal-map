@@ -1,5 +1,6 @@
 import { ArrowDownIcon } from "@phosphor-icons/react/dist/csr/ArrowDown";
 import { ArrowsDownUpIcon } from "@phosphor-icons/react/dist/csr/ArrowsDownUp";
+import { ArrowUDownRightIcon } from "@phosphor-icons/react/dist/csr/ArrowUDownRight";
 import { ArrowUpIcon } from "@phosphor-icons/react/dist/csr/ArrowUp";
 import { BookOpenTextIcon } from "@phosphor-icons/react/dist/csr/BookOpenText";
 import { CaretDoubleLeftIcon } from "@phosphor-icons/react/dist/csr/CaretDoubleLeft";
@@ -25,7 +26,13 @@ import {
 } from "@tanstack/react-table";
 import { isValidElement, type ReactNode, useState } from "react";
 import { Button } from "#/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "#/components/ui/card";
 import { ClearableInput } from "#/components/ui/clearable-input";
 import {
   Drawer,
@@ -148,8 +155,7 @@ function SortButton<TData>({ column, children }: SortButtonProps<TData>) {
         !isLeftAligned && "flex-row-reverse",
         buttonClassName,
       )}
-      onClick={column.getToggleSortingHandler()}
-    >
+      onClick={column.getToggleSortingHandler()}>
       {children}
       <span
         className={cn(
@@ -157,8 +163,7 @@ function SortButton<TData>({ column, children }: SortButtonProps<TData>) {
           sortDirection
             ? "opacity-100"
             : "opacity-0 group-hover/sortable:opacity-100",
-        )}
-      >
+        )}>
         {sortDirection === "asc" ? (
           <ArrowUpIcon />
         ) : sortDirection === "desc" ? (
@@ -403,8 +408,7 @@ function MobileMetricGrid<TData>({ cells }: { cells: Cell<TData, unknown>[] }) {
       {cells.map((cell) => (
         <div
           key={cell.id}
-          className="flex min-w-0 flex-col items-center gap-1.5 px-1"
-        >
+          className="flex min-w-0 flex-col items-center gap-1.5 px-1">
           <dt className="text-muted-foreground max-w-full truncate text-[11px] leading-none">
             {getMobileColumnLabel(cell.column)}
           </dt>
@@ -426,6 +430,7 @@ function MobileDataCard<TData>({
   titleCell: Cell<TData, unknown> | undefined;
   metricCells: Cell<TData, unknown>[];
 }) {
+  const actionLabel = action?.ariaLabel ?? "Open row details";
   const isInteractive = Boolean(action);
 
   return (
@@ -449,16 +454,28 @@ function MobileDataCard<TData>({
       }
       role={isInteractive ? "link" : undefined}
       tabIndex={isInteractive ? 0 : undefined}
-      aria-label={action?.ariaLabel}
-    >
+      aria-label={isInteractive ? actionLabel : undefined}>
       {titleCell ? (
         <CardHeader>
-          <CardTitle className="text-sm text-pretty">
+          <CardTitle>
             {flexRender(
               titleCell.column.columnDef.cell,
               titleCell.getContext(),
             )}
           </CardTitle>
+          {action ? (
+            <CardAction>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-hidden
+                tabIndex={-1}
+                className="pointer-events-none size-7 rounded-md">
+                <ArrowUDownRightIcon />
+              </Button>
+            </CardAction>
+          ) : null}
         </CardHeader>
       ) : null}
       <CardContent>
@@ -506,8 +523,7 @@ function ColumnGroupHeaderRow({
               needsLeftBorder && "border-border/70 border-l",
               getStickyCellClasses(isSticky ? "left" : undefined, "header"),
               group.className,
-            )}
-          >
+            )}>
             {group.label}
           </TableHead>
         );
@@ -526,8 +542,7 @@ function GlossaryTerms({ glossary }: { glossary: DataTableGlossary }) {
             "flex flex-col gap-0.5",
             index === 0 ? "pb-2" : "py-2",
             index === glossary.items.length - 1 && "pb-0",
-          )}
-        >
+          )}>
           <dt className="text-foreground text-xs leading-5 font-medium">
             {item.term}
           </dt>
@@ -558,8 +573,7 @@ function DataTableGlossaryView({ glossary }: { glossary: DataTableGlossary }) {
               type="button"
               variant="outline"
               size="sm"
-              className="hidden h-8 gap-1.5 md:inline-flex"
-            >
+              className="hidden h-8 gap-1.5 md:inline-flex">
               <BookOpenTextIcon />
               {triggerLabel}
             </Button>
@@ -567,8 +581,7 @@ function DataTableGlossaryView({ glossary }: { glossary: DataTableGlossary }) {
         />
         <PopoverContent
           align="end"
-          className="w-[min(22rem,calc(100vw-2rem))] gap-3"
-        >
+          className="w-[min(22rem,calc(100vw-2rem))] gap-3">
           <PopoverHeader>
             <PopoverTitle className="text-sm">{title}</PopoverTitle>
             {description ? (
@@ -588,8 +601,7 @@ function DataTableGlossaryView({ glossary }: { glossary: DataTableGlossary }) {
             type="button"
             variant="outline"
             size="sm"
-            className="bg-background/95 fixed top-11 right-3 z-50 size-9 gap-1.5 shadow-sm backdrop-blur md:hidden md:w-auto"
-          >
+            className="bg-background/95 fixed top-11 right-3 z-50 size-9 gap-1.5 shadow-sm backdrop-blur md:hidden md:w-auto">
             <BookOpenTextIcon />
             <span className="hidden md:block">{triggerLabel}</span>
           </Button>
@@ -724,8 +736,7 @@ function DataTable<TData>({
                 table.setSorting([{ id: columnId, desc: currentSort?.desc }]);
               }}
               aria-label="Sort rows by"
-              className="min-w-0 flex-1"
-            >
+              className="min-w-0 flex-1">
               <NativeSelectOption value="" disabled>
                 Sort by
               </NativeSelectOption>
@@ -764,8 +775,7 @@ function DataTable<TData>({
                 table.setSorting([
                   { id: currentSortColumn.id, desc: !currentSort?.desc },
                 ]);
-              }}
-            >
+              }}>
               {currentSort?.desc ? (
                 <SortAscendingIcon />
               ) : (
@@ -823,8 +833,7 @@ function DataTable<TData>({
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow
                 key={headerGroup.id}
-                className="bg-accent hover:bg-accent"
-              >
+                className="bg-accent hover:bg-accent">
                 {headerGroup.headers.map((header) => {
                   const columnId = header.column.id;
                   const hasDivider =
@@ -850,8 +859,7 @@ function DataTable<TData>({
                         header.column.getIsSorted() && "text-foreground",
                         header.column.columnDef.meta?.className,
                         header.column.columnDef.meta?.headerClassName,
-                      )}
-                    >
+                      )}>
                       {header.isPlaceholder
                         ? null
                         : (() => {
@@ -898,8 +906,7 @@ function DataTable<TData>({
                         ),
                         cell.column.columnDef.meta?.className,
                         cell.column.columnDef.meta?.cellClassName,
-                      )}
-                    >
+                      )}>
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext(),
@@ -912,8 +919,7 @@ function DataTable<TData>({
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className="text-muted-foreground h-24 text-center"
-                >
+                  className="text-muted-foreground h-24 text-center">
                   No stations match this filter.
                 </TableCell>
               </TableRow>
@@ -935,8 +941,7 @@ function DataTable<TData>({
               aria-label="Go to first page"
               onClick={() => table.firstPage()}
               disabled={!table.getCanPreviousPage()}
-              className="size-7 md:size-8"
-            >
+              className="size-7 md:size-8">
               <CaretDoubleLeftIcon />
             </Button>
 
@@ -947,8 +952,7 @@ function DataTable<TData>({
               aria-label="Go to previous page"
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
-              className="size-7 md:size-8"
-            >
+              className="size-7 md:size-8">
               <CaretLeftIcon />
             </Button>
 
@@ -959,8 +963,7 @@ function DataTable<TData>({
               aria-label="Go to next page"
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
-              className="size-7 md:size-8"
-            >
+              className="size-7 md:size-8">
               <CaretRightIcon />
             </Button>
             <Button
@@ -970,8 +973,7 @@ function DataTable<TData>({
               aria-label="Go to last page"
               onClick={() => table.lastPage()}
               disabled={!table.getCanNextPage()}
-              className="size-7 md:size-8"
-            >
+              className="size-7 md:size-8">
               <CaretDoubleRightIcon />
             </Button>
           </div>

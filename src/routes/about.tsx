@@ -48,7 +48,7 @@ function AboutPage() {
         className={cn(buttonVariants({ variant: "text" }), "pl-0")}
       >
         <ArrowUDownLeftIcon className="size-5 md:size-4" />
-        Back
+        Home
       </Link>
       <h1 className="text-xl font-bold">About Pedal Map</h1>
       <section className="mt-6 space-y-6 leading-[1.7] tracking-wide">
