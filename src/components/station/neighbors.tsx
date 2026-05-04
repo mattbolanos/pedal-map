@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useMemo, useRef } from "react";
 import { Badge } from "#/components/ui/badge";
-import { Card, CardContent } from "#/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import {
   formatDistance,
   type GeoCoordinates,
@@ -130,27 +130,27 @@ export function StationNeighbors({
   }
 
   return (
-    <div
-      className="flex h-full flex-col gap-3"
+    <Card
+      className="flex-1"
       onPointerLeave={() => {
         clearPreviewStation();
       }}
     >
-      <h3>Neighbors</h3>
-      <Card size="sm" className="flex-1 rounded-lg py-2! shadow-xs">
-        <CardContent className="space-y-1 px-1.5!">
-          {nearbyStations.map((result) => (
-            <NearbyStationLink
-              key={result.station.stationId}
-              distanceLabel={result.distanceLabel}
-              onClearPreviewStation={clearPreviewStation}
-              onPreviewStation={previewStation}
-              station={result.station}
-            />
-          ))}
-        </CardContent>
-      </Card>
-    </div>
+      <CardHeader className="px-4.5!">
+        <CardTitle>Neighbors</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-1 px-1.5!">
+        {nearbyStations.map((result) => (
+          <NearbyStationLink
+            key={result.station.stationId}
+            distanceLabel={result.distanceLabel}
+            onClearPreviewStation={clearPreviewStation}
+            onPreviewStation={previewStation}
+            station={result.station}
+          />
+        ))}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -182,7 +182,7 @@ function NearbyStationLink({
       onPointerEnter={() => {
         onPreviewStation(station);
       }}
-      className="hover:bg-accent focus-visible:border-ring focus-visible:ring-ring/50 flex w-full cursor-default items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm transition-[background-color,scale] outline-none focus-visible:ring-[3px]"
+      className="hover:bg-accent focus-visible:border-ring focus-visible:ring-ring/50 flex w-full cursor-default items-center gap-2 rounded-2xl px-3 py-2.5 text-left text-sm transition-[background-color,scale] outline-none focus-visible:ring-[3px]"
     >
       <span className="min-w-0 flex-1 truncate">{station.name}</span>
       <div className="ml-auto flex shrink-0 items-center gap-2 pl-3">

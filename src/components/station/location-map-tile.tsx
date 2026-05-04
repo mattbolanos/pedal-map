@@ -349,23 +349,21 @@ export function StationLocationMapTile({
   ];
 
   return (
-    <div className="flex h-full flex-col gap-3">
-      <h3>Location</h3>
-      <div className="border-border bg-card relative min-h-52 flex-1 overflow-hidden rounded-lg border shadow-xs">
-        <DeckGL
-          controller={false}
-          getCursor={() => "default"}
-          layers={layers}
-          viewState={viewState}>
-          <MapView
-            attributionControl={false}
-            interactive={false}
-            mapStyle={MAP_STYLE_URL}
-            mapboxAccessToken={MAPBOX_ACCESS_TOKEN}
-            renderWorldCopies={false}
-          />
-        </DeckGL>
-      </div>
+    <div className="border-border ring-foreground/10 bg-card relative h-full min-h-52 flex-1 overflow-hidden rounded-2xl border">
+      <DeckGL
+        controller={false}
+        getCursor={() => "default"}
+        layers={layers}
+        viewState={viewState}
+      >
+        <MapView
+          attributionControl={false}
+          interactive={false}
+          mapStyle={MAP_STYLE_URL}
+          mapboxAccessToken={MAPBOX_ACCESS_TOKEN}
+          renderWorldCopies={false}
+        />
+      </DeckGL>
     </div>
   );
 }

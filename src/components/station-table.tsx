@@ -202,7 +202,8 @@ export function StationTableSkeleton() {
                   {STATION_TABLE_MOBILE_METRICS.map((metric) => (
                     <div
                       key={`${row}-${metric}`}
-                      className="flex min-w-0 flex-col items-center gap-1.5 px-1">
+                      className="flex min-w-0 flex-col items-center gap-1.5 px-1"
+                    >
                       <Skeleton className="h-3 w-12 max-w-full" />
                       <Skeleton className="h-4 w-8" />
                     </div>
@@ -222,7 +223,8 @@ export function StationTableSkeleton() {
                   key={group.key}
                   colSpan={group.colSpan}
                   aria-hidden={group.label ? undefined : true}
-                  className="text-foreground h-7 border-b-0 text-center tracking-wide uppercase">
+                  className="text-foreground h-7 border-b-0 text-center tracking-wide uppercase"
+                >
                   {group.label}
                 </TableHead>
               ))}
@@ -232,7 +234,8 @@ export function StationTableSkeleton() {
                 <TableHead
                   key={column.key}
                   scope="col"
-                  className="h-9 whitespace-nowrap">
+                  className="h-9 whitespace-nowrap"
+                >
                   {column.label}
                 </TableHead>
               ))}
@@ -244,7 +247,8 @@ export function StationTableSkeleton() {
                 {STATION_TABLE_SKELETON_COLUMNS.map((column) => (
                   <TableCell
                     key={`${row}-${column.key}`}
-                    className="text-right whitespace-nowrap">
+                    className="text-right whitespace-nowrap"
+                  >
                     <Skeleton
                       className={
                         column.key === "station"
@@ -357,15 +361,27 @@ const stationTableColumns: ColumnDef<StationRow>[] = [
     cell: ({ row }) => (
       <div
         className="flex w-full min-w-0 items-center gap-2"
-        title={row.original.name}>
-        <span className="block min-w-0 truncate font-medium md:hidden">
-          {row.original.name}
-        </span>
+        title={row.original.name}
+      >
+        <span className="md:hidden">{row.original.name}</span>
+        <Badge
+          variant={
+            getStationRegion(row.original.regionId, row.original.stationId)
+              ?.badgeVariant
+          }
+          className="ml-auto md:hidden"
+        >
+          {
+            getStationRegion(row.original.regionId, row.original.stationId)
+              ?.label
+          }
+        </Badge>
         <Link
           to="/stations/$id"
           params={{ id: row.original.stationId }}
           aria-label={`View ${row.original.name} station profile`}
-          className="hover:text-teal-500/80 focus-visible:border-ring focus-visible:ring-ring/50 hidden min-w-0 truncate rounded-sm font-medium transition-colors outline-none focus-visible:ring-[3px] md:block">
+          className="focus-visible:border-ring focus-visible:ring-ring/50 hidden min-w-0 truncate rounded-sm font-medium transition-colors outline-none hover:text-teal-500/80 focus-visible:ring-[3px] md:block"
+        >
           {row.original.name}
         </Link>
         {row.original.isActive === false ? (
