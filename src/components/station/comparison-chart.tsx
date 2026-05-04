@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import {
   type ChartConfig,
   ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
   ChartTooltip,
   ChartTooltipContent,
 } from "#/components/ui/chart";
@@ -24,28 +26,16 @@ const metricChartConfig = {
   },
 } satisfies ChartConfig;
 
-function LegendItem({ color, label }: { color: string; label: string }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <span
-        className="h-2 w-2 shrink-0 rounded-[2px]"
-        style={{ backgroundColor: color }}
-      />
-      <span>{label}</span>
-    </div>
-  );
-}
-
 export function ComparisonChart({ data }: { data: ComparisonDatum[] }) {
   return (
-    <Card className="flex h-full">
+    <Card className="flex h-full md:h-98">
       <CardHeader className="px-4.5!">
         <CardTitle>Weekday vs weekend</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-1 flex-col px-2 pt-0 pb-3 sm:px-4">
+      <CardContent className="flex min-h-0 flex-1 flex-col px-2 pt-0 pb-3 sm:px-4">
         <ChartContainer
           config={metricChartConfig}
-          className="[&_.recharts-cartesian-grid_line]:stroke-border/40 h-72 w-full flex-1"
+          className="[&_.recharts-cartesian-grid_line]:stroke-border/40 flex h-full min-h-0 w-full flex-1 [&_.recharts-legend-wrapper]:pt-2"
           initialDimension={{ width: 520, height: 320 }}
         >
           <BarChart
@@ -82,18 +72,9 @@ export function ComparisonChart({ data }: { data: ComparisonDatum[] }) {
               fill="var(--color-weekend)"
               radius={[8, 8, 2, 2]}
             />
+            <ChartLegend content={<ChartLegendContent />} />
           </BarChart>
         </ChartContainer>
-        <div className="mt-auto flex items-center justify-center gap-4 pt-2">
-          <LegendItem
-            color={metricChartConfig.weekday.color}
-            label={String(metricChartConfig.weekday.label)}
-          />
-          <LegendItem
-            color={metricChartConfig.weekend.color}
-            label={String(metricChartConfig.weekend.label)}
-          />
-        </div>
       </CardContent>
     </Card>
   );

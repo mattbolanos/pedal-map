@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useMemo, useRef } from "react";
 import { Badge } from "#/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
@@ -77,7 +77,7 @@ function getNearbyStations(
           (resultA.station.bikesAvailable ?? 0) ||
         resultA.station.name.localeCompare(resultB.station.name),
     )
-    .slice(0, 5);
+    .slice(0, 8);
 }
 
 export function StationNeighbors({
@@ -85,6 +85,7 @@ export function StationNeighbors({
   onPreviewStationChange,
   stations,
 }: StationNearbyProps) {
+  const navigate = useNavigate();
   const activePreviewStationIdRef = useRef<string | null>(null);
   const previewDelayRef = useRef<number | null>(null);
   const nearbyStations = useMemo(
@@ -103,6 +104,14 @@ export function StationNeighbors({
     clearPreviewDelay();
     activePreviewStationIdRef.current = null;
     onPreviewStationChange?.(null);
+  };
+
+  const navigateToStation = (stationId: string) => {
+    clearPreviewStation();
+    navigate({
+      params: { id: stationId },
+      to: "/stations/$id",
+    });
   };
 
   const previewStation = (station: StationNearbyStation, immediate = false) => {
@@ -131,7 +140,7 @@ export function StationNeighbors({
 
   return (
     <Card
-      className="flex-1"
+      className="flex h-full flex-1 md:h-98"
       onPointerLeave={() => {
         clearPreviewStation();
       }}
@@ -139,12 +148,13 @@ export function StationNeighbors({
       <CardHeader className="px-4.5!">
         <CardTitle>Neighbors</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-1 px-1.5!">
+      <CardContent className="flex flex-1 flex-col space-y-0.5 px-1.5!">
         {nearbyStations.map((result) => (
           <NearbyStationLink
             key={result.station.stationId}
             distanceLabel={result.distanceLabel}
             onClearPreviewStation={clearPreviewStation}
+            onNavigate={navigateToStation}
             onPreviewStation={previewStation}
             station={result.station}
           />
@@ -157,11 +167,13 @@ export function StationNeighbors({
 function NearbyStationLink({
   distanceLabel,
   onClearPreviewStation,
+  onNavigate,
   onPreviewStation,
   station,
 }: {
   distanceLabel: string;
   onClearPreviewStation: () => void;
+  onNavigate: (stationId: string) => void;
   onPreviewStation: (
     station: StationNearbyStation,
     immediate?: boolean,
@@ -169,12 +181,14 @@ function NearbyStationLink({
   station: StationNearbyStation;
 }) {
   return (
-    <Link
-      to="/stations/$id"
-      params={{ id: station.stationId }}
+    <button
+      type="button"
       aria-label={`View ${station.name} station profile`}
       onBlur={() => {
         onClearPreviewStation();
+      }}
+      onClick={() => {
+        onNavigate(station.stationId);
       }}
       onFocus={() => {
         onPreviewStation(station, true);
@@ -182,7 +196,7 @@ function NearbyStationLink({
       onPointerEnter={() => {
         onPreviewStation(station);
       }}
-      className="hover:bg-accent focus-visible:border-ring focus-visible:ring-ring/50 flex w-full cursor-default items-center gap-2 rounded-2xl px-3 py-2.5 text-left text-sm transition-[background-color,scale] outline-none focus-visible:ring-[3px]"
+      className="hover:bg-accent focus-visible:border-ring focus-visible:ring-ring/50 flex w-full cursor-pointer items-center gap-2 rounded-2xl px-3 py-2.5 text-left text-sm transition-[background-color,scale] outline-none focus-visible:ring-[3px]"
     >
       <span className="min-w-0 flex-1 truncate">{station.name}</span>
       <div className="ml-auto flex shrink-0 items-center gap-2 pl-3">
@@ -195,6 +209,6 @@ function NearbyStationLink({
           </Badge>
         ) : null}
       </div>
-    </Link>
+    </button>
   );
 }

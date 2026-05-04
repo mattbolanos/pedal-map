@@ -349,7 +349,7 @@ export function StationLocationMapTile({
   ];
 
   return (
-    <div className="border-border ring-foreground/10 bg-card relative h-full min-h-52 flex-1 overflow-hidden rounded-2xl border">
+    <div className="border-border ring-foreground/10 bg-card relative h-full min-h-52 flex-1 overflow-hidden rounded-2xl border md:h-98">
       <DeckGL
         controller={false}
         getCursor={() => "default"}

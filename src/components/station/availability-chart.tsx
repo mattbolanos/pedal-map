@@ -81,7 +81,7 @@ export function AvailabilityChart({
   weekendPeak: PeakMarker | null;
 }) {
   return (
-    <Card className="flex h-full">
+    <Card className="flex h-full md:h-98">
       <CardHeader className="gap-3 px-4.5!">
         <div className="flex flex-wrap items-start gap-3">
           <div className="min-w-0 flex-1">
@@ -98,11 +98,11 @@ export function AvailabilityChart({
           <PeakPill label="Weekend peak" peak={weekendPeak} tone="weekend" />
         </div>
       </CardHeader>
-      <CardContent className="px-2 pt-0 pb-3 sm:px-4">
+      <CardContent className="flex min-h-0 flex-1 flex-col px-2 pt-0 pb-3 sm:px-4">
         {chartData.length > 0 ? (
           <ChartContainer
             config={availabilityChartConfig}
-            className="[&_.recharts-cartesian-grid_line]:stroke-border/40 h-72 w-full [&_.recharts-legend-wrapper]:pt-2"
+            className="[&_.recharts-cartesian-grid_line]:stroke-border/40 flex h-full min-h-0 w-full flex-1 [&_.recharts-legend-wrapper]:pt-2"
             initialDimension={{ width: 720, height: 320 }}
           >
             <AreaChart

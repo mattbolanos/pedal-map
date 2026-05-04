@@ -94,14 +94,14 @@ function StationDetailContent({ stationId }: { stationId: string }) {
     <div className="flex flex-col gap-6">
       <h1 className="text-xl font-bold">{station.name}</h1>
       <div className="grid gap-6 md:grid-cols-2">
-        <StationLocationAndNeighbors
-          station={station}
-          stations={stationInformation.data.stations}
-        />
         <StationProfile
           stationStatus={stationStatus}
           weekdayProfile={weekdayProfile}
           weekendProfile={weekendProfile}
+        />
+        <StationLocationAndNeighbors
+          station={station}
+          stations={stationInformation.data.stations}
         />
       </div>
     </div>
@@ -121,7 +121,7 @@ function StationDetailPage() {
         <ArrowUDownLeftIcon className="size-5 md:size-4" />
         Stations
       </Link>
-      <Suspense fallback={<StationDetailSkeleton />}>
+      <Suspense key={id} fallback={<StationDetailSkeleton />}>
         <StationDetailContent stationId={id} />
       </Suspense>
     </main>
