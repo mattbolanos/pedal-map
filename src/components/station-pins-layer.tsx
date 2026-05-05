@@ -11,8 +11,8 @@ import {
   stationAvailabilityRatio,
 } from "#/lib/station-pin";
 
-const SMALL_TO_MEDIUM_DOTS_ZOOM = 12;
-export const DOTS_TO_PINS_ZOOM = 13.75;
+const SMALL_TO_MEDIUM_DOTS_ZOOM = 11.8;
+export const DOTS_TO_PINS_ZOOM = 13.65;
 
 function hasValidCoordinates(s: CitiBikeStation) {
   return (
