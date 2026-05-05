@@ -68,10 +68,9 @@ function AboutPage() {
           intra-Brooklyn travel.
         </p>
         <p>
-          Pedal Map is my attempt to make the system feel a little more legible
-          at a glance. It uses the General Bikeshare Feed Specification
-          endpoints Citi Bike publishes to show live bikes, open docks, e-bikes,
-          station capacity, and whether a station is actually taking pickups or
+          This site uses the General Bikeshare Feed Specification
+          endpoints that Citi Bike publishes to show live bikes, open docks, e-bikes,
+          station capacity, and whether a station is actually accepting pickups or
           dropoffs, refreshed every 15 seconds or so.
         </p>
         <p>
@@ -84,7 +83,7 @@ function AboutPage() {
           samples from piling up forever.
         </p>
         <p>
-          I want to give a shout out to{" "}
+          I want to give props to{" "}
           <a
             href="https://bikemap.nyc"
             target="_blank"
