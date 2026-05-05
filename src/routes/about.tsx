@@ -50,7 +50,16 @@ function AboutPage() {
         <ArrowUDownLeftIcon className="size-5 md:size-4" />
         Home
       </Link>
-      <h1 className="text-xl font-bold">About Pedal Map</h1>
+      <div className="flex items-center gap-x-1.5">
+        <img
+          src="/pedal-map.svg"
+          alt=""
+          className="size-7 shrink-0"
+          width="28"
+          height="28"
+        />
+        <h1 className="text-xl font-bold">About Pedal Map</h1>
+      </div>
       <section className="mt-6 space-y-6 leading-[1.7] tracking-wide">
         <p>
           I love Citi Bike. As of the writing of this blurb, I have taken 1,959

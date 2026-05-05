@@ -750,7 +750,7 @@ function DataTable<TData>({
             </NativeSelect>
             <Button
               type="button"
-              size="icon-sm"
+              size="icon"
               aria-label={
                 currentSort?.desc
                   ? "Sort selected column ascending"

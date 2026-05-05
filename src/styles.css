@@ -79,7 +79,7 @@
   --chart-2: oklch(0.623 0.214 259.815);
   --chart-3: oklch(0.546 0.245 262.881);
   --chart-4: var(--primary);
-  --chart-5: oklch(0.424 0.199 265.638);
+  --chart-5: oklch(0.78 0.15 74);
   --sidebar: oklch(0.218 0.008 223.9);
   --sidebar-foreground: oklch(0.987 0.002 197.1);
   --sidebar-primary: oklch(0.623 0.214 259.815);
@@ -177,7 +177,7 @@ a {
 }
 
 .route-padding {
-  @apply mx-auto w-full px-5 py-10 md:py-20;
+  @apply mx-auto w-full px-5 pt-10 pb-20 md:pt-20;
 }
 
 .text-link {

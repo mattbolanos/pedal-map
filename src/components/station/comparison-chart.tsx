@@ -22,7 +22,7 @@ const metricChartConfig = {
   },
   weekend: {
     label: "Weekends",
-    color: "oklch(0.78 0.15 74)",
+    color: "var(--chart-5)",
   },
 } satisfies ChartConfig;
 

@@ -94,25 +94,22 @@ function MarkerDots({
       x={marker.slotIndex}
       y={marker.value}
       fill={
-        variant === "peak" ? "var(--color-primary)" : "var(--color-destructive)"
+        variant === "peak" ? "var(--color-chart-5)" : "var(--color-destructive)"
       }
       ifOverflow="extendDomain"
-      stroke="var(--color-secondary)"
-      fillOpacity={0.9}
-      r={9}
+      stroke="black"
+      r={8}
     />
   );
 }
 
 export function PeaksChart({
   chartData,
-  chartMax,
   isOffline,
   peak,
   valley,
 }: {
   chartData: PeaksPoint[];
-  chartMax: number;
   currentBikes: number | null;
   isOffline: boolean;
   peak: PeakValleyMarker | null;
@@ -129,8 +126,13 @@ export function PeaksChart({
           <div className="min-w-0 flex-1">
             <CardTitle>Bikes</CardTitle>
             <div className="text-muted-foreground mt-1 flex items-center gap-3 text-xs font-medium">
-              <p>H: {formatMarker(peak)}</p>
-              <p>L: {formatMarker(valley)}</p>
+              <p>
+                <span className="text-chart-5">H:</span> {formatMarker(peak)}
+              </p>
+              <p>
+                <span className="text-destructive">L:</span>{" "}
+                {formatMarker(valley)}
+              </p>
             </div>
           </div>
           {isOffline ? (
@@ -152,6 +154,8 @@ export function PeaksChart({
               data={chartData}
               margin={{ top: 12, right: 12, bottom: 4, left: 0 }}
             >
+              <MarkerDots marker={peak} variant="peak" />
+              <MarkerDots marker={valley} variant="valley" />
               <defs>
                 <linearGradient
                   id="bikeAvailabilityFill"
@@ -183,7 +187,13 @@ export function PeaksChart({
                 ticks={xTicks}
                 tick={<TimeTick slotsPerHour={slotsPerHour} />}
               />
-              <YAxis hide domain={[0, chartMax]} />
+              <YAxis
+                hide
+                domain={[
+                  (dataMin) => Math.max(0, dataMin - 10),
+                  (dataMax) => dataMax,
+                ]}
+              />
               <ChartTooltip
                 cursor={{
                   stroke: "var(--border)",
@@ -218,8 +228,6 @@ export function PeaksChart({
                   strokeWidth: 2.5,
                 }}
               />
-              <MarkerDots marker={peak} variant="peak" />
-              <MarkerDots marker={valley} variant="valley" />
             </AreaChart>
           </ChartContainer>
         ) : null}
