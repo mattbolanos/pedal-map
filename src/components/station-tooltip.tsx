@@ -76,7 +76,8 @@ function StationNameLink({
         variant: "text-link",
         size: "text-link",
         className,
-      })}>
+      })}
+    >
       {station.name}
     </Link>
   );
@@ -106,13 +107,15 @@ function StationDetails({
               {bikes > 0 ? (
                 <span
                   className="font-medium tabular-nums"
-                  style={{ color: availabilityColorCss(ratio, isActive) }}>
+                  style={{ color: availabilityColorCss(ratio, isActive) }}
+                >
                   {pct}% Available
                 </span>
               ) : (
                 <span
                   className="font-medium"
-                  style={{ color: availabilityColorCss(0, isActive) }}>
+                  style={{ color: availabilityColorCss(0, isActive) }}
+                >
                   Available
                 </span>
               )}
@@ -155,7 +158,8 @@ function StationDetails({
       )}
       <time
         dateTime={station.last_reported?.toString()}
-        className="text-muted-foreground text-[11px] tabular-nums">
+        className="text-muted-foreground text-[11px] tabular-nums"
+      >
         Updated {getRelativeTime(station.last_reported)}
       </time>
     </div>
@@ -175,7 +179,8 @@ function StationBadges({ station }: StationTooltipProps) {
       {regionBadge ? (
         <Badge
           variant={regionBadge.badgeVariant}
-          aria-label={`Region: ${regionBadge.label}`}>
+          aria-label={`Region: ${regionBadge.label}`}
+        >
           {regionBadge.label}
         </Badge>
       ) : null}
@@ -251,10 +256,11 @@ export const StationDrawer = ({ station }: StationTooltipProps) => (
         to="/stations/$id"
         params={{ id: station.station_id }}
         aria-label={`View ${station.name} station profile`}
-        className={buttonVariants({ variant: "foreground" })}>
+        className={buttonVariants({ variant: "foreground" })}
+      >
         Open Station Profile
       </Link>
-      <DrawerClose>
+      <DrawerClose asChild>
         <Button className="w-full" variant="secondary">
           Close
         </Button>
