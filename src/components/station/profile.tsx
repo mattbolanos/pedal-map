@@ -237,22 +237,22 @@ function buildMetricComparisonData(
 ): ComparisonDatum[] {
   return [
     {
-      metric: "Avg Bikes",
+      metric: "Bikes",
       weekday: toMetricValue(weekdaySummary.averageBikes),
       weekend: toMetricValue(weekendSummary.averageBikes),
     },
     {
-      metric: "Avg Electric",
+      metric: "Electrics",
       weekday: toMetricValue(weekdaySummary.averageEbikes),
       weekend: toMetricValue(weekendSummary.averageEbikes),
     },
     {
-      metric: "Avg Classic",
+      metric: "Classics",
       weekday: toMetricValue(weekdaySummary.averageClassicBikes),
       weekend: toMetricValue(weekendSummary.averageClassicBikes),
     },
     {
-      metric: "Avg Docks",
+      metric: "Docks",
       weekday: toMetricValue(weekdaySummary.averageDocks),
       weekend: toMetricValue(weekendSummary.averageDocks),
     },
