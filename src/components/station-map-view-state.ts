@@ -60,6 +60,19 @@ export function createStationFlyToViewState(
   );
 }
 
+export function createCoordinatesFlyToViewState(
+  currentViewState: MapViewState,
+  coords: { lon: number; lat: number },
+  prefersReducedMotion: boolean,
+) {
+  return createFlyToViewState(
+    currentViewState,
+    coords.lon,
+    coords.lat,
+    prefersReducedMotion,
+  );
+}
+
 export function createUserLocationFlyToViewState(
   currentViewState: MapViewState,
   coords: { lon: number; lat: number },

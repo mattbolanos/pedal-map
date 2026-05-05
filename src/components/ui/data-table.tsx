@@ -104,6 +104,9 @@ interface DataTableProps<TData> {
   showRowCount?: boolean;
   defaultColumn?: Partial<ColumnDef<TData, unknown>> | undefined;
   initialState?: InitialTableState | undefined;
+  getMobileCardAction?:
+    | ((row: TData) => MobileCardAction | undefined)
+    | undefined;
 }
 
 interface SortButtonProps<TData> {
@@ -122,6 +125,11 @@ interface SortSelectColumnGroup<TData> {
   key: string;
   label?: string;
   columns: Column<TData, unknown>[];
+}
+
+interface MobileCardAction {
+  ariaLabel?: string;
+  onClick: () => void;
 }
 
 function SortButton<TData>({ column, children }: SortButtonProps<TData>) {
@@ -410,17 +418,43 @@ function MobileMetricGrid<TData>({ cells }: { cells: Cell<TData, unknown>[] }) {
 }
 
 function MobileDataCard<TData>({
+  action,
   titleCell,
   metricCells,
 }: {
+  action?: MobileCardAction;
   titleCell: Cell<TData, unknown> | undefined;
   metricCells: Cell<TData, unknown>[];
 }) {
+  const actionLabel = action?.ariaLabel ?? "Open row details";
+  const isInteractive = Boolean(action);
+
   return (
-    <Card size="sm" className="gap-2.5 rounded-xl">
+    <Card
+      size="sm"
+      className={cn(
+        "gap-2.5 rounded-xl",
+        isInteractive &&
+          "border-border/70 from-card to-card/95 focus-visible:border-ring focus-visible:ring-ring/50 hover:border-foreground/20 hover:ring-foreground/40 hover:bg-card/90 cursor-pointer shadow-sm transition-[transform,box-shadow,background-color,border-color,--tw-ring-color] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] focus-visible:ring-[3px] active:translate-y-0 active:scale-[0.99] active:shadow-sm motion-safe:hover:shadow-lg",
+      )}
+      onClick={action?.onClick}
+      onKeyDown={
+        action
+          ? (event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                action.onClick();
+              }
+            }
+          : undefined
+      }
+      role={isInteractive ? "link" : undefined}
+      tabIndex={isInteractive ? 0 : undefined}
+      aria-label={isInteractive ? actionLabel : undefined}
+    >
       {titleCell ? (
-        <CardHeader>
-          <CardTitle className="text-sm text-pretty">
+        <CardHeader className="items-center gap-1.5 text-center">
+          <CardTitle className="mx-auto w-full text-center">
             {flexRender(
               titleCell.column.columnDef.cell,
               titleCell.getContext(),
@@ -593,6 +627,7 @@ function DataTable<TData>({
   showRowCount = true,
   defaultColumn,
   initialState,
+  getMobileCardAction,
 }: DataTableProps<TData>) {
   const [globalFilter, setGlobalFilter] = useState("");
   const safeGetSearchText = getSearchText ?? (() => "");
@@ -763,6 +798,7 @@ function DataTable<TData>({
               return (
                 <MobileDataCard
                   key={row.id}
+                  action={getMobileCardAction?.(row.original)}
                   titleCell={titleCell}
                   metricCells={mobileMetricCells.slice(0, 6)}
                 />

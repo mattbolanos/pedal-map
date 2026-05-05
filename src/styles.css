@@ -1,9 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap');
-@import 'mapbox-gl/dist/mapbox-gl.css';
-@import 'tailwindcss';
-@plugin '@tailwindcss/typography';
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Manrope:wght@400;500;600;700;800&display=swap");
+@import "mapbox-gl/dist/mapbox-gl.css";
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
-@import 'tw-animate-css';
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -19,18 +19,24 @@
   --secondary: oklch(0.967 0.001 286.375);
   --secondary-foreground: oklch(0.21 0.006 285.885);
   --muted: oklch(0.963 0.002 197.1);
-  --table-row-hover: color-mix(in oklch, var(--background) 50%, var(--muted) 50%);
+  --table-row-hover: color-mix(
+    in oklch,
+    var(--background) 50%,
+    var(--muted) 50%
+  );
   --muted-foreground: oklch(0.56 0.021 213.5);
   --accent: oklch(90.443% 0.00106 11.851);
   --accent-foreground: oklch(0.218 0.008 223.9);
   --destructive: oklch(0.577 0.245 27.325);
+  --warning: hsl(64, 100%, 6%);
+  --warning-text: hsl(46, 87%, 65%);
   --border: oklch(0.925 0.005 214.3);
   --input: oklch(0.925 0.005 214.3);
   --ring: oklch(0.723 0.014 214.4);
   --chart-1: oklch(0.809 0.105 251.813);
   --chart-2: oklch(0.623 0.214 259.815);
   --chart-3: oklch(0.546 0.245 262.881);
-  --chart-4: oklch(0.488 0.243 264.376);
+  --chart-4: var(--primary);
   --chart-5: oklch(0.424 0.199 265.638);
   --radius: 0.65rem;
   --sidebar: oklch(0.987 0.002 197.1);
@@ -55,18 +61,24 @@
   --secondary: oklch(0.28 0.02 210);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(16.332% 0.0036 229.245);
-  --table-row-hover: color-mix(in oklch, var(--background) 50%, var(--muted) 50%);
+  --table-row-hover: color-mix(
+    in oklch,
+    var(--background) 50%,
+    var(--muted) 50%
+  );
   --muted-foreground: oklch(0.723 0.014 214.4);
   --accent: oklch(0.26 0.015 210);
   --accent-foreground: oklch(99.238% 0.00252 260.123);
   --destructive: oklch(0.704 0.191 22.216);
+  --warning: hsl(64, 100%, 6%);
+  --warning-text: hsl(46, 87%, 65%);
   --border: oklch(1 0 0 / 11.5%);
   --input: oklch(0.34 0.02 210);
   --ring: oklch(0.56 0.021 213.5);
   --chart-1: oklch(0.809 0.105 251.813);
   --chart-2: oklch(0.623 0.214 259.815);
   --chart-3: oklch(0.546 0.245 262.881);
-  --chart-4: oklch(0.488 0.243 264.376);
+  --chart-4: var(--primary);
   --chart-5: oklch(0.424 0.199 265.638);
   --sidebar: oklch(0.218 0.008 223.9);
   --sidebar-foreground: oklch(0.987 0.002 197.1);
@@ -79,7 +91,7 @@
 }
 
 @theme inline {
-  --font-sans: 'Manrope', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -96,6 +108,8 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-warning: var(--warning);
+  --color-warning-text: var(--warning-text);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -133,9 +147,12 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-button, 
+button,
 a {
-  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease,
+  transition:
+    background-color 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease,
     transform 180ms ease;
 }
 
@@ -160,9 +177,9 @@ a {
 }
 
 .route-padding {
-  @apply px-5 py-10 md:py-20 mx-auto w-full;
+  @apply mx-auto w-full px-5 py-10 md:py-20;
 }
 
 .text-link {
-  @apply hover:border-teal-500/80 hover:text-teal-500/80 border-teal-500 inline-flex text-teal-500 items-center gap-0.5 border-b;
+  @apply inline-flex items-center gap-0.5 border-b border-teal-500 text-teal-500 hover:border-teal-500/80 hover:text-teal-500/80;
 }

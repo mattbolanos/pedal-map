@@ -8,8 +8,8 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import type { CitiBikeStation } from "#/lib/citibike";
 import {
+  getUserLocationToast,
   hasActiveUserLocation,
-  hasUserLocationIssue,
   type UserLocationState,
 } from "#/lib/user-location";
 import { cn } from "#/lib/utils";
@@ -49,7 +49,7 @@ export function MapControls({
   const [isSummaryOpen, setIsSummaryOpen] = useState(false);
   const navigate = useNavigate();
   const hasActiveLocation = hasActiveUserLocation(userLocation);
-  const hasLocationIssue = hasUserLocationIssue(userLocation);
+  const locationToastVariant = getUserLocationToast(userLocation)?.variant;
 
   const nearbyLabel = hasActiveLocation
     ? "Turn off current location"
@@ -93,17 +93,23 @@ export function MapControls({
               </SpeedDialItem>
               <SpeedDialItem>
                 <SpeedDialAction
+                  disabled={locationToastVariant === "warning"}
                   className={cn(
-                    hasLocationIssue &&
-                      "border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20",
-                    hasActiveLocation && "bg-secondary ring-1",
+                    hasActiveLocation && "bg-secondary! ring-1",
+                    locationToastVariant === "error" && "bg-destructive!",
                   )}
                   aria-label={nearbyLabel}
                   onSelect={handleNearbyAction}
                 >
                   <CrosshairSimpleIcon className="size-5" />
                 </SpeedDialAction>
-                <SpeedDialLabel>Nearby</SpeedDialLabel>
+                <SpeedDialLabel
+                  className={cn(
+                    locationToastVariant === "warning" && "opacity-50",
+                  )}
+                >
+                  Nearby
+                </SpeedDialLabel>
               </SpeedDialItem>
               <SpeedDialItem>
                 <SpeedDialAction

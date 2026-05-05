@@ -43,8 +43,8 @@ import {
   hasActiveUserLocation,
   INITIAL_USER_LOCATION_STATE,
   requestCurrentUserLocation,
-  type UserLocationState,
 } from "#/lib/user-location";
+import { useUserLocation } from "#/lib/user-location-provider";
 import { MapControls } from "./map-controls";
 import { MapSummary } from "./map-summary";
 import type { HoveredStation } from "./station-map.types";
@@ -68,9 +68,7 @@ export function StationMap() {
   const isMobile = useIsMobile();
   const locationRequestIdRef = useRef(0);
   const prefersReducedMotion = usePrefersReducedMotion();
-  const [userLocation, setUserLocation] = useState<UserLocationState>(
-    INITIAL_USER_LOCATION_STATE,
-  );
+  const { setUserLocation, userLocation } = useUserLocation();
   const renderStations =
     stations.length > 0 ? stations : renderStationsRef.current;
   const activeUserCoordinates = hasActiveUserLocation(userLocation)
@@ -80,6 +78,8 @@ export function StationMap() {
     clearHoveredStation,
     containerRef,
     handleHover,
+    handleTooltipPointerEnter,
+    handleTooltipPointerLeave,
     hoveredStation,
     markStationInteraction,
     projectStationPosition,
@@ -176,13 +176,13 @@ export function StationMap() {
       description: locationToast.description,
       id: USER_LOCATION_TOAST_ID,
     });
-  }, [clearHoveredStation, prefersReducedMotion]);
+  }, [clearHoveredStation, prefersReducedMotion, setUserLocation]);
 
   const clearUserLocation = useCallback(() => {
     locationRequestIdRef.current += 1;
     toast.dismiss(USER_LOCATION_TOAST_ID);
     setUserLocation(INITIAL_USER_LOCATION_STATE);
-  }, []);
+  }, [setUserLocation]);
 
   const selectStationFromSearch = (station: CitiBikeStation) => {
     setViewState((currentViewState) => {
@@ -314,7 +314,9 @@ export function StationMap() {
         lastUpdated={citiBikeStations?.lastUpdated}
       />
       <DeckGL
-        controller
+        controller={{
+          touchRotate: true,
+        }}
         getCursor={({ isDragging }) => (isDragging ? "grabbing" : "grab")}
         layers={layers}
         onClick={handleMapClick}
@@ -346,6 +348,8 @@ export function StationMap() {
 
       {hoveredStation ? (
         <HoveredStationTooltipOverlay
+          onTooltipPointerEnter={handleTooltipPointerEnter}
+          onTooltipPointerLeave={handleTooltipPointerLeave}
           station={hoveredStation.station}
           tooltipPosition={tooltipPosition}
           tooltipRef={setTooltipRef}

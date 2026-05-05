@@ -2,6 +2,7 @@ import { BicycleIcon } from "@phosphor-icons/react/dist/csr/Bicycle";
 import { ChargingStationIcon } from "@phosphor-icons/react/dist/csr/ChargingStation";
 import { LetterCirclePIcon } from "@phosphor-icons/react/dist/csr/LetterCircleP";
 import { WrenchIcon } from "@phosphor-icons/react/dist/csr/Wrench";
+import { Link } from "@tanstack/react-router";
 import type { CitiBikeStation } from "#/lib/citibike";
 import { isStationActive } from "#/lib/station";
 import {
@@ -13,11 +14,13 @@ import { cn, getRelativeTime } from "#/lib/utils";
 import { BikeSplitBar } from "./bike-split-bar";
 import { CloseButton } from "./close-button";
 import { Badge } from "./ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Button, buttonVariants } from "./ui/button";
+import { Card, CardContent, CardHeader } from "./ui/card";
 import {
   DrawerClose,
   DrawerContent,
   DrawerDescription,
+  DrawerFooter,
   DrawerHeader,
   DrawerTitle,
 } from "./ui/drawer";
@@ -55,6 +58,31 @@ function StatRow({
   );
 }
 
+function StationNameLink({
+  station,
+  className,
+  onClick,
+}: StationTooltipProps & {
+  className?: string;
+  onClick?: () => void;
+}) {
+  return (
+    <Link
+      to="/stations/$id"
+      params={{ id: station.station_id }}
+      onClick={onClick}
+      aria-label={`View ${station.name} station profile`}
+      className={buttonVariants({
+        variant: "text-link",
+        size: "text-link",
+        className,
+      })}
+    >
+      {station.name}
+    </Link>
+  );
+}
+
 function StationDetails({
   station,
   className,
@@ -76,15 +104,21 @@ function StationDetails({
           <div className="space-y-1.5">
             <div className="flex items-center gap-x-1.5">
               <BicycleIcon className="text-muted-foreground size-4" />
-              {bikes > 0 && (
+              {bikes > 0 ? (
                 <span
                   className="font-medium tabular-nums"
                   style={{ color: availabilityColorCss(ratio, isActive) }}
                 >
-                  {pct}%
+                  {pct}% Available
+                </span>
+              ) : (
+                <span
+                  className="font-medium"
+                  style={{ color: availabilityColorCss(0, isActive) }}
+                >
+                  Available
                 </span>
               )}
-              <span>Available</span>
               <span className="ml-auto tabular-nums">{bikes}</span>
             </div>
             <BikeSplitBar
@@ -161,8 +195,11 @@ function StationBadges({ station }: StationTooltipProps) {
 
 export const StationTooltip = ({ station }: StationTooltipProps) => (
   <Card className="bg-popover supports-backdrop-filter:bg-popover/95 md:w-72">
-    <CardHeader className="gap-1.5">
-      <CardTitle className="min-w-0 text-balance">{station.name}</CardTitle>
+    <CardHeader className="gap-2">
+      <StationNameLink
+        station={station}
+        className="min-w-0 text-base text-balance"
+      />
       <StationBadges station={station} />
     </CardHeader>
     <CardContent className="p-0">
@@ -177,10 +214,12 @@ export const StationPopoverPanel = ({
 }: StationPopoverPanelProps) => (
   <div className="flex w-full flex-col gap-3">
     <div className="flex items-start justify-between gap-2">
-      <PopoverHeader className="min-w-0 flex-1 gap-1.5">
-        <h3 className="min-w-0 text-sm font-medium text-balance">
-          {station.name}
-        </h3>
+      <PopoverHeader className="min-w-0 flex-1 gap-2">
+        <StationNameLink
+          station={station}
+          onClick={onClose}
+          className="min-w-0 text-sm text-balance"
+        />
         <StationBadges station={station} />
       </PopoverHeader>
       {onClose ? (
@@ -209,6 +248,23 @@ export const StationDrawer = ({ station }: StationTooltipProps) => (
       <StationBadges station={station} />
       <DrawerDescription className="sr-only">Station details</DrawerDescription>
     </DrawerHeader>
-    <StationDetails station={station} className="px-4" />
+    <div className="space-y-3 px-4">
+      <StationDetails station={station} />
+    </div>
+    <DrawerFooter className="pb-0">
+      <Link
+        to="/stations/$id"
+        params={{ id: station.station_id }}
+        aria-label={`View ${station.name} station profile`}
+        className={buttonVariants({ variant: "foreground" })}
+      >
+        Open Station Profile
+      </Link>
+      <DrawerClose>
+        <Button className="w-full" variant="secondary">
+          Close
+        </Button>
+      </DrawerClose>
+    </DrawerFooter>
   </DrawerContent>
 );

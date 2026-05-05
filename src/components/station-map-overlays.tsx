@@ -10,6 +10,8 @@ import {
 import { Drawer } from "./ui/drawer";
 
 interface HoveredStationTooltipOverlayProps {
+  onTooltipPointerEnter: () => void;
+  onTooltipPointerLeave: () => void;
   station: CitiBikeStation;
   tooltipPosition: TooltipPosition | null;
   tooltipRef: (node: HTMLDivElement | null) => void;
@@ -34,6 +36,8 @@ interface MobileStationDrawerOverlayProps {
 }
 
 export function HoveredStationTooltipOverlay({
+  onTooltipPointerEnter,
+  onTooltipPointerLeave,
   scheduleTooltipPosition,
   station,
   tooltipPosition,
@@ -66,7 +70,13 @@ export function HoveredStationTooltipOverlay({
             }
       }
     >
-      <StationTooltip station={station} />
+      <div
+        className="pointer-events-auto"
+        onPointerEnter={onTooltipPointerEnter}
+        onPointerLeave={onTooltipPointerLeave}
+      >
+        <StationTooltip station={station} />
+      </div>
     </div>
   );
 }

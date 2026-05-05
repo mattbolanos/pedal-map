@@ -1,4 +1,4 @@
-import { ArrowBendUpLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowBendUpLeft";
+import { ArrowUDownLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowUDownLeft";
 import { CoffeeIcon } from "@phosphor-icons/react/dist/csr/Coffee";
 import { GithubLogoIcon } from "@phosphor-icons/react/dist/csr/GithubLogo";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -47,8 +47,8 @@ function AboutPage() {
         aria-label="Go back home"
         className={cn(buttonVariants({ variant: "text" }), "pl-0")}
       >
-        <ArrowBendUpLeftIcon className="size-5 md:size-4" />
-        Back
+        <ArrowUDownLeftIcon className="size-5 md:size-4" />
+        Home
       </Link>
       <h1 className="text-xl font-bold">About Pedal Map</h1>
       <section className="mt-6 space-y-6 leading-[1.7] tracking-wide">
