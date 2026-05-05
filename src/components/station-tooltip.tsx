@@ -260,7 +260,7 @@ export const StationDrawer = ({ station }: StationTooltipProps) => (
       >
         Open Station Profile
       </Link>
-      <DrawerClose asChild>
+      <DrawerClose>
         <Button className="w-full" variant="secondary">
           Close
         </Button>
