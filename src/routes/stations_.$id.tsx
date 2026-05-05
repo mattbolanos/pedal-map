@@ -1,6 +1,11 @@
 import { ArrowUDownLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowUDownLeft";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  notFound,
+  useCanGoBack,
+  useRouter,
+} from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { Suspense, useState } from "react";
 import { NotFound } from "#/components/not-found";
@@ -214,17 +219,29 @@ function StationLocationAndNeighborsPanels({
 
 function StationDetailPage() {
   const { id } = Route.useParams();
+  const canGoBack = useCanGoBack();
+  const navigate = Route.useNavigate();
+  const router = useRouter();
+
+  const goBack = () => {
+    if (canGoBack) {
+      router.history.back();
+      return;
+    }
+
+    navigate({ to: "/" });
+  };
 
   return (
     <main className="route-padding max-w-6xl space-y-3">
-      <Link
-        to="/stations"
-        aria-label="Go back to stations"
+      <button
+        type="button"
+        aria-label="Go back"
         className={cn(buttonVariants({ variant: "text" }), "pl-0")}
-      >
+        onClick={goBack}>
         <ArrowUDownLeftIcon className="size-5 md:size-4" />
-        Stations
-      </Link>
+        Back
+      </button>
       <div className="flex flex-col gap-6">
         <Suspense fallback={<StationTitleSkeleton />}>
           <StationTitle stationId={id} />

@@ -48,6 +48,7 @@ import { useUserLocation } from "#/lib/user-location-provider";
 import { MapControls } from "./map-controls";
 import { MapSummary } from "./map-summary";
 import type { HoveredStation } from "./station-map.types";
+import { DOTS_TO_PINS_ZOOM } from "./station-pins-layer";
 import { useStationMapLayers } from "./use-station-map-layers";
 import { useStationMapTooltip } from "./use-station-map-tooltip";
 
@@ -214,6 +215,11 @@ export function StationMap() {
   const handleMapClick = (info: PickingInfo<CitiBikeStation>) => {
     const station = info.object;
 
+    if (station && viewState.zoom < DOTS_TO_PINS_ZOOM) {
+      selectStationFromSearch(station);
+      return;
+    }
+
     if (isMobile) {
       if (!station) {
         clearHoveredStation();
@@ -317,7 +323,15 @@ export function StationMap() {
         controller={{
           touchRotate: true,
         }}
-        getCursor={({ isDragging }) => (isDragging ? "grabbing" : "grab")}
+        getCursor={({ isDragging, isHovering }) => {
+          if (isDragging) {
+            return "grabbing";
+          }
+
+          return isHovering && (isMobile || viewState.zoom < DOTS_TO_PINS_ZOOM)
+            ? "pointer"
+            : "grab";
+        }}
         layers={layers}
         onClick={handleMapClick}
         onDragStart={() => {
@@ -333,8 +347,7 @@ export function StationMap() {
           }
           setViewState(clampViewState(nextViewState as MapViewState));
         }}
-        viewState={viewState}
-      >
+        viewState={viewState}>
         <MapView
           mapStyle={MAP_STYLE_URL}
           mapboxAccessToken={MAPBOX_ACCESS_TOKEN}

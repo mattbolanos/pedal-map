@@ -4,11 +4,13 @@ import { NYC_METRO_BOUNDS } from "#/lib/geo";
 
 export const MIN_ZOOM = 10.55;
 export const MAX_ZOOM = 16;
-export const STATION_FLY_TO_DURATION_MS = 1050;
+const STATION_FLY_TO_MIN_DURATION_MS = 1050;
+const STATION_FLY_TO_MAX_DURATION_MS = 1750;
 
 const STATION_FLY_TO_INTERPOLATOR = new FlyToInterpolator({ curve: 1.25 });
 
-const easeOutQuint = (value: number) => 1 - (1 - value) ** 5;
+const easeInOutCubic = (value: number) =>
+  value < 0.5 ? 4 * value ** 3 : 1 - (-2 * value + 2) ** 3 / 2;
 
 export function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
@@ -34,13 +36,21 @@ function createFlyToViewState(
   targetLatitude: number,
   prefersReducedMotion: boolean,
 ): MapViewState {
+  const zoomDistance = Math.abs(MAX_ZOOM - currentViewState.zoom);
+  const zoomProgress = zoomDistance / (MAX_ZOOM - MIN_ZOOM);
+  const transitionDuration = Math.round(
+    STATION_FLY_TO_MIN_DURATION_MS +
+      (STATION_FLY_TO_MAX_DURATION_MS - STATION_FLY_TO_MIN_DURATION_MS) *
+        clamp(zoomProgress, 0, 1),
+  );
+
   return {
     ...currentViewState,
     longitude: targetLongitude,
     latitude: targetLatitude,
     zoom: MAX_ZOOM,
-    transitionDuration: prefersReducedMotion ? 0 : STATION_FLY_TO_DURATION_MS,
-    transitionEasing: prefersReducedMotion ? undefined : easeOutQuint,
+    transitionDuration: prefersReducedMotion ? 0 : transitionDuration,
+    transitionEasing: prefersReducedMotion ? undefined : easeInOutCubic,
     transitionInterpolator: prefersReducedMotion
       ? undefined
       : STATION_FLY_TO_INTERPOLATOR,
