@@ -13,7 +13,7 @@ const RANK_ROW_KEYS = [
 ];
 
 export function StationTitleSkeleton() {
-  return <Skeleton className="h-8 w-56" />;
+  return <Skeleton className="h-7 w-56" />;
 }
 
 export function StationMapTileSkeleton() {
