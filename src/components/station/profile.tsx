@@ -1,12 +1,12 @@
 import {
-  AvailabilityChart,
-  type AvailabilityPoint,
-  type PeakMarker,
-} from "#/components/station/availability-chart";
-import {
   ComparisonChart,
   type ComparisonDatum,
 } from "#/components/station/comparison-chart";
+import {
+  PeaksChart,
+  type PeaksPoint,
+  type PeakValleyMarker,
+} from "#/components/station/peaks-chart";
 import type {
   DaySummary,
   ProfileSlot,
@@ -96,17 +96,46 @@ function toChartValue(value: number | null) {
   return Number(value.toFixed(1));
 }
 
-function getSlotValue(slots: ProfileSlot[], slotIndex: number) {
+function combineSlotValue(slots: ProfileSlot[]) {
+  const weightedValues = slots
+    .filter(
+      (slot) =>
+        slot.avgBikesAvailable !== null &&
+        Number.isFinite(slot.avgBikesAvailable),
+    )
+    .map((slot) => ({
+      sampleCount: slot.sampleCount,
+      value: slot.avgBikesAvailable ?? 0,
+    }));
+
+  if (weightedValues.length === 0) {
+    return null;
+  }
+
+  const totalSamples = weightedValues.reduce(
+    (sum, slot) => sum + slot.sampleCount,
+    0,
+  );
+
+  if (totalSamples <= 0) {
+    return (
+      weightedValues.reduce((sum, slot) => sum + slot.value, 0) /
+      weightedValues.length
+    );
+  }
+
   return (
-    slots.find((slot) => slot.slotIndex === slotIndex)?.avgBikesAvailable ??
-    null
+    weightedValues.reduce(
+      (sum, slot) => sum + slot.value * slot.sampleCount,
+      0,
+    ) / totalSamples
   );
 }
 
 function buildChartData(
   weekdayProfile: ProfileSlot[],
   weekendProfile: ProfileSlot[],
-): AvailabilityPoint[] {
+): PeaksPoint[] {
   const slots = [...weekdayProfile, ...weekendProfile]
     .map((slot) => ({
       label: slot.slotLabel,
@@ -120,53 +149,78 @@ function buildChartData(
     )
     .sort((slotA, slotB) => slotA.slotIndex - slotB.slotIndex);
 
-  return slots.map((slot) => ({
+  const data = slots.map((slot) => ({
     label: formatSlotTime(slot.label, slot.slotIndex),
     slotIndex: slot.slotIndex,
-    weekday: toChartValue(getSlotValue(weekdayProfile, slot.slotIndex)),
-    weekend: toChartValue(getSlotValue(weekendProfile, slot.slotIndex)),
+    bikes: toChartValue(
+      combineSlotValue([
+        ...weekdayProfile.filter(
+          (profileSlot) => profileSlot.slotIndex === slot.slotIndex,
+        ),
+        ...weekendProfile.filter(
+          (profileSlot) => profileSlot.slotIndex === slot.slotIndex,
+        ),
+      ]),
+    ),
   }));
-}
 
-function getTickLabels(chartData: AvailabilityPoint[]) {
-  if (chartData.length <= 5) {
-    return chartData.map((slot) => slot.label);
+  const firstSlot = data[0];
+  if (!firstSlot) {
+    return data;
   }
 
-  const indexes = [
-    0,
-    Math.floor((chartData.length - 1) * 0.25),
-    Math.floor((chartData.length - 1) * 0.5),
-    Math.floor((chartData.length - 1) * 0.75),
-    chartData.length - 1,
-  ];
+  const slotInterval =
+    data.length > 1 ? data[1].slotIndex - data[0].slotIndex : 1;
+  const lastSlot = data[data.length - 1];
 
   return [
-    ...new Set(
-      indexes
-        .map((index) => chartData[index]?.label)
-        .filter((label): label is string => typeof label === "string"),
-    ),
+    ...data,
+    {
+      ...firstSlot,
+      label: "12am",
+      slotIndex: lastSlot.slotIndex + slotInterval,
+    },
   ];
 }
 
-function getPeakLabel(slot: ProfileSlot | null) {
-  if (!slot) {
-    return "--";
-  }
-
-  return formatSlotTime(slot.slotLabel, slot.slotIndex);
-}
-
-function getPeakMarker(slot: ProfileSlot | null): PeakMarker | null {
-  if (!slot || slot.avgBikesAvailable === null) {
+function getPeakValleyMarker(slot: PeaksPoint | null): PeakValleyMarker | null {
+  if (!slot || slot.bikes === null) {
     return null;
   }
 
   return {
-    label: getPeakLabel(slot),
-    value: toChartValue(slot.avgBikesAvailable) ?? slot.avgBikesAvailable,
+    label: slot.label,
+    slotIndex: slot.slotIndex,
+    value: slot.bikes,
   };
+}
+
+function getPeakPoint(chartData: PeaksPoint[]) {
+  return chartData.reduce<PeaksPoint | null>((peak, slot) => {
+    if (slot.bikes === null) {
+      return peak;
+    }
+
+    if (peak === null || peak.bikes === null) {
+      return slot;
+    }
+
+    return slot.bikes > peak.bikes ? slot : peak;
+  }, null);
+}
+
+function getValleyPoint(chartData: PeaksPoint[]) {
+  return chartData.reduce<PeaksPoint | null>((valley, slot) => {
+    if (slot.bikes === null) {
+      return valley;
+    }
+
+    if (valley === null || valley.bikes === null) {
+      return slot;
+    }
+
+    return slot.bikes < valley.bikes ? slot : valley;
+  }, null);
 }
 
 function toMetricValue(value: number | null) {
@@ -183,26 +237,22 @@ function buildMetricComparisonData(
 ): ComparisonDatum[] {
   return [
     {
-      metric: "Avg bikes",
+      metric: "Avg Bikes",
       weekday: toMetricValue(weekdaySummary.averageBikes),
       weekend: toMetricValue(weekendSummary.averageBikes),
     },
     {
-      metric: "Peak bikes",
-      weekday: toMetricValue(
-        weekdaySummary.peakBikeSlot?.avgBikesAvailable ?? null,
-      ),
-      weekend: toMetricValue(
-        weekendSummary.peakBikeSlot?.avgBikesAvailable ?? null,
-      ),
-    },
-    {
-      metric: "Avg e-bikes",
+      metric: "Avg Electric",
       weekday: toMetricValue(weekdaySummary.averageEbikes),
       weekend: toMetricValue(weekendSummary.averageEbikes),
     },
     {
-      metric: "Avg docks",
+      metric: "Avg Classic",
+      weekday: toMetricValue(weekdaySummary.averageClassicBikes),
+      weekend: toMetricValue(weekendSummary.averageClassicBikes),
+    },
+    {
+      metric: "Avg Docks",
       weekday: toMetricValue(weekdaySummary.averageDocks),
       weekend: toMetricValue(weekendSummary.averageDocks),
     },
@@ -210,10 +260,12 @@ function buildMetricComparisonData(
 }
 
 export function StationProfile({
+  chart = "all",
   stationStatus,
   weekdayProfile,
   weekendProfile,
 }: {
+  chart?: "all" | "peaks" | "comparison";
   stationStatus: StationRow | null;
   weekdayProfile: ProfileSlot[];
   weekendProfile: ProfileSlot[];
@@ -225,8 +277,7 @@ export function StationProfile({
   const weekdaySummary = summarizeDayProfile(weekdayProfile);
   const weekendSummary = summarizeDayProfile(weekendProfile);
   const chartData = buildChartData(weekdayProfile, weekendProfile);
-  const tickLabels = getTickLabels(chartData);
-  const chartValues = chartData.flatMap((slot) => [slot.weekday, slot.weekend]);
+  const chartValues = chartData.map((slot) => slot.bikes);
   const chartMaxValue = Math.max(
     4,
     ...chartValues.filter(
@@ -241,15 +292,19 @@ export function StationProfile({
 
   return (
     <>
-      <AvailabilityChart
-        chartData={chartData}
-        chartMax={chartMax}
-        isOffline={stationStatus?.isActive === false}
-        tickLabels={tickLabels}
-        weekdayPeak={getPeakMarker(weekdaySummary.peakBikeSlot)}
-        weekendPeak={getPeakMarker(weekendSummary.peakBikeSlot)}
-      />
-      <ComparisonChart data={metricComparisonData} />
+      {chart === "all" || chart === "peaks" ? (
+        <PeaksChart
+          chartData={chartData}
+          chartMax={chartMax}
+          currentBikes={stationStatus?.bikesAvailable ?? null}
+          isOffline={stationStatus?.isActive === false}
+          peak={getPeakValleyMarker(getPeakPoint(chartData))}
+          valley={getPeakValleyMarker(getValleyPoint(chartData))}
+        />
+      ) : null}
+      {chart === "all" || chart === "comparison" ? (
+        <ComparisonChart data={metricComparisonData} />
+      ) : null}
     </>
   );
 }

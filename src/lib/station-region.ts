@@ -66,13 +66,21 @@ export function getStationRegion(
   regionId: string | null | undefined,
   stationId: string,
 ) {
+  const stationRegionId = getStationRegionId(regionId, stationId);
+  return stationRegionId ? STATION_REGIONS[stationRegionId] : null;
+}
+
+export function getStationRegionId(
+  regionId: string | null | undefined,
+  stationId: string,
+) {
   if (!regionId || !isStationRegionId(regionId)) {
     const overriddenRegionId = STATION_REGION_OVERRIDES[stationId];
     if (overriddenRegionId) {
-      return STATION_REGIONS[overriddenRegionId];
+      return overriddenRegionId;
     }
     return null;
   }
 
-  return STATION_REGIONS[regionId];
+  return regionId;
 }

@@ -127,7 +127,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <HeadContent />
       </head>
-      <body className="bg-background font-sans wrap-anywhere antialiased">
+      <body className="bg-background dark font-sans wrap-anywhere antialiased">
         <TanStackQueryProvider>
           <ConvexRootProvider>
             <UserLocationProvider>{children}</UserLocationProvider>

@@ -142,6 +142,58 @@ export type PublicApiType = {
           sumInferredDepartures: number;
           sumTurnover: number;
         }>;
+        rankings: {
+          topAvgBikesStations: Array<{
+            capacity: number | null;
+            lat: number;
+            lon: number;
+            name: string;
+            rank: number;
+            regionId: string | null;
+            stationId: string;
+            value: number;
+          }>;
+          topAvgEbikesStations: Array<{
+            capacity: number | null;
+            lat: number;
+            lon: number;
+            name: string;
+            rank: number;
+            regionId: string | null;
+            stationId: string;
+            value: number;
+          }>;
+          topCapacityStations: Array<{
+            capacity: number | null;
+            lat: number;
+            lon: number;
+            name: string;
+            rank: number;
+            regionId: string | null;
+            stationId: string;
+            value: number;
+          }>;
+          topCurrentBikesStations: Array<{
+            capacity: number | null;
+            lat: number;
+            lon: number;
+            name: string;
+            rank: number;
+            regionId: string | null;
+            stationId: string;
+            value: number;
+          }>;
+          topCurrentEbikesStations: Array<{
+            capacity: number | null;
+            lat: number;
+            lon: number;
+            name: string;
+            rank: number;
+            regionId: string | null;
+            stationId: string;
+            value: number;
+          }>;
+        };
         reliabilityLeaders: Array<{
           avgOccupancyPct: number | null;
           capacity: number | null;
@@ -194,6 +246,13 @@ export type PublicApiType = {
           observedMinutes: number | null;
           pickupReliabilityPct: number | null;
           pressureScore: number | null;
+          ranks: {
+            avgBikesAvailable: number | null;
+            avgEbikesAvailable: number | null;
+            capacity: number | null;
+            currentBikesAvailable: number | null;
+            currentEbikesAvailable: number | null;
+          };
           regionId: string | null;
           reliabilityScore: number | null;
           sampleCount: number | null;
@@ -298,81 +357,6 @@ export type PublicApiType = {
           sampleCount: number;
           slotIndex: number;
           slotLabel: string;
-        }>;
-      }
-    >;
-    getAvailabilityMapProfile: FunctionReference<
-      "query",
-      "public",
-      {
-        dayGrouping?: "all" | "dayType" | "dayOfWeek";
-        days: number;
-        hours?: Array<number>;
-        includeInactiveStations?: boolean;
-        minActiveSamples?: number;
-        profileType: "all" | "weekday" | "weekend";
-        resolution: "hour" | "slot";
-        stationIds?: Array<string>;
-        weekdays?: Array<number>;
-      },
-      {
-        dayGrouping: "all" | "dayType" | "dayOfWeek";
-        daysRequested: number;
-        generatedAt: number;
-        profileType: "all" | "weekday" | "weekend";
-        resolution: "hour" | "slot";
-        sampledDayCount: number;
-        slots: Array<{
-          cellMetrics: Array<{
-            activeSampleCount: number;
-            avgBikesAvailable: number | null;
-            avgClassicBikesAvailable: number | null;
-            avgDockAvailabilityPct: number | null;
-            avgDocksAvailable: number | null;
-            avgEbikesAvailable: number | null;
-            avgOccupancyPct: number | null;
-            avgTurnover: number | null;
-            cellKey: string;
-            dropoffReliabilityPct: number | null;
-            ebikeUnavailableRate: number | null;
-            emptyRate: number | null;
-            fullRate: number | null;
-            lat: number;
-            lon: number;
-            pickupReliabilityPct: number | null;
-            sampleCount: number;
-            stationCount: number;
-          }>;
-          dayGrouping: "all" | "dayType" | "dayOfWeek";
-          dayLabel: string | null;
-          dayOfWeek: number | null;
-          profileType: "all" | "weekday" | "weekend";
-          slotIndex: number;
-          slotLabel: string;
-          stationMetrics: Array<{
-            activeSampleCount: number;
-            avgBikesAvailable: number | null;
-            avgClassicBikesAvailable: number | null;
-            avgDockAvailabilityPct: number | null;
-            avgDocksAvailable: number | null;
-            avgEbikesAvailable: number | null;
-            avgOccupancyPct: number | null;
-            avgTurnover: number | null;
-            emptyRate: number | null;
-            fullRate: number | null;
-            sampleCount: number;
-            stationId: string;
-          }>;
-        }>;
-        stations: Array<{
-          capacity: number | null;
-          isActive: boolean;
-          lat: number;
-          lon: number;
-          name: string;
-          regionId: string | null;
-          shortName: string | null;
-          stationId: string;
         }>;
       }
     >;
