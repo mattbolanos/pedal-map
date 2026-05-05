@@ -1,12 +1,16 @@
 import NumberFlow, { NumberFlowGroup } from "@number-flow/react";
 import { BicycleIcon } from "@phosphor-icons/react/dist/csr/Bicycle";
 import { ChargingStationIcon } from "@phosphor-icons/react/dist/csr/ChargingStation";
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import type { StationRow } from "#/components/station/profile.types";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { availabilityColorCss } from "#/lib/station-pin";
 import { cn } from "#/lib/utils";
 import { Progress } from "../ui/progress";
+
+type RankStyle = CSSProperties & {
+  "--rank-color"?: string;
+};
 
 interface StationRanksProps {
   station: StationRow;
@@ -110,15 +114,19 @@ function RankMetricItem({
   const rank = station.ranks[metric.rankKey];
 
   const rankPercent = getRankPercent(rank, stationCount);
-  const rankColor =
-    rank === null ? undefined : availabilityColorCss(rankPercent, true);
+  const isRanked = rank !== null;
+  const rankStyle: RankStyle = isRanked
+    ? { "--rank-color": availabilityColorCss(rankPercent, true) }
+    : {};
   const rankLabel =
     rank === null
       ? "Unranked"
       : `${Math.round(rankPercent * 100)}th percentile`;
 
   return (
-    <div className="grid min-h-26 grid-rows-[auto_1fr_auto] px-3 py-2.5">
+    <div
+      className="grid min-h-26 grid-rows-[auto_1fr_auto] px-3 py-2.5"
+      style={rankStyle}>
       <div className="text-muted-foreground flex items-center gap-x-1.5 text-sm">
         {metric.icon}
         <span>{metric.label}</span>
@@ -136,8 +144,7 @@ function RankMetricItem({
               locales="en-US"
               trend={0}
               prefix="#"
-              className="text-2xl font-semibold tabular-nums"
-              style={{ color: rankColor }}
+              className="text-2xl font-semibold text-[var(--rank-color)] tabular-nums"
             />
           )}
         </div>
@@ -146,15 +153,14 @@ function RankMetricItem({
       <div className="space-y-1.5">
         <Progress
           value={rankPercent * 100}
-          indicatorClassName={cn(
-            availabilityColorCss(rankPercent, true),
-            rankPercent >= 0.68 && "bg-emerald-400",
-            rankPercent < 0.68 && rankPercent >= 0.32 && "bg-yellow-400",
-            rankPercent < 0.32 && "bg-red-400",
-          )}
+          indicatorClassName={cn(isRanked && "bg-[var(--rank-color)]")}
           trackClassName="bg-secondary"
         />
-        <div className="text-muted-foreground text-sm tabular-nums">
+        <div
+          className={cn(
+            "text-sm tabular-nums",
+            isRanked ? "text-[var(--rank-color)]" : "text-muted-foreground",
+          )}>
           {rankLabel}
         </div>
       </div>

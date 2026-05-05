@@ -34,7 +34,8 @@ export function StationNeighborsSkeleton() {
         {NEIGHBOR_ROW_KEYS.map((key) => (
           <div
             key={key}
-            className="flex items-center gap-3 rounded-2xl px-3 py-2.5">
+            className="flex items-center gap-3 rounded-2xl px-3 py-2.5"
+          >
             <Skeleton className="h-5 min-w-0 flex-1" />
             <Skeleton className="h-4 w-14 shrink-0" />
           </div>
@@ -52,7 +53,7 @@ export function StationPeaksChartSkeleton() {
         <Skeleton className="h-4 w-36" />
       </CardHeader>
       <CardContent className="flex min-h-0 flex-1 flex-col px-2 pt-0 pb-3 sm:px-4">
-        <Skeleton className="h-full min-h-64 w-full" />
+        <Skeleton className="h-full min-h-74 w-full" />
       </CardContent>
     </Card>
   );
@@ -65,7 +66,7 @@ export function StationComparisonChartSkeleton() {
         <CardTitle>Weekdays and Weekends</CardTitle>
       </CardHeader>
       <CardContent className="flex min-h-0 flex-1 flex-col px-2 pt-0 pb-3 sm:px-4">
-        <Skeleton className="h-full min-h-64 w-full" />
+        <Skeleton className="h-full min-h-74 w-full" />
       </CardContent>
     </Card>
   );
@@ -81,7 +82,8 @@ export function StationRanksSkeleton() {
         {RANK_ROW_KEYS.map((key) => (
           <div
             key={key}
-            className="bg-muted/35 grid min-h-30 grid-rows-[2rem_auto_auto] rounded-2xl px-3 py-3">
+            className="bg-muted/35 grid min-h-30 grid-rows-[2rem_auto_auto] rounded-2xl px-3 py-3"
+          >
             <div>
               <Skeleton className="h-4 w-24" />
             </div>
