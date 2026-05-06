@@ -125,12 +125,12 @@ export function StationRanksSkeleton() {
                     <span>{metric.label}</span>
                   </div>
 
-                  <div className="flex items-end justify-between gap-3 pt-3">
+                  <div className="flex items-end justify-between gap-3 pt-4 pb-2">
                     <Skeleton className="h-8 w-16" />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <Skeleton className="h-2.5 w-full rounded-lg" />
+                  <div className="space-y-1">
+                    <Skeleton className="h-3 w-full rounded-lg" />
                     <Skeleton className="h-5 w-24" />
                   </div>
                 </div>

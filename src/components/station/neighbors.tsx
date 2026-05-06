@@ -1,4 +1,4 @@
-import { useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { useMemo, useRef } from "react";
 import { Badge } from "#/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
@@ -86,7 +86,6 @@ export function StationNeighbors({
   onPreviewStationChange,
   stations,
 }: StationNearbyProps) {
-  const navigate = useNavigate();
   const activePreviewStationIdRef = useRef<string | null>(null);
   const previewDelayRef = useRef<number | null>(null);
   const nearbyStations = useMemo(
@@ -105,15 +104,6 @@ export function StationNeighbors({
     clearPreviewDelay();
     activePreviewStationIdRef.current = null;
     onPreviewStationChange?.(null);
-  };
-
-  const navigateToStation = (stationId: string) => {
-    clearPreviewStation();
-    prewarmStationAvailabilityProfile(stationId);
-    navigate({
-      params: { id: stationId },
-      to: "/stations/$id",
-    });
   };
 
   const previewStation = (station: StationNearbyStation, immediate = false) => {
@@ -152,16 +142,19 @@ export function StationNeighbors({
         <CardTitle>Neighbors</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col space-y-0.5 px-1.5!">
-        {nearbyStations.map((result) => (
-          <NearbyStationLink
-            key={result.station.station_id}
-            distanceLabel={result.distanceLabel}
-            onClearPreviewStation={clearPreviewStation}
-            onNavigate={navigateToStation}
-            onPreviewStation={previewStation}
-            station={result.station}
-          />
-        ))}
+        {nearbyStations.map((result) => {
+          prewarmStationAvailabilityProfile(result.station.station_id);
+
+          return (
+            <NearbyStationLink
+              key={result.station.station_id}
+              distanceLabel={result.distanceLabel}
+              onClearPreviewStation={clearPreviewStation}
+              onPreviewStation={previewStation}
+              station={result.station}
+            />
+          );
+        })}
       </CardContent>
     </Card>
   );
@@ -170,13 +163,12 @@ export function StationNeighbors({
 function NearbyStationLink({
   distanceLabel,
   onClearPreviewStation,
-  onNavigate,
+
   onPreviewStation,
   station,
 }: {
   distanceLabel: string;
   onClearPreviewStation: () => void;
-  onNavigate: (stationId: string) => void;
   onPreviewStation: (
     station: StationNearbyStation,
     immediate?: boolean,
@@ -184,14 +176,15 @@ function NearbyStationLink({
   station: StationNearbyStation;
 }) {
   return (
-    <button
-      type="button"
+    <Link
+      to="/stations/$id"
+      params={{ id: station.station_id }}
       aria-label={`View ${station.name} station profile`}
       onBlur={() => {
         onClearPreviewStation();
       }}
       onClick={() => {
-        onNavigate(station.station_id);
+        window.scrollTo({ top: 0, left: 0 });
       }}
       onFocus={() => {
         onPreviewStation(station, true);
@@ -214,6 +207,6 @@ function NearbyStationLink({
           </Badge>
         ) : null}
       </div>
-    </button>
+    </Link>
   );
 }
