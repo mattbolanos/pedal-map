@@ -4,9 +4,9 @@ export const MAPBOX_ACCESS_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 export const MAP_STYLE_URL = "mapbox://styles/mapbox/dark-v11";
 
 export const INITIAL_VIEW_STATE: MapViewState = {
-  longitude: -73.989,
+  longitude: -73.99,
   latitude: 40.7128,
-  zoom: 13.7,
+  zoom: 12.8,
   bearing: 0,
   pitch: 0,
 };

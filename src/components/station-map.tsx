@@ -69,6 +69,7 @@ export function StationMap() {
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const isMobile = useIsMobile();
   const locationRequestIdRef = useRef(0);
+  const prewarmedStationIdsRef = useRef<Set<string>>(new Set());
   const prefersReducedMotion = usePrefersReducedMotion();
   const { setUserLocation, userLocation } = useUserLocation();
   const renderStations =
@@ -79,7 +80,7 @@ export function StationMap() {
   const {
     clearHoveredStation,
     containerRef,
-    handleHover,
+    handleHover: handleStationTooltipHover,
     handleTooltipPointerEnter,
     handleTooltipPointerLeave,
     hoveredStation,
@@ -92,6 +93,15 @@ export function StationMap() {
     isMobile,
     viewState,
   });
+
+  const prewarmStation = useCallback((station: CitiBikeStation | null) => {
+    if (!station || prewarmedStationIdsRef.current.has(station.station_id)) {
+      return;
+    }
+
+    prewarmedStationIdsRef.current.add(station.station_id);
+    prewarmStationAvailabilityProfile(station.station_id);
+  }, []);
 
   const alignStationInViewport = (
     station: CitiBikeStation,
@@ -187,7 +197,7 @@ export function StationMap() {
   }, [setUserLocation]);
 
   const selectStationFromSearch = (station: CitiBikeStation) => {
-    prewarmStationAvailabilityProfile(station.station_id);
+    prewarmStation(station);
 
     setViewState((currentViewState) => {
       const nextViewState = clampViewState(
@@ -229,7 +239,7 @@ export function StationMap() {
         return;
       }
 
-      prewarmStationAvailabilityProfile(station.station_id);
+      prewarmStation(station);
       markStationInteraction(station.station_id);
       setIsMobileDrawerOpen(true);
       setSelectedMobileStation((current) => {
@@ -257,6 +267,13 @@ export function StationMap() {
       setSearchSelectedDesktopStation(null);
       return;
     }
+
+    prewarmStation(station);
+  };
+
+  const handleMapHover = (info: PickingInfo<CitiBikeStation>) => {
+    prewarmStation(info.object ?? null);
+    handleStationTooltipHover(info);
   };
 
   // Vaul not respecting modal b/c of controlled open :/
@@ -343,7 +360,7 @@ export function StationMap() {
             clearHoveredStation();
           }
         }}
-        onHover={handleHover}
+        onHover={handleMapHover}
         pickingRadius={STATION_HIT_AREA}
         onViewStateChange={({ viewState: nextViewState }) => {
           if (!isMobile) {
@@ -351,8 +368,7 @@ export function StationMap() {
           }
           setViewState(clampViewState(nextViewState as MapViewState));
         }}
-        viewState={viewState}
-      >
+        viewState={viewState}>
         <MapView
           mapStyle={MAP_STYLE_URL}
           mapboxAccessToken={MAPBOX_ACCESS_TOKEN}
