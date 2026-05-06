@@ -175,7 +175,7 @@ function StationDetailPage() {
       return;
     }
 
-    navigate({ to: "/" });
+    navigate({ to: "/", resetScroll: true });
   };
 
   return (
