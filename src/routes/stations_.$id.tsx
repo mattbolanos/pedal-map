@@ -14,7 +14,9 @@ import { StationNeighbors } from "#/components/station/neighbors";
 import { StationProfile } from "#/components/station/profile";
 import { StationRanks } from "#/components/station/ranks";
 import {
+  StationComparisonChartSkeleton,
   StationDetailSkeleton,
+  StationPeaksChartSkeleton,
   StationRanksSkeleton,
 } from "#/components/station/skeleton";
 import { buttonVariants } from "#/components/ui/button";
@@ -30,10 +32,12 @@ import { cn } from "#/lib/utils";
 const STATION_PROFILE_DAYS = 30;
 
 export const Route = createFileRoute("/stations_/$id")({
-  loader: ({ context, params }) => {
+  loader: async ({ context, params }) => {
     prewarmStationAvailabilityProfile(params.id, STATION_PROFILE_DAYS);
     prewarmStationsTableData();
-    void context.queryClient.prefetchQuery(stationInformationQueryOptions);
+    return await context.queryClient.ensureQueryData(
+      stationInformationQueryOptions,
+    );
   },
   head: () => ({
     meta: [
@@ -50,6 +54,7 @@ export const Route = createFileRoute("/stations_/$id")({
       title="Station not found"
     />
   ),
+  pendingComponent: StationDetailPendingPage,
   component: StationDetailPage,
 });
 
@@ -169,42 +174,30 @@ function StationLocationPanel({
   );
 }
 
-function StationDetailContent({ stationId }: { stationId: string }) {
-  const { data: stationInformation } = useSuspenseQuery(
-    stationInformationQueryOptions,
-  );
-  const stations = useMemo(
-    () => stationInformation.data.stations.map(toStationPreview),
-    [stationInformation],
-  );
-  const station = stations.find(
-    (candidate) => candidate.stationId === stationId,
-  );
-
-  if (!station) {
-    throw notFound();
-  }
-
+function StationDetailPendingPage() {
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-xl font-bold">{station.name}</h1>
-      <div className="grid gap-6 md:grid-cols-2">
-        <StationProfilePanels stationId={stationId} />
-        <StationRanksPanel stationId={stationId} />
-        <StationLocationAndNeighborsPanels
-          station={station}
-          stations={stations}
-        />
-      </div>
-    </div>
+    <main className="route-padding max-w-6xl space-y-3">
+      <StationDetailSkeleton />
+    </main>
   );
 }
 
 function StationDetailPage() {
   const { id } = Route.useParams();
+  const stationInformation = Route.useLoaderData();
   const canGoBack = useCanGoBack();
   const navigate = Route.useNavigate();
   const router = useRouter();
+
+  const stations = useMemo(
+    () => stationInformation.data.stations.map(toStationPreview),
+    [stationInformation],
+  );
+  const station = stations.find((candidate) => candidate.stationId === id);
+
+  if (!station) {
+    throw notFound();
+  }
 
   const goBack = () => {
     if (canGoBack) {
@@ -226,9 +219,26 @@ function StationDetailPage() {
         <ArrowUDownLeftIcon className="size-5 md:size-4" />
         Back
       </button>
-      <Suspense fallback={<StationDetailSkeleton />}>
-        <StationDetailContent stationId={id} />
-      </Suspense>
+      <div className="flex flex-col gap-6">
+        <h1 className="text-xl font-bold">{station.name}</h1>
+        <div className="grid gap-6 md:grid-cols-2">
+          <StationRanksPanel stationId={id} />
+          <Suspense
+            fallback={
+              <>
+                <StationPeaksChartSkeleton />
+                <StationComparisonChartSkeleton />
+              </>
+            }
+          >
+            <StationProfilePanels stationId={id} />
+          </Suspense>
+          <StationLocationAndNeighborsPanels
+            station={station}
+            stations={stations}
+          />
+        </div>
+      </div>
     </main>
   );
 }

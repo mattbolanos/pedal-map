@@ -94,7 +94,7 @@ const RANK_GROUPS: { title: string; metrics: RankMetric[] }[] = [
 
 export function StationRanks({ station, stationCount }: StationRanksProps) {
   return (
-    <div className="grid gap-3 md:col-span-2 md:grid-cols-2">
+    <>
       {RANK_GROUPS.map((group) => (
         <Card key={group.title} className="pb-3!">
           <CardHeader className="px-4.5!">
@@ -116,7 +116,7 @@ export function StationRanks({ station, stationCount }: StationRanksProps) {
           </CardContent>
         </Card>
       ))}
-    </div>
+    </>
   );
 }
 
@@ -136,7 +136,7 @@ function RankMetricItem({
   const rankStyle: RankStyle = isRanked
     ? { "--rank-color": availabilityColorCss(rankPercent, true) }
     : {};
- 
+
   const rankLabel =
     rank === null
       ? "Unranked"
@@ -145,7 +145,8 @@ function RankMetricItem({
   return (
     <div
       className="grid min-h-26 grid-rows-[auto_1fr_auto] px-3 py-2.5"
-      style={rankStyle}>
+      style={rankStyle}
+    >
       <div className="text-muted-foreground flex items-center gap-x-1.5 text-sm">
         {metric.icon}
         <span>{metric.label}</span>
@@ -179,7 +180,8 @@ function RankMetricItem({
           className={cn(
             "text-sm tabular-nums",
             isRanked ? "text-[var(--rank-color)]" : "text-muted-foreground",
-          )}>
+          )}
+        >
           {rankLabel}
         </div>
       </div>
