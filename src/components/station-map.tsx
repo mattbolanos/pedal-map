@@ -23,6 +23,7 @@ import {
 } from "#/components/station-map-view-state";
 import { useIsMobile } from "#/hooks/use-mobile";
 import { usePrefersReducedMotion } from "#/hooks/use-reduced-motion";
+import { prewarmStationAvailabilityProfile } from "#/integrations/convex/root-provider";
 import type { CitiBikeStation } from "#/lib/citibike";
 import { citiBikeStationsQueryOptions } from "#/lib/citibike";
 import { NYC_METRO_BOUNDS } from "#/lib/geo";
@@ -186,6 +187,8 @@ export function StationMap() {
   }, [setUserLocation]);
 
   const selectStationFromSearch = (station: CitiBikeStation) => {
+    prewarmStationAvailabilityProfile(station.station_id);
+
     setViewState((currentViewState) => {
       const nextViewState = clampViewState(
         createStationFlyToViewState(
@@ -226,6 +229,7 @@ export function StationMap() {
         return;
       }
 
+      prewarmStationAvailabilityProfile(station.station_id);
       markStationInteraction(station.station_id);
       setIsMobileDrawerOpen(true);
       setSelectedMobileStation((current) => {
@@ -347,7 +351,8 @@ export function StationMap() {
           }
           setViewState(clampViewState(nextViewState as MapViewState));
         }}
-        viewState={viewState}>
+        viewState={viewState}
+      >
         <MapView
           mapStyle={MAP_STYLE_URL}
           mapboxAccessToken={MAPBOX_ACCESS_TOKEN}

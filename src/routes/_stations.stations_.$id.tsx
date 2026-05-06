@@ -25,15 +25,14 @@ import {
   convex,
   prewarmStationAvailabilityProfile,
   prewarmStationsTableData,
+  STATION_AVAILABILITY_PROFILE_DAYS,
 } from "#/integrations/convex/root-provider";
 import { stationInformationQueryOptions } from "#/lib/citibike";
 import { cn } from "#/lib/utils";
 
-const STATION_PROFILE_DAYS = 30;
-
 export const Route = createFileRoute("/_stations/stations_/$id")({
   loader: async ({ context, params }) => {
-    prewarmStationAvailabilityProfile(params.id, STATION_PROFILE_DAYS);
+    prewarmStationAvailabilityProfile(params.id);
     prewarmStationsTableData();
     return await context.queryClient.ensureQueryData(
       stationInformationQueryOptions,
@@ -68,10 +67,14 @@ interface StationPreviewStation {
 
 function StationProfilePanels({ stationId }: { stationId: string }) {
   const { data: profile } = useSuspenseQuery({
-    queryKey: ["station-availability-profile", stationId, STATION_PROFILE_DAYS],
+    queryKey: [
+      "station-availability-profile",
+      stationId,
+      STATION_AVAILABILITY_PROFILE_DAYS,
+    ],
     queryFn: () =>
       convex.query(api.pedalMap.getStationAvailabilityProfile, {
-        days: STATION_PROFILE_DAYS,
+        days: STATION_AVAILABILITY_PROFILE_DAYS,
         stationId,
       }),
   });

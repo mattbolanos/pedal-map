@@ -2,6 +2,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useMemo, useRef } from "react";
 import { Badge } from "#/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
+import { prewarmStationAvailabilityProfile } from "#/integrations/convex/root-provider";
 import {
   formatDistance,
   type GeoCoordinates,
@@ -108,6 +109,7 @@ export function StationNeighbors({
 
   const navigateToStation = (stationId: string) => {
     clearPreviewStation();
+    prewarmStationAvailabilityProfile(stationId);
     navigate({
       params: { id: stationId },
       to: "/stations/$id",
@@ -116,6 +118,7 @@ export function StationNeighbors({
 
   const previewStation = (station: StationNearbyStation, immediate = false) => {
     clearPreviewDelay();
+    prewarmStationAvailabilityProfile(station.station_id);
 
     if (
       activePreviewStationIdRef.current !== null ||
@@ -143,7 +146,8 @@ export function StationNeighbors({
       className="flex h-full flex-1 md:h-98"
       onPointerLeave={() => {
         clearPreviewStation();
-      }}>
+      }}
+    >
       <CardHeader className="px-4.5!">
         <CardTitle>Neighbors</CardTitle>
       </CardHeader>
@@ -195,7 +199,8 @@ function NearbyStationLink({
       onPointerEnter={() => {
         onPreviewStation(station);
       }}
-      className="hover:bg-accent focus-visible:border-ring focus-visible:ring-ring/50 flex w-full cursor-pointer items-center gap-2 rounded-2xl px-3 py-2.5 text-left text-sm transition-[background-color,scale] outline-none focus-visible:ring-[3px]">
+      className="hover:bg-accent focus-visible:border-ring focus-visible:ring-ring/50 flex w-full cursor-pointer items-center gap-2 rounded-2xl px-3 py-2.5 text-left text-sm transition-[background-color,scale] outline-none focus-visible:ring-[3px]"
+    >
       <span className="min-w-0 flex-1 truncate">{station.name}</span>
       <div className="ml-auto flex shrink-0 items-center gap-2 pl-3">
         <span className="text-muted-foreground text-xs tabular-nums">

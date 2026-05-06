@@ -130,6 +130,7 @@ interface SortSelectColumnGroup<TData> {
 interface MobileCardAction {
   ariaLabel?: string;
   onClick: () => void;
+  onPreload?: () => void;
 }
 
 function SortButton<TData>({ column, children }: SortButtonProps<TData>) {
@@ -438,6 +439,7 @@ function MobileDataCard<TData>({
           "border-border/70 from-card to-card/95 focus-visible:border-ring focus-visible:ring-ring/50 hover:border-foreground/20 hover:ring-foreground/40 hover:bg-card/90 cursor-pointer shadow-sm transition-[transform,box-shadow,background-color,border-color,--tw-ring-color] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] focus-visible:ring-[3px] active:translate-y-0 active:scale-[0.99] active:shadow-sm motion-safe:hover:shadow-lg",
       )}
       onClick={action?.onClick}
+      onFocus={action?.onPreload}
       onKeyDown={
         action
           ? (event) => {
@@ -448,6 +450,8 @@ function MobileDataCard<TData>({
             }
           : undefined
       }
+      onPointerEnter={action?.onPreload}
+      onTouchStart={action?.onPreload}
       role={isInteractive ? "link" : undefined}
       tabIndex={isInteractive ? 0 : undefined}
       aria-label={isInteractive ? actionLabel : undefined}

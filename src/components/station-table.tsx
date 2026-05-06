@@ -7,6 +7,7 @@ import {
   type DataTableGlossary,
 } from "#/components/ui/data-table";
 import type { api } from "#/integrations/convex/api";
+import { prewarmStationAvailabilityProfile } from "#/integrations/convex/root-provider";
 import { getStationRegion } from "#/lib/station-region";
 import { ColorCell } from "./color-cell";
 import { Badge } from "./ui/badge";
@@ -138,11 +139,16 @@ export function StationTable({ data }: StationTableProps) {
       }
       getMobileCardAction={(row) => ({
         ariaLabel: `View ${row.name} station profile`,
-        onClick: () =>
+        onClick: () => {
+          prewarmStationAvailabilityProfile(row.stationId);
           navigate({
             to: "/stations/$id",
             params: { id: row.stationId },
-          }),
+          });
+        },
+        onPreload: () => {
+          prewarmStationAvailabilityProfile(row.stationId);
+        },
       })}
       defaultColumn={{
         cell: ({ getValue, row }) => {
