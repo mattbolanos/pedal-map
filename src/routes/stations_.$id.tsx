@@ -247,13 +247,13 @@ function StationDetailPage() {
           <StationTitle stationId={id} />
         </Suspense>
         <div className="grid gap-6 md:grid-cols-2">
+          <StationRanksPanel stationId={id} />
           <Suspense fallback={<StationPeaksChartSkeleton />}>
             <StationPeaksPanel stationId={id} />
           </Suspense>
           <Suspense fallback={<StationComparisonChartSkeleton />}>
             <StationComparisonPanel stationId={id} />
           </Suspense>
-          <StationRanksPanel stationId={id} />
           <StationLocationAndNeighborsPanels stationId={id} />
         </div>
       </div>
