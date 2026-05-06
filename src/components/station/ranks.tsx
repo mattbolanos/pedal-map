@@ -33,6 +33,24 @@ function getRankPercent(rank: number | null, stationCount: number) {
   return Math.max(0, Math.min(1, (stationCount - rank) / (stationCount - 1)));
 }
 
+function formatOrdinal(n: number): string {
+  const abs = Math.abs(n);
+  const lastTwo = abs % 100;
+
+  const suffix =
+    lastTwo >= 11 && lastTwo <= 13
+      ? "th"
+      : abs % 10 === 1
+        ? "st"
+        : abs % 10 === 2
+          ? "nd"
+          : abs % 10 === 3
+            ? "rd"
+            : "th";
+
+  return `${n}${suffix}`;
+}
+
 const RANK_GROUPS: { title: string; metrics: RankMetric[] }[] = [
   {
     title: "Ranks (Latest)",
@@ -118,10 +136,11 @@ function RankMetricItem({
   const rankStyle: RankStyle = isRanked
     ? { "--rank-color": availabilityColorCss(rankPercent, true) }
     : {};
+ 
   const rankLabel =
     rank === null
       ? "Unranked"
-      : `${Math.round(rankPercent * 100)}th percentile`;
+      : `${formatOrdinal(Math.round(rankPercent * 100))} percentile`;
 
   return (
     <div
