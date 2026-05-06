@@ -8,6 +8,7 @@ import { CaretLeftIcon } from "@phosphor-icons/react/dist/csr/CaretLeft";
 import { CaretRightIcon } from "@phosphor-icons/react/dist/csr/CaretRight";
 import { SortAscendingIcon } from "@phosphor-icons/react/dist/csr/SortAscending";
 import { SortDescendingIcon } from "@phosphor-icons/react/dist/csr/SortDescending";
+import { Link, type LinkComponentProps } from "@tanstack/react-router";
 import type {
   Cell,
   Column,
@@ -104,9 +105,7 @@ interface DataTableProps<TData> {
   showRowCount?: boolean;
   defaultColumn?: Partial<ColumnDef<TData, unknown>> | undefined;
   initialState?: InitialTableState | undefined;
-  getMobileCardAction?:
-    | ((row: TData) => MobileCardAction | undefined)
-    | undefined;
+  getMobileCardLink?: ((row: TData) => MobileCardLink | undefined) | undefined;
 }
 
 interface SortButtonProps<TData> {
@@ -127,11 +126,7 @@ interface SortSelectColumnGroup<TData> {
   columns: Column<TData, unknown>[];
 }
 
-interface MobileCardAction {
-  ariaLabel?: string;
-  onClick: () => void;
-  onPreload?: () => void;
-}
+type MobileCardLink = Omit<LinkComponentProps<"a">, "children" | "className">;
 
 function SortButton<TData>({ column, children }: SortButtonProps<TData>) {
   const sortDirection = column.getIsSorted();
@@ -419,42 +414,23 @@ function MobileMetricGrid<TData>({ cells }: { cells: Cell<TData, unknown>[] }) {
 }
 
 function MobileDataCard<TData>({
-  action,
+  link,
   titleCell,
   metricCells,
 }: {
-  action?: MobileCardAction;
+  link?: MobileCardLink;
   titleCell: Cell<TData, unknown> | undefined;
   metricCells: Cell<TData, unknown>[];
 }) {
-  const actionLabel = action?.ariaLabel ?? "Open row details";
-  const isInteractive = Boolean(action);
-
-  return (
+  const isInteractive = Boolean(link);
+  const content = (
     <Card
       size="sm"
       className={cn(
         "gap-2.5 rounded-xl",
         isInteractive &&
-          "border-border/70 from-card to-card/95 focus-visible:border-ring focus-visible:ring-ring/50 hover:border-foreground/20 hover:ring-foreground/40 hover:bg-card/90 cursor-pointer shadow-sm transition-[transform,box-shadow,background-color,border-color,--tw-ring-color] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] focus-visible:ring-[3px] active:translate-y-0 active:scale-[0.99] active:shadow-sm motion-safe:hover:shadow-lg",
+          "border-border/70 from-card to-card/95 group-hover/mobile-card:border-foreground/20 group-hover/mobile-card:ring-foreground/40 group-hover/mobile-card:bg-card/90 cursor-pointer shadow-sm transition-[transform,box-shadow,background-color,border-color,--tw-ring-color] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] group-active/mobile-card:translate-y-0 group-active/mobile-card:scale-[0.99] group-active/mobile-card:shadow-sm motion-safe:group-hover/mobile-card:shadow-lg",
       )}
-      onClick={action?.onClick}
-      onFocus={action?.onPreload}
-      onKeyDown={
-        action
-          ? (event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                action.onClick();
-              }
-            }
-          : undefined
-      }
-      onPointerEnter={action?.onPreload}
-      onTouchStart={action?.onPreload}
-      role={isInteractive ? "link" : undefined}
-      tabIndex={isInteractive ? 0 : undefined}
-      aria-label={isInteractive ? actionLabel : undefined}
     >
       {titleCell ? (
         <CardHeader className="items-center gap-1.5 text-center">
@@ -470,6 +446,22 @@ function MobileDataCard<TData>({
         <MobileMetricGrid cells={metricCells} />
       </CardContent>
     </Card>
+  );
+
+  if (!link) {
+    return content;
+  }
+
+  return (
+    <Link
+      {...link}
+      onClick={() => {
+        window.scrollTo({ top: 0, left: 0 });
+      }}
+      className="group/mobile-card focus-visible:border-ring focus-visible:ring-ring/50 block rounded-xl outline-none focus-visible:ring-[3px]"
+    >
+      {content}
+    </Link>
   );
 }
 
@@ -593,7 +585,7 @@ function DataTableGlossaryView({ glossary }: { glossary: DataTableGlossary }) {
             type="button"
             variant="outline"
             size="sm"
-            className="bg-background/95 fixed top-11 right-3 z-50 size-9 gap-1.5 shadow-sm backdrop-blur md:hidden md:w-auto"
+            className="bg-background/95 absolute top-16.5 right-5 z-50 size-9 gap-1.5 shadow-sm backdrop-blur md:hidden md:w-auto"
           >
             <BookOpenTextIcon />
             <span className="hidden md:block">{triggerLabel}</span>
@@ -631,7 +623,7 @@ function DataTable<TData>({
   showRowCount = true,
   defaultColumn,
   initialState,
-  getMobileCardAction,
+  getMobileCardLink,
 }: DataTableProps<TData>) {
   const [globalFilter, setGlobalFilter] = useState("");
   const safeGetSearchText = getSearchText ?? (() => "");
@@ -802,7 +794,7 @@ function DataTable<TData>({
               return (
                 <MobileDataCard
                   key={row.id}
-                  action={getMobileCardAction?.(row.original)}
+                  link={getMobileCardLink?.(row.original)}
                   titleCell={titleCell}
                   metricCells={mobileMetricCells.slice(0, 6)}
                 />

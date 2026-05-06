@@ -1,9 +1,7 @@
-import { ArrowUDownLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowUDownLeft";
 import { CoffeeIcon } from "@phosphor-icons/react/dist/csr/Coffee";
 import { GithubLogoIcon } from "@phosphor-icons/react/dist/csr/GithubLogo";
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { buttonVariants } from "#/components/ui/button";
-import { cn } from "#/lib/utils";
+import { createFileRoute } from "@tanstack/react-router";
+import { RouteBreadcrumb } from "#/components/route-breadcrumb";
 
 const DESCRIPTION =
   "Learn how Pedal Map uses live Citi Bike data to make station availability and system activity easier to read.";
@@ -42,14 +40,7 @@ export const Route = createFileRoute("/about")({
 function AboutPage() {
   return (
     <div className="route-padding max-w-2xl space-y-3">
-      <Link
-        to="/"
-        aria-label="Go back home"
-        className={cn(buttonVariants({ variant: "text" }), "pl-0")}
-      >
-        <ArrowUDownLeftIcon className="size-5 md:size-4" />
-        Home
-      </Link>
+      <RouteBreadcrumb current="About" />
       <div className="flex items-center gap-x-1.5">
         <img
           src="/pedal-map.svg"
@@ -58,7 +49,7 @@ function AboutPage() {
           width="28"
           height="28"
         />
-        <h1 className="text-xl font-bold">About Pedal Map</h1>
+        <h1 className="text-xl font-bold">Pedal Map</h1>
       </div>
       <section className="mt-6 space-y-6 leading-[1.7] tracking-wide">
         <p>
@@ -68,9 +59,9 @@ function AboutPage() {
           intra-Brooklyn travel.
         </p>
         <p>
-          This site uses the General Bikeshare Feed Specification
-          endpoints that Citi Bike publishes to show live bikes, open docks, e-bikes,
-          station capacity, and whether a station is actually accepting pickups or
+          This site uses the General Bikeshare Feed Specification endpoints that
+          Citi Bike publishes to show live bikes, open docks, e-bikes, station
+          capacity, and whether a station is actually accepting pickups or
           dropoffs, refreshed every 15 seconds or so.
         </p>
         <p>

@@ -1,11 +1,9 @@
-import { ArrowUDownLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowUDownLeft";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
+import { RouteBreadcrumb } from "#/components/route-breadcrumb";
 import { StationTable, StationTableSkeleton } from "#/components/station-table";
-import { buttonVariants } from "#/components/ui/button";
 import { api } from "#/integrations/convex/api";
 import { prewarmStationsTableData } from "#/integrations/convex/root-provider";
-import { cn } from "#/lib/utils";
 
 const DESCRIPTION =
   "Browse Citi Bike station capacity, bikes, docks, e-bikes, and daily activity summaries across the system.";
@@ -49,13 +47,7 @@ function StationsPage() {
 
   return (
     <>
-      <Link
-        to="/"
-        aria-label="Go back home"
-        className={cn(buttonVariants({ variant: "text" }), "pl-0")}>
-        <ArrowUDownLeftIcon className="size-5 md:size-4" />
-        Home
-      </Link>
+      <RouteBreadcrumb current="Stations" />
       <h1 className="text-xl font-bold">Stations</h1>
       {data ? <StationTable data={data.rows} /> : <StationTableSkeleton />}
     </>

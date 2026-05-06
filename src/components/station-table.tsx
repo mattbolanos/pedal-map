@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import type { CellContext, ColumnDef } from "@tanstack/react-table";
 import type { FunctionReturnType } from "convex/server";
 import {
@@ -121,8 +121,6 @@ function WholeNumberAvailabilityCell({
 }
 
 export function StationTable({ data }: StationTableProps) {
-  const navigate = useNavigate();
-
   return (
     <DataTable
       columns={stationTableColumns}
@@ -137,16 +135,17 @@ export function StationTable({ data }: StationTableProps) {
           getStationRegion(row.regionId, row.stationId)?.label ?? "",
         ].join(" ")
       }
-      getMobileCardAction={(row) => ({
-        ariaLabel: `View ${row.name} station profile`,
-        onClick: () => {
+      getMobileCardLink={(row) => ({
+        to: "/stations/$id",
+        params: { id: row.stationId },
+        "aria-label": `View ${row.name} station profile`,
+        onFocus: () => {
           prewarmStationAvailabilityProfile(row.stationId);
-          navigate({
-            to: "/stations/$id",
-            params: { id: row.stationId },
-          });
         },
-        onPreload: () => {
+        onPointerEnter: () => {
+          prewarmStationAvailabilityProfile(row.stationId);
+        },
+        onTouchStart: () => {
           prewarmStationAvailabilityProfile(row.stationId);
         },
       })}

@@ -1,14 +1,9 @@
-import { ArrowUDownLeftIcon } from "@phosphor-icons/react/dist/csr/ArrowUDownLeft";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import {
-  createFileRoute,
-  notFound,
-  useCanGoBack,
-  useRouter,
-} from "@tanstack/react-router";
+import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { Suspense, useState } from "react";
 import { NotFound } from "#/components/not-found";
+import { RouteBreadcrumb } from "#/components/route-breadcrumb";
 import { StationLocationMapTile } from "#/components/station/location-map-tile";
 import { StationNeighbors } from "#/components/station/neighbors";
 import { StationProfile } from "#/components/station/profile";
@@ -19,7 +14,6 @@ import {
   StationPeaksChartSkeleton,
   StationRanksSkeleton,
 } from "#/components/station/skeleton";
-import { buttonVariants } from "#/components/ui/button";
 import { api } from "#/integrations/convex/api";
 import {
   convex,
@@ -28,7 +22,6 @@ import {
   STATION_AVAILABILITY_PROFILE_DAYS,
 } from "#/integrations/convex/root-provider";
 import { stationInformationQueryOptions } from "#/lib/citibike";
-import { cn } from "#/lib/utils";
 
 export const Route = createFileRoute("/_stations/stations_/$id")({
   loader: async ({ context, params }) => {
@@ -158,9 +151,6 @@ function StationLocationPanel({
 function StationDetailPage() {
   const { id } = Route.useParams();
   const stationInformation = Route.useLoaderData();
-  const canGoBack = useCanGoBack();
-  const navigate = Route.useNavigate();
-  const router = useRouter();
 
   const stations = stationInformation.data.stations;
   const station = stations.find((candidate) => candidate.station_id === id);
@@ -169,26 +159,12 @@ function StationDetailPage() {
     throw notFound();
   }
 
-  const goBack = () => {
-    if (canGoBack) {
-      router.history.back();
-      return;
-    }
-
-    navigate({ to: "/", resetScroll: true });
-  };
-
   return (
     <>
-      <button
-        type="button"
-        aria-label="Go back"
-        className={cn(buttonVariants({ variant: "text" }), "pl-0")}
-        onClick={goBack}
-      >
-        <ArrowUDownLeftIcon className="size-5 md:size-4" />
-        Back
-      </button>
+      <RouteBreadcrumb
+        current={station.name}
+        links={[{ label: "Stations", to: "/stations" }]}
+      />
       <div className="flex flex-col gap-6">
         <h1 className="text-xl font-bold">{station.name}</h1>
         <div className="grid gap-6 md:grid-cols-2">

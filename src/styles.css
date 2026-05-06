@@ -177,7 +177,7 @@ a {
 }
 
 .route-padding {
-  @apply mx-auto w-full px-5 pt-10 pb-16 md:py-20;
+  @apply mx-auto w-full px-5 pt-8 pb-16 md:py-20;
 }
 
 .text-link {
