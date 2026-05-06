@@ -14,6 +14,20 @@ import appCss from "#/styles.css?url";
 const THEME_INIT_SCRIPT = `(function(){try{var stored=window.localStorage.getItem('theme');var mode=(stored==='light'||stored==='dark'||stored==='auto')?stored:'auto';var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=mode==='auto'?(prefersDark?'dark':'light'):mode;var root=document.documentElement;root.classList.remove('light','dark');root.classList.add(resolved);if(mode==='auto'){root.removeAttribute('data-theme')}else{root.setAttribute('data-theme',mode)}root.style.colorScheme=resolved;}catch(e){}})();`;
 const SITE_DESCRIPTION =
   "Live Citi Bike station availability, capacity, and recent station activity across New York City.";
+const SITE_ORIGIN = getSiteOrigin();
+const SOCIAL_IMAGE_URL = new URL("/og-image-1200x630.png", SITE_ORIGIN).href;
+
+function getSiteOrigin() {
+  const origin =
+    process.env.VITE_SITE_URL ??
+    process.env.SITE_URL ??
+    process.env.URL ??
+    process.env.VERCEL_PROJECT_PRODUCTION_URL ??
+    process.env.VERCEL_URL ??
+    "https://pedal-map.vercel.app";
+
+  return origin.startsWith("http") ? origin : `https://${origin}`;
+}
 
 interface MyRouterContext {
   queryClient: QueryClient;
@@ -49,8 +63,24 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
         content: "website",
       },
       {
+        property: "og:url",
+        content: SITE_ORIGIN,
+      },
+      {
         property: "og:image",
-        content: "/og-image.png",
+        content: SOCIAL_IMAGE_URL,
+      },
+      {
+        property: "og:image:width",
+        content: "1200",
+      },
+      {
+        property: "og:image:height",
+        content: "630",
+      },
+      {
+        property: "og:image:alt",
+        content: "Pedal Map showing live Citi Bike station availability.",
       },
       {
         name: "twitter:card",
@@ -66,7 +96,11 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
       },
       {
         name: "twitter:image",
-        content: "/og-image.png",
+        content: SOCIAL_IMAGE_URL,
+      },
+      {
+        name: "twitter:image:alt",
+        content: "Pedal Map showing live Citi Bike station availability.",
       },
     ],
     links: [
