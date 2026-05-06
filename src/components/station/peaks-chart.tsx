@@ -124,7 +124,7 @@ export function PeaksChart({
       <CardHeader className="gap-3 px-4.5!">
         <div className="flex flex-wrap items-start gap-3">
           <div className="min-w-0 flex-1">
-            <CardTitle>Bikes</CardTitle>
+            <CardTitle>Average Bikes</CardTitle>
             <div className="text-muted-foreground mt-1 flex items-center gap-3 text-xs font-medium">
               <p>
                 <span className="text-chart-5">H:</span> {formatMarker(peak)}

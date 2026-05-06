@@ -1,3 +1,6 @@
+import { BicycleIcon } from "@phosphor-icons/react/dist/csr/Bicycle";
+import { ChargingStationIcon } from "@phosphor-icons/react/dist/csr/ChargingStation";
+import type { ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { Skeleton } from "#/components/ui/skeleton";
 
@@ -5,11 +8,41 @@ const NEIGHBOR_ROW_KEYS = Array.from(
   { length: 8 },
   (_, index) => `station-neighbor-skeleton-${index}`,
 );
-const RANK_ROW_KEYS = [
-  "station-rank-current-bikes-skeleton",
-  "station-rank-current-ebikes-skeleton",
-  "station-rank-average-bikes-skeleton",
-  "station-rank-average-ebikes-skeleton",
+
+const RANK_GROUPS: {
+  title: string;
+  metrics: { key: string; label: string; icon: ReactNode }[];
+}[] = [
+  {
+    title: "Ranks (Latest)",
+    metrics: [
+      {
+        key: "station-rank-current-bikes-skeleton",
+        label: "Bikes",
+        icon: <BicycleIcon className="size-5" />,
+      },
+      {
+        key: "station-rank-current-ebikes-skeleton",
+        label: "Electrics",
+        icon: <ChargingStationIcon className="size-5" />,
+      },
+    ],
+  },
+  {
+    title: "Ranks (Average)",
+    metrics: [
+      {
+        key: "station-rank-average-bikes-skeleton",
+        label: "Bikes",
+        icon: <BicycleIcon className="size-5" />,
+      },
+      {
+        key: "station-rank-average-ebikes-skeleton",
+        label: "Electrics",
+        icon: <ChargingStationIcon className="size-5" />,
+      },
+    ],
+  },
 ];
 
 export function StationTitleSkeleton() {
@@ -27,8 +60,8 @@ export function StationMapTileSkeleton() {
 export function StationNeighborsSkeleton() {
   return (
     <Card className="h-full md:h-98">
-      <CardHeader className="gap-4 px-4.5!">
-        <Skeleton className="h-7 w-28" />
+      <CardHeader className="px-4.5!">
+        <CardTitle>Neighbors</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col gap-1 px-1.5! pb-3">
         {NEIGHBOR_ROW_KEYS.map((key) => (
@@ -49,7 +82,7 @@ export function StationPeaksChartSkeleton() {
   return (
     <Card className="h-full md:h-98">
       <CardHeader className="gap-3 px-4.5!">
-        <CardTitle>Bikes</CardTitle>
+        <CardTitle>Average Bikes</CardTitle>
         <Skeleton className="h-4 w-36" />
       </CardHeader>
       <CardContent className="flex min-h-0 flex-1 flex-col px-2 pt-0 pb-3 sm:px-4">
@@ -63,7 +96,7 @@ export function StationComparisonChartSkeleton() {
   return (
     <Card className="h-full md:h-98">
       <CardHeader className="px-4.5!">
-        <CardTitle>Weekdays and Weekends</CardTitle>
+        <CardTitle>Weekdays vs Weekends</CardTitle>
       </CardHeader>
       <CardContent className="flex min-h-0 flex-1 flex-col px-2 pt-0 pb-3 sm:px-4">
         <Skeleton className="h-full min-h-74 w-full" />
@@ -74,37 +107,39 @@ export function StationComparisonChartSkeleton() {
 
 export function StationRanksSkeleton() {
   return (
-    <Card className="md:col-span-2">
-      <CardHeader className="px-4.5!">
-        <Skeleton className="h-7 w-32" />
-      </CardHeader>
-      <CardContent className="grid items-stretch gap-2 px-1.5! sm:grid-cols-2 lg:grid-cols-4">
-        {RANK_ROW_KEYS.map((key) => (
-          <div
-            key={key}
-            className="bg-muted/35 grid min-h-30 grid-rows-[2rem_auto_auto] rounded-2xl px-3 py-3"
-          >
-            <div>
-              <Skeleton className="h-4 w-24" />
+    <>
+      {RANK_GROUPS.map((group) => (
+        <Card key={group.title} className="pb-3!">
+          <CardHeader className="px-4.5!">
+            <CardTitle>{group.title}</CardTitle>
+          </CardHeader>
+          <CardContent className="px-3.5!">
+            <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-1 xl:grid-cols-2">
+              {group.metrics.map((metric) => (
+                <div
+                  key={metric.key}
+                  className="grid min-h-26 grid-rows-[auto_1fr_auto] px-3 py-2.5"
+                >
+                  <div className="text-muted-foreground flex items-center gap-x-1.5 text-sm">
+                    {metric.icon}
+                    <span>{metric.label}</span>
+                  </div>
+
+                  <div className="flex items-end justify-between gap-3 pt-3">
+                    <Skeleton className="h-8 w-16" />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Skeleton className="h-2.5 w-full rounded-lg" />
+                    <Skeleton className="h-5 w-24" />
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="flex items-end justify-between gap-3">
-              <div className="space-y-1.5">
-                <Skeleton className="h-7 w-14" />
-                <Skeleton className="h-4 w-20" />
-              </div>
-              <div className="space-y-1.5">
-                <Skeleton className="ml-auto h-4 w-12" />
-                <Skeleton className="ml-auto h-4 w-8" />
-              </div>
-            </div>
-            <div className="pt-3">
-              <Skeleton className="h-1.5 w-full rounded-full" />
-              <Skeleton className="mt-1.5 ml-auto h-3 w-8" />
-            </div>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
+          </CardContent>
+        </Card>
+      ))}
+    </>
   );
 }
 

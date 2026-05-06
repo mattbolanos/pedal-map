@@ -11,18 +11,18 @@ import {
 interface StationNearbyCurrentStation {
   lat: number;
   lon: number;
-  stationId: string;
+  station_id: string;
 }
 
 interface StationNearbyStation {
-  bikesAvailable: number | null;
-  docksAvailable: number | null;
-  isActive?: boolean;
   lat: number;
   lon: number;
   name: string;
-  regionId: string | null;
-  stationId: string;
+  num_bikes_available?: number;
+  station_id: string;
+  is_installed?: 0 | 1;
+  is_renting?: 0 | 1;
+  is_returning?: 0 | 1;
 }
 
 interface NearbyStationResult {
@@ -51,7 +51,7 @@ function getNearbyStations(
   stations: StationNearbyStation[],
 ) {
   return stations
-    .filter((station) => station.stationId !== currentStation.stationId)
+    .filter((station) => station.station_id !== currentStation.station_id)
     .map((station): NearbyStationResult | null => {
       const distanceMeters = getDistanceBetweenCoordinates(
         getCoordinates(currentStation),
@@ -73,8 +73,8 @@ function getNearbyStations(
     .sort(
       (resultA, resultB) =>
         resultA.distanceMeters - resultB.distanceMeters ||
-        (resultB.station.bikesAvailable ?? 0) -
-          (resultA.station.bikesAvailable ?? 0) ||
+        (resultB.station.num_bikes_available ?? 0) -
+          (resultA.station.num_bikes_available ?? 0) ||
         resultA.station.name.localeCompare(resultB.station.name),
     )
     .slice(0, 8);
@@ -119,16 +119,16 @@ export function StationNeighbors({
 
     if (
       activePreviewStationIdRef.current !== null ||
-      activePreviewStationIdRef.current === station.stationId ||
+      activePreviewStationIdRef.current === station.station_id ||
       immediate
     ) {
-      activePreviewStationIdRef.current = station.stationId;
+      activePreviewStationIdRef.current = station.station_id;
       onPreviewStationChange?.(station);
       return;
     }
 
     previewDelayRef.current = window.setTimeout(() => {
-      activePreviewStationIdRef.current = station.stationId;
+      activePreviewStationIdRef.current = station.station_id;
       onPreviewStationChange?.(station);
       previewDelayRef.current = null;
     }, INITIAL_PREVIEW_DELAY_MS);
@@ -143,15 +143,14 @@ export function StationNeighbors({
       className="flex h-full flex-1 md:h-98"
       onPointerLeave={() => {
         clearPreviewStation();
-      }}
-    >
+      }}>
       <CardHeader className="px-4.5!">
         <CardTitle>Neighbors</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col space-y-0.5 px-1.5!">
         {nearbyStations.map((result) => (
           <NearbyStationLink
-            key={result.station.stationId}
+            key={result.station.station_id}
             distanceLabel={result.distanceLabel}
             onClearPreviewStation={clearPreviewStation}
             onNavigate={navigateToStation}
@@ -188,7 +187,7 @@ function NearbyStationLink({
         onClearPreviewStation();
       }}
       onClick={() => {
-        onNavigate(station.stationId);
+        onNavigate(station.station_id);
       }}
       onFocus={() => {
         onPreviewStation(station, true);
@@ -196,14 +195,15 @@ function NearbyStationLink({
       onPointerEnter={() => {
         onPreviewStation(station);
       }}
-      className="hover:bg-accent focus-visible:border-ring focus-visible:ring-ring/50 flex w-full cursor-pointer items-center gap-2 rounded-2xl px-3 py-2.5 text-left text-sm transition-[background-color,scale] outline-none focus-visible:ring-[3px]"
-    >
+      className="hover:bg-accent focus-visible:border-ring focus-visible:ring-ring/50 flex w-full cursor-pointer items-center gap-2 rounded-2xl px-3 py-2.5 text-left text-sm transition-[background-color,scale] outline-none focus-visible:ring-[3px]">
       <span className="min-w-0 flex-1 truncate">{station.name}</span>
       <div className="ml-auto flex shrink-0 items-center gap-2 pl-3">
         <span className="text-muted-foreground text-xs tabular-nums">
           {distanceLabel}
         </span>
-        {station.isActive === false ? (
+        {station.is_installed === 0 ||
+        station.is_renting === 0 ||
+        station.is_returning === 0 ? (
           <Badge variant="offline" aria-label="Offline">
             Offline
           </Badge>

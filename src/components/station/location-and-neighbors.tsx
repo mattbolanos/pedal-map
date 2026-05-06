@@ -1,4 +1,4 @@
-import { memo, useMemo, useState } from "react";
+import { memo, useState } from "react";
 import { StationLocationMapTile } from "#/components/station/location-map-tile";
 import { StationNeighbors } from "#/components/station/neighbors";
 
@@ -6,21 +6,16 @@ interface StationLocationAndNeighborsStation {
   lat: number;
   lon: number;
   name: string;
-  regionId: string | null;
-  stationId: string;
-}
-
-interface StationLocationAndNeighborsNearbyStation {
-  lat: number;
-  lon: number;
-  name: string;
-  region_id?: string;
   station_id: string;
+  num_bikes_available?: number;
+  is_installed?: 0 | 1;
+  is_renting?: 0 | 1;
+  is_returning?: 0 | 1;
 }
 
 interface StationLocationAndNeighborsProps {
   station: StationLocationAndNeighborsStation;
-  stations: StationLocationAndNeighborsNearbyStation[];
+  stations: StationLocationAndNeighborsStation[];
 }
 
 export const StationLocationAndNeighbors = memo(
@@ -30,19 +25,6 @@ export const StationLocationAndNeighbors = memo(
   }: StationLocationAndNeighborsProps) {
     const [previewStation, setPreviewStation] =
       useState<StationLocationAndNeighborsStation | null>(null);
-    const nearbyStations = useMemo(
-      () =>
-        stations.map((nearbyStation) => ({
-          bikesAvailable: null,
-          docksAvailable: null,
-          lat: nearbyStation.lat,
-          lon: nearbyStation.lon,
-          name: nearbyStation.name,
-          regionId: nearbyStation.region_id ?? null,
-          stationId: nearbyStation.station_id,
-        })),
-      [stations],
-    );
 
     return (
       <>
@@ -53,7 +35,7 @@ export const StationLocationAndNeighbors = memo(
         <StationNeighbors
           currentStation={station}
           onPreviewStationChange={setPreviewStation}
-          stations={nearbyStations}
+          stations={stations}
         />
       </>
     );

@@ -11,8 +11,7 @@ interface StationLocationMapTileStation {
   lat: number;
   lon: number;
   name: string;
-  regionId: string | null;
-  stationId: string;
+  station_id: string;
 }
 
 interface StationLocationMapTileProps {
@@ -342,8 +341,7 @@ export function StationLocationMapTile({
         controller={false}
         getCursor={() => "default"}
         layers={layers}
-        viewState={viewState}
-      >
+        viewState={viewState}>
         <MapView
           attributionControl={false}
           interactive={false}

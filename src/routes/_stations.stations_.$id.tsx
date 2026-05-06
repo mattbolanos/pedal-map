@@ -7,7 +7,7 @@ import {
   useRouter,
 } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
-import { Suspense, useMemo, useState } from "react";
+import { Suspense, useState } from "react";
 import { NotFound } from "#/components/not-found";
 import { StationLocationMapTile } from "#/components/station/location-map-tile";
 import { StationNeighbors } from "#/components/station/neighbors";
@@ -31,7 +31,7 @@ import { cn } from "#/lib/utils";
 
 const STATION_PROFILE_DAYS = 30;
 
-export const Route = createFileRoute("/stations_/$id")({
+export const Route = createFileRoute("/_stations/stations_/$id")({
   loader: async ({ context, params }) => {
     prewarmStationAvailabilityProfile(params.id, STATION_PROFILE_DAYS);
     prewarmStationsTableData();
@@ -54,37 +54,16 @@ export const Route = createFileRoute("/stations_/$id")({
       title="Station not found"
     />
   ),
-  pendingComponent: StationDetailPendingPage,
+  pendingComponent: StationDetailSkeleton,
   component: StationDetailPage,
 });
 
-interface StationPreview {
-  bikesAvailable: number | null;
-  docksAvailable: number | null;
-  isActive?: boolean;
-  lat: number;
-  lon: number;
-  name: string;
-  regionId: string | null;
-  stationId: string;
-}
-
-function toStationPreview(station: {
+interface StationPreviewStation {
   lat: number;
   lon: number;
   name: string;
   region_id?: string;
   station_id: string;
-}): StationPreview {
-  return {
-    bikesAvailable: null,
-    docksAvailable: null,
-    lat: station.lat,
-    lon: station.lon,
-    name: station.name,
-    regionId: station.region_id ?? null,
-    stationId: station.station_id,
-  };
 }
 
 function StationProfilePanels({ stationId }: { stationId: string }) {
@@ -143,12 +122,11 @@ function StationLocationAndNeighborsPanels({
   station,
   stations,
 }: {
-  station: StationPreview;
-  stations: StationPreview[];
+  station: StationPreviewStation;
+  stations: StationPreviewStation[];
 }) {
-  const [previewStation, setPreviewStation] = useState<StationPreview | null>(
-    null,
-  );
+  const [previewStation, setPreviewStation] =
+    useState<StationPreviewStation | null>(null);
 
   return (
     <>
@@ -166,19 +144,11 @@ function StationLocationPanel({
   previewStation,
   station,
 }: {
-  previewStation: StationPreview | null;
-  station: StationPreview;
+  previewStation: StationPreviewStation | null;
+  station: StationPreviewStation;
 }) {
   return (
     <StationLocationMapTile previewStation={previewStation} station={station} />
-  );
-}
-
-function StationDetailPendingPage() {
-  return (
-    <main className="route-padding max-w-6xl space-y-3">
-      <StationDetailSkeleton />
-    </main>
   );
 }
 
@@ -189,11 +159,8 @@ function StationDetailPage() {
   const navigate = Route.useNavigate();
   const router = useRouter();
 
-  const stations = useMemo(
-    () => stationInformation.data.stations.map(toStationPreview),
-    [stationInformation],
-  );
-  const station = stations.find((candidate) => candidate.stationId === id);
+  const stations = stationInformation.data.stations;
+  const station = stations.find((candidate) => candidate.station_id === id);
 
   if (!station) {
     throw notFound();
@@ -209,7 +176,7 @@ function StationDetailPage() {
   };
 
   return (
-    <main className="route-padding max-w-6xl space-y-3">
+    <>
       <button
         type="button"
         aria-label="Go back"
@@ -239,6 +206,6 @@ function StationDetailPage() {
           />
         </div>
       </div>
-    </main>
+    </>
   );
 }
