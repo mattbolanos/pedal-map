@@ -6,6 +6,8 @@ export const convex = new ConvexReactClient(
   import.meta.env.VITE_CONVEX_URL as string,
 );
 
+export const STATION_AVAILABILITY_PROFILE_DAYS = 30;
+
 export function prewarmStationsTableData() {
   if (typeof window === "undefined") {
     return;
@@ -20,7 +22,7 @@ export function prewarmStationsTableData() {
 
 export function prewarmStationAvailabilityProfile(
   stationId: string,
-  days: number,
+  days = STATION_AVAILABILITY_PROFILE_DAYS,
 ) {
   if (typeof window === "undefined") {
     return;

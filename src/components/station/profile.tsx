@@ -277,14 +277,6 @@ export function StationProfile({
   const weekdaySummary = summarizeDayProfile(weekdayProfile);
   const weekendSummary = summarizeDayProfile(weekendProfile);
   const chartData = buildChartData(weekdayProfile, weekendProfile);
-  const chartValues = chartData.map((slot) => slot.bikes);
-  const chartMaxValue = Math.max(
-    4,
-    ...chartValues.filter(
-      (value): value is number => value !== null && Number.isFinite(value),
-    ),
-  );
-  const chartMax = Math.ceil(chartMaxValue + 1);
   const metricComparisonData = buildMetricComparisonData(
     weekdaySummary,
     weekendSummary,
@@ -295,7 +287,6 @@ export function StationProfile({
       {chart === "all" || chart === "peaks" ? (
         <PeaksChart
           chartData={chartData}
-          chartMax={chartMax}
           currentBikes={stationStatus?.bikesAvailable ?? null}
           isOffline={stationStatus?.isActive === false}
           peak={getPeakValleyMarker(getPeakPoint(chartData))}

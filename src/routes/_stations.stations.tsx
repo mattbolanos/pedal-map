@@ -10,7 +10,7 @@ import { cn } from "#/lib/utils";
 const DESCRIPTION =
   "Browse Citi Bike station capacity, bikes, docks, e-bikes, and daily activity summaries across the system.";
 
-export const Route = createFileRoute("/stations")({
+export const Route = createFileRoute("/_stations/stations")({
   head: () => ({
     meta: [
       {
@@ -48,17 +48,16 @@ function StationsPage() {
   const data = useQuery(api.pedalMap.getStationsTableData);
 
   return (
-    <div className="route-padding max-w-6xl space-y-3">
+    <>
       <Link
         to="/"
         aria-label="Go back home"
-        className={cn(buttonVariants({ variant: "text" }), "pl-0")}
-      >
+        className={cn(buttonVariants({ variant: "text" }), "pl-0")}>
         <ArrowUDownLeftIcon className="size-5 md:size-4" />
         Home
       </Link>
       <h1 className="text-xl font-bold">Stations</h1>
       {data ? <StationTable data={data.rows} /> : <StationTableSkeleton />}
-    </div>
+    </>
   );
 }

@@ -2,6 +2,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useMemo, useRef } from "react";
 import { Badge } from "#/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
+import { prewarmStationAvailabilityProfile } from "#/integrations/convex/root-provider";
 import {
   formatDistance,
   type GeoCoordinates,
@@ -11,18 +12,18 @@ import {
 interface StationNearbyCurrentStation {
   lat: number;
   lon: number;
-  stationId: string;
+  station_id: string;
 }
 
 interface StationNearbyStation {
-  bikesAvailable: number | null;
-  docksAvailable: number | null;
-  isActive?: boolean;
   lat: number;
   lon: number;
   name: string;
-  regionId: string | null;
-  stationId: string;
+  num_bikes_available?: number;
+  station_id: string;
+  is_installed?: 0 | 1;
+  is_renting?: 0 | 1;
+  is_returning?: 0 | 1;
 }
 
 interface NearbyStationResult {
@@ -51,7 +52,7 @@ function getNearbyStations(
   stations: StationNearbyStation[],
 ) {
   return stations
-    .filter((station) => station.stationId !== currentStation.stationId)
+    .filter((station) => station.station_id !== currentStation.station_id)
     .map((station): NearbyStationResult | null => {
       const distanceMeters = getDistanceBetweenCoordinates(
         getCoordinates(currentStation),
@@ -73,8 +74,8 @@ function getNearbyStations(
     .sort(
       (resultA, resultB) =>
         resultA.distanceMeters - resultB.distanceMeters ||
-        (resultB.station.bikesAvailable ?? 0) -
-          (resultA.station.bikesAvailable ?? 0) ||
+        (resultB.station.num_bikes_available ?? 0) -
+          (resultA.station.num_bikes_available ?? 0) ||
         resultA.station.name.localeCompare(resultB.station.name),
     )
     .slice(0, 8);
@@ -108,6 +109,7 @@ export function StationNeighbors({
 
   const navigateToStation = (stationId: string) => {
     clearPreviewStation();
+    prewarmStationAvailabilityProfile(stationId);
     navigate({
       params: { id: stationId },
       to: "/stations/$id",
@@ -116,19 +118,20 @@ export function StationNeighbors({
 
   const previewStation = (station: StationNearbyStation, immediate = false) => {
     clearPreviewDelay();
+    prewarmStationAvailabilityProfile(station.station_id);
 
     if (
       activePreviewStationIdRef.current !== null ||
-      activePreviewStationIdRef.current === station.stationId ||
+      activePreviewStationIdRef.current === station.station_id ||
       immediate
     ) {
-      activePreviewStationIdRef.current = station.stationId;
+      activePreviewStationIdRef.current = station.station_id;
       onPreviewStationChange?.(station);
       return;
     }
 
     previewDelayRef.current = window.setTimeout(() => {
-      activePreviewStationIdRef.current = station.stationId;
+      activePreviewStationIdRef.current = station.station_id;
       onPreviewStationChange?.(station);
       previewDelayRef.current = null;
     }, INITIAL_PREVIEW_DELAY_MS);
@@ -151,7 +154,7 @@ export function StationNeighbors({
       <CardContent className="flex flex-1 flex-col space-y-0.5 px-1.5!">
         {nearbyStations.map((result) => (
           <NearbyStationLink
-            key={result.station.stationId}
+            key={result.station.station_id}
             distanceLabel={result.distanceLabel}
             onClearPreviewStation={clearPreviewStation}
             onNavigate={navigateToStation}
@@ -188,7 +191,7 @@ function NearbyStationLink({
         onClearPreviewStation();
       }}
       onClick={() => {
-        onNavigate(station.stationId);
+        onNavigate(station.station_id);
       }}
       onFocus={() => {
         onPreviewStation(station, true);
@@ -203,7 +206,9 @@ function NearbyStationLink({
         <span className="text-muted-foreground text-xs tabular-nums">
           {distanceLabel}
         </span>
-        {station.isActive === false ? (
+        {station.is_installed === 0 ||
+        station.is_renting === 0 ||
+        station.is_returning === 0 ? (
           <Badge variant="offline" aria-label="Offline">
             Offline
           </Badge>
