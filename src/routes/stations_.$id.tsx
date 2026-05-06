@@ -7,19 +7,15 @@ import {
   useRouter,
 } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
-import { Suspense, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { NotFound } from "#/components/not-found";
 import { StationLocationMapTile } from "#/components/station/location-map-tile";
 import { StationNeighbors } from "#/components/station/neighbors";
 import { StationProfile } from "#/components/station/profile";
 import { StationRanks } from "#/components/station/ranks";
 import {
-  StationComparisonChartSkeleton,
-  StationMapTileSkeleton,
-  StationNeighborsSkeleton,
-  StationPeaksChartSkeleton,
+  StationDetailSkeleton,
   StationRanksSkeleton,
-  StationTitleSkeleton,
 } from "#/components/station/skeleton";
 import { buttonVariants } from "#/components/ui/button";
 import { api } from "#/integrations/convex/api";
@@ -57,7 +53,36 @@ export const Route = createFileRoute("/stations_/$id")({
   component: StationDetailPage,
 });
 
-function useStationProfile(stationId: string) {
+interface StationPreview {
+  bikesAvailable: number | null;
+  docksAvailable: number | null;
+  isActive?: boolean;
+  lat: number;
+  lon: number;
+  name: string;
+  regionId: string | null;
+  stationId: string;
+}
+
+function toStationPreview(station: {
+  lat: number;
+  lon: number;
+  name: string;
+  region_id?: string;
+  station_id: string;
+}): StationPreview {
+  return {
+    bikesAvailable: null,
+    docksAvailable: null,
+    lat: station.lat,
+    lon: station.lon,
+    name: station.name,
+    regionId: station.region_id ?? null,
+    stationId: station.station_id,
+  };
+}
+
+function StationProfilePanels({ stationId }: { stationId: string }) {
   const { data: profile } = useSuspenseQuery({
     queryKey: ["station-availability-profile", stationId, STATION_PROFILE_DAYS],
     queryFn: () =>
@@ -66,49 +91,25 @@ function useStationProfile(stationId: string) {
         stationId,
       }),
   });
-
-  if (!profile.station) {
-    throw notFound();
-  }
-
-  return {
-    ...profile,
-    station: profile.station,
-  };
-}
-
-function StationTitle({ stationId }: { stationId: string }) {
-  const { station } = useStationProfile(stationId);
-
-  return <h1 className="text-xl font-bold">{station.name}</h1>;
-}
-
-function StationPeaksPanel({ stationId }: { stationId: string }) {
-  const { weekdayProfile, weekendProfile } = useStationProfile(stationId);
   const stationsTableData = useQuery(api.pedalMap.getStationsTableData);
   const stationStatus =
     stationsTableData?.rows.find((row) => row.stationId === stationId) ?? null;
 
   return (
-    <StationProfile
-      chart="peaks"
-      stationStatus={stationStatus}
-      weekdayProfile={weekdayProfile}
-      weekendProfile={weekendProfile}
-    />
-  );
-}
-
-function StationComparisonPanel({ stationId }: { stationId: string }) {
-  const { weekdayProfile, weekendProfile } = useStationProfile(stationId);
-
-  return (
-    <StationProfile
-      chart="comparison"
-      stationStatus={null}
-      weekdayProfile={weekdayProfile}
-      weekendProfile={weekendProfile}
-    />
+    <>
+      <StationProfile
+        chart="peaks"
+        stationStatus={stationStatus}
+        weekdayProfile={profile.weekdayProfile}
+        weekendProfile={profile.weekendProfile}
+      />
+      <StationProfile
+        chart="comparison"
+        stationStatus={null}
+        weekdayProfile={profile.weekdayProfile}
+        weekendProfile={profile.weekendProfile}
+      />
+    </>
   );
 }
 
@@ -133,67 +134,12 @@ function StationRanksPanel({ stationId }: { stationId: string }) {
   );
 }
 
-interface StationPreview {
-  bikesAvailable?: number | null;
-  docksAvailable?: number | null;
-  isActive?: boolean;
-  lat: number;
-  lon: number;
-  name: string;
-  regionId: string | null;
-  stationId: string;
-}
-
-function StationLocationPanel({
-  previewStation,
-  stationId,
-}: {
-  previewStation: StationPreview | null;
-  stationId: string;
-}) {
-  const { station } = useStationProfile(stationId);
-
-  return (
-    <StationLocationMapTile previewStation={previewStation} station={station} />
-  );
-}
-
-function StationNeighborsPanel({
-  onPreviewStationChange,
-  stationId,
-}: {
-  onPreviewStationChange: (station: StationPreview | null) => void;
-  stationId: string;
-}) {
-  const { station } = useStationProfile(stationId);
-  const { data: stationInformation } = useSuspenseQuery(
-    stationInformationQueryOptions,
-  );
-  const nearbyStations = stationInformation.data.stations.map(
-    (nearbyStation) => ({
-      bikesAvailable: null,
-      docksAvailable: null,
-      lat: nearbyStation.lat,
-      lon: nearbyStation.lon,
-      name: nearbyStation.name,
-      regionId: nearbyStation.region_id ?? null,
-      stationId: nearbyStation.station_id,
-    }),
-  );
-
-  return (
-    <StationNeighbors
-      currentStation={station}
-      onPreviewStationChange={onPreviewStationChange}
-      stations={nearbyStations}
-    />
-  );
-}
-
 function StationLocationAndNeighborsPanels({
-  stationId,
+  station,
+  stations,
 }: {
-  stationId: string;
+  station: StationPreview;
+  stations: StationPreview[];
 }) {
   const [previewStation, setPreviewStation] = useState<StationPreview | null>(
     null,
@@ -201,19 +147,56 @@ function StationLocationAndNeighborsPanels({
 
   return (
     <>
-      <Suspense fallback={<StationMapTileSkeleton />}>
-        <StationLocationPanel
-          previewStation={previewStation}
-          stationId={stationId}
-        />
-      </Suspense>
-      <Suspense fallback={<StationNeighborsSkeleton />}>
-        <StationNeighborsPanel
-          onPreviewStationChange={setPreviewStation}
-          stationId={stationId}
-        />
-      </Suspense>
+      <StationLocationPanel previewStation={previewStation} station={station} />
+      <StationNeighbors
+        currentStation={station}
+        onPreviewStationChange={setPreviewStation}
+        stations={stations}
+      />
     </>
+  );
+}
+
+function StationLocationPanel({
+  previewStation,
+  station,
+}: {
+  previewStation: StationPreview | null;
+  station: StationPreview;
+}) {
+  return (
+    <StationLocationMapTile previewStation={previewStation} station={station} />
+  );
+}
+
+function StationDetailContent({ stationId }: { stationId: string }) {
+  const { data: stationInformation } = useSuspenseQuery(
+    stationInformationQueryOptions,
+  );
+  const stations = useMemo(
+    () => stationInformation.data.stations.map(toStationPreview),
+    [stationInformation],
+  );
+  const station = stations.find(
+    (candidate) => candidate.stationId === stationId,
+  );
+
+  if (!station) {
+    throw notFound();
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <h1 className="text-xl font-bold">{station.name}</h1>
+      <div className="grid gap-6 md:grid-cols-2">
+        <StationProfilePanels stationId={stationId} />
+        <StationRanksPanel stationId={stationId} />
+        <StationLocationAndNeighborsPanels
+          station={station}
+          stations={stations}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -238,25 +221,14 @@ function StationDetailPage() {
         type="button"
         aria-label="Go back"
         className={cn(buttonVariants({ variant: "text" }), "pl-0")}
-        onClick={goBack}>
+        onClick={goBack}
+      >
         <ArrowUDownLeftIcon className="size-5 md:size-4" />
         Back
       </button>
-      <div className="flex flex-col gap-6">
-        <Suspense fallback={<StationTitleSkeleton />}>
-          <StationTitle stationId={id} />
-        </Suspense>
-        <div className="grid gap-6 md:grid-cols-2">
-          <Suspense fallback={<StationPeaksChartSkeleton />}>
-            <StationPeaksPanel stationId={id} />
-          </Suspense>
-          <Suspense fallback={<StationComparisonChartSkeleton />}>
-            <StationComparisonPanel stationId={id} />
-          </Suspense>
-          <StationRanksPanel stationId={id} />
-          <StationLocationAndNeighborsPanels stationId={id} />
-        </div>
-      </div>
+      <Suspense fallback={<StationDetailSkeleton />}>
+        <StationDetailContent stationId={id} />
+      </Suspense>
     </main>
   );
 }
