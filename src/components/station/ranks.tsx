@@ -53,7 +53,7 @@ function formatOrdinal(n: number): string {
 
 const RANK_GROUPS: { title: string; metrics: RankMetric[] }[] = [
   {
-    title: "Ranks (Latest)",
+    title: "Latest Ranks",
     metrics: [
       {
         label: "Bikes",
@@ -72,7 +72,7 @@ const RANK_GROUPS: { title: string; metrics: RankMetric[] }[] = [
     ],
   },
   {
-    title: "Ranks (Average)",
+    title: "Average Ranks",
     metrics: [
       {
         label: "Bikes",

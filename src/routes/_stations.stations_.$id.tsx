@@ -4,9 +4,10 @@ import { useQuery } from "convex/react";
 import { Suspense, useState } from "react";
 import { NotFound } from "#/components/not-found";
 import { RouteBreadcrumb } from "#/components/route-breadcrumb";
+import { ComparisonChart } from "#/components/station/comparison-chart";
 import { StationLocationMapTile } from "#/components/station/location-map-tile";
 import { StationNeighbors } from "#/components/station/neighbors";
-import { StationProfile } from "#/components/station/profile";
+import { PeaksChart } from "#/components/station/peaks-chart";
 import { StationRanks } from "#/components/station/ranks";
 import {
   StationComparisonChartSkeleton,
@@ -58,7 +59,7 @@ interface StationPreviewStation {
   station_id: string;
 }
 
-function StationProfilePanels({ stationId }: { stationId: string }) {
+function StationChartPanels({ stationId }: { stationId: string }) {
   const { data: profile } = useSuspenseQuery({
     queryKey: [
       "station-availability-profile",
@@ -77,15 +78,12 @@ function StationProfilePanels({ stationId }: { stationId: string }) {
 
   return (
     <>
-      <StationProfile
-        chart="peaks"
+      <PeaksChart
         stationStatus={stationStatus}
         weekdayProfile={profile.weekdayProfile}
         weekendProfile={profile.weekendProfile}
       />
-      <StationProfile
-        chart="comparison"
-        stationStatus={null}
+      <ComparisonChart
         weekdayProfile={profile.weekdayProfile}
         weekendProfile={profile.weekendProfile}
       />
@@ -177,7 +175,7 @@ function StationDetailPage() {
               </>
             }
           >
-            <StationProfilePanels stationId={id} />
+            <StationChartPanels stationId={id} />
           </Suspense>
           <StationLocationAndNeighborsPanels
             station={station}
