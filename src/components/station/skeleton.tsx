@@ -14,7 +14,7 @@ const RANK_GROUPS: {
   metrics: { key: string; label: string; icon: ReactNode }[];
 }[] = [
   {
-    title: "Ranks (Latest)",
+    title: "Latest Ranks",
     metrics: [
       {
         key: "station-rank-current-bikes-skeleton",
@@ -29,7 +29,7 @@ const RANK_GROUPS: {
     ],
   },
   {
-    title: "Ranks (Average)",
+    title: "Average Ranks",
     metrics: [
       {
         key: "station-rank-average-bikes-skeleton",
