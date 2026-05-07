@@ -8,21 +8,18 @@ import {
   type PeakValleyMarker,
 } from "#/components/station/peaks-chart";
 import type {
-  DaySummary,
   ProfileSlot,
   StationRow,
 } from "#/components/station/profile.types";
 
+type ComparisonMetricKey = keyof Pick<
+  ProfileSlot,
+  "avgClassicBikesAvailable" | "avgDocksAvailable" | "avgEbikesAvailable"
+>;
+
 function getAverage(
   slots: ProfileSlot[],
-  key: keyof Pick<
-    ProfileSlot,
-    | "avgBikesAvailable"
-    | "avgClassicBikesAvailable"
-    | "avgDocksAvailable"
-    | "avgEbikesAvailable"
-    | "avgOccupancyPct"
-  >,
+  key: keyof Pick<ProfileSlot, "avgBikesAvailable" | ComparisonMetricKey>,
 ) {
   const values = slots
     .map((slot) => slot[key])
@@ -35,32 +32,6 @@ function getAverage(
   }
 
   return values.reduce((sum, value) => sum + value, 0) / values.length;
-}
-
-function summarizeDayProfile(slots: ProfileSlot[]): DaySummary {
-  const peakBikeSlot = slots.reduce<ProfileSlot | null>((peak, slot) => {
-    if (slot.avgBikesAvailable === null) {
-      return peak;
-    }
-
-    if (peak === null || peak.avgBikesAvailable === null) {
-      return slot;
-    }
-
-    return slot.avgBikesAvailable > peak.avgBikesAvailable ? slot : peak;
-  }, null);
-
-  return {
-    averageBikes: getAverage(slots, "avgBikesAvailable"),
-    averageClassicBikes: getAverage(slots, "avgClassicBikesAvailable"),
-    averageDocks: getAverage(slots, "avgDocksAvailable"),
-    averageEbikes: getAverage(slots, "avgEbikesAvailable"),
-    averageOccupancyPct: getAverage(slots, "avgOccupancyPct"),
-    emptyRate: null,
-    fullRate: null,
-    peakBikeSlot,
-    sampleCount: slots.reduce((sum, slot) => sum + slot.sampleCount, 0),
-  };
 }
 
 function formatSlotTime(label: string, slotIndex: number) {
@@ -231,32 +202,27 @@ function toMetricValue(value: number | null) {
   return Number(value.toFixed(1));
 }
 
-function buildMetricComparisonData(
-  weekdaySummary: DaySummary,
-  weekendSummary: DaySummary,
-): ComparisonDatum[] {
-  return [
-    {
-      metric: "Bikes",
-      weekday: toMetricValue(weekdaySummary.averageBikes),
-      weekend: toMetricValue(weekendSummary.averageBikes),
-    },
-    {
-      metric: "Electrics",
-      weekday: toMetricValue(weekdaySummary.averageEbikes),
-      weekend: toMetricValue(weekendSummary.averageEbikes),
-    },
-    {
-      metric: "Classics",
-      weekday: toMetricValue(weekdaySummary.averageClassicBikes),
-      weekend: toMetricValue(weekendSummary.averageClassicBikes),
-    },
-    {
-      metric: "Docks",
-      weekday: toMetricValue(weekdaySummary.averageDocks),
-      weekend: toMetricValue(weekendSummary.averageDocks),
-    },
-  ];
+const comparisonMetrics: Array<{
+  key: ComparisonMetricKey;
+  label: string;
+}> = [
+  { key: "avgEbikesAvailable", label: "Electrics" },
+  { key: "avgClassicBikesAvailable", label: "Classics" },
+  { key: "avgDocksAvailable", label: "Docks" },
+];
+
+function buildMetricComparisonData({
+  weekdayProfile,
+  weekendProfile,
+}: {
+  weekdayProfile: ProfileSlot[];
+  weekendProfile: ProfileSlot[];
+}): ComparisonDatum[] {
+  return comparisonMetrics.map(({ key, label }) => ({
+    metric: label,
+    weekday: toMetricValue(getAverage(weekdayProfile, key)),
+    weekend: toMetricValue(getAverage(weekendProfile, key)),
+  }));
 }
 
 export function StationProfile({
@@ -274,13 +240,11 @@ export function StationProfile({
     return null;
   }
 
-  const weekdaySummary = summarizeDayProfile(weekdayProfile);
-  const weekendSummary = summarizeDayProfile(weekendProfile);
   const chartData = buildChartData(weekdayProfile, weekendProfile);
-  const metricComparisonData = buildMetricComparisonData(
-    weekdaySummary,
-    weekendSummary,
-  );
+  const metricComparisonData = buildMetricComparisonData({
+    weekdayProfile,
+    weekendProfile,
+  });
 
   return (
     <>

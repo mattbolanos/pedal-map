@@ -24,15 +24,3 @@ export interface ProfileSlot {
   slotIndex: number;
   slotLabel: string;
 }
-
-export interface DaySummary {
-  averageBikes: number | null;
-  averageClassicBikes: number | null;
-  averageDocks: number | null;
-  averageEbikes: number | null;
-  averageOccupancyPct: number | null;
-  emptyRate: number | null;
-  fullRate: number | null;
-  peakBikeSlot: ProfileSlot | null;
-  sampleCount: number;
-}
