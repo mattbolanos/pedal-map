@@ -67,8 +67,7 @@ export function StationNeighborsSkeleton() {
         {NEIGHBOR_ROW_KEYS.map((key) => (
           <div
             key={key}
-            className="flex items-center gap-3 rounded-2xl px-3 py-2.5"
-          >
+            className="flex items-center gap-3 rounded-2xl px-3 py-2.5">
             <Skeleton className="h-5 min-w-0 flex-1" />
             <Skeleton className="h-4 w-14 shrink-0" />
           </div>
@@ -78,11 +77,15 @@ export function StationNeighborsSkeleton() {
   );
 }
 
-export function StationPeaksChartSkeleton() {
+export function StationPeaksChartSkeleton({
+  title = "Average Bikes",
+}: {
+  title?: string;
+}) {
   return (
     <Card className="h-full md:h-98">
       <CardHeader className="gap-3 px-4.5!">
-        <CardTitle>Average Bikes</CardTitle>
+        <CardTitle>{title}</CardTitle>
         <Skeleton className="h-4 w-36" />
       </CardHeader>
       <CardContent className="flex min-h-0 flex-1 flex-col px-2 pt-0 pb-3 sm:px-4">
@@ -118,8 +121,7 @@ export function StationRanksSkeleton() {
               {group.metrics.map((metric) => (
                 <div
                   key={metric.key}
-                  className="grid min-h-26 grid-rows-[auto_1fr_auto] px-3 py-2.5"
-                >
+                  className="grid min-h-26 grid-rows-[auto_1fr_auto] px-3 py-2.5">
                   <div className="text-muted-foreground flex items-center gap-x-1.5 text-sm">
                     {metric.icon}
                     <span>{metric.label}</span>
@@ -149,7 +151,9 @@ export function StationDetailSkeleton() {
       <StationTitleSkeleton />
       <div className="grid gap-6 md:grid-cols-2">
         <StationRanksSkeleton />
-        <StationPeaksChartSkeleton />
+        <StationPeaksChartSkeleton title="Average Bikes" />
+        <StationPeaksChartSkeleton title="Average Electric" />
+        <StationPeaksChartSkeleton title="Average Open Dock %" />
         <StationComparisonChartSkeleton />
         <StationMapTileSkeleton />
         <StationNeighborsSkeleton />

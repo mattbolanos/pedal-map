@@ -3,6 +3,7 @@ import {
   AreaChart,
   CartesianGrid,
   ReferenceDot,
+  ReferenceLine,
   XAxis,
   YAxis,
 } from "recharts";
@@ -10,7 +11,6 @@ import type {
   ProfileSlot,
   StationRow,
 } from "#/components/station/profile.types";
-import { Badge } from "#/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import {
   type ChartConfig,
@@ -18,11 +18,17 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "#/components/ui/chart";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "#/components/ui/empty";
 
 interface PeaksPoint {
   label: string;
   slotIndex: number;
-  bikes: number | null;
+  value: number | null;
 }
 
 interface PeakValleyMarker {
@@ -31,12 +37,48 @@ interface PeakValleyMarker {
   value: number;
 }
 
-const peaksChartConfig = {
-  bikes: {
+export type PeakMetricKey = "bikes" | "electric" | "occupancy";
+
+interface PeakMetric {
+  key: PeakMetricKey;
+  label: string;
+  color: string;
+  showCapacityReference: boolean;
+  getValue: (slot: ProfileSlot) => number | null;
+  formatValue: (value: number) => string;
+}
+
+export const peakMetrics: PeakMetric[] = [
+  {
+    key: "bikes",
     label: "Bikes",
     color: "var(--primary)",
+    showCapacityReference: true,
+    getValue: (slot) => slot.avgBikesAvailable,
+    formatValue: (value) => value.toFixed(1),
   },
-} satisfies ChartConfig;
+  {
+    key: "electric",
+    label: "Electric",
+    color: "var(--primary)",
+    showCapacityReference: true,
+    getValue: (slot) => slot.avgEbikesAvailable,
+    formatValue: (value) => value.toFixed(1),
+  },
+  {
+    key: "occupancy",
+    label: "Open Dock %",
+    color: "var(--primary)",
+    showCapacityReference: false,
+    getValue: (slot) => slot.avgDockAvailabilityPct,
+    formatValue: (value) =>
+      value.toLocaleString(undefined, {
+        maximumFractionDigits: 1,
+        minimumFractionDigits: 1,
+        style: "percent",
+      }),
+  },
+];
 
 function formatSlotTime(label: string, slotIndex: number) {
   const trimmedLabel = label.trim();
@@ -68,19 +110,20 @@ function toChartValue(value: number | null) {
     return null;
   }
 
-  return Number(value.toFixed(1));
+  return value;
 }
 
-function combineSlotValue(slots: ProfileSlot[]) {
+function combineSlotValue(
+  slots: ProfileSlot[],
+  getValue: PeakMetric["getValue"],
+) {
   const weightedValues = slots
     .filter(
-      (slot) =>
-        slot.avgBikesAvailable !== null &&
-        Number.isFinite(slot.avgBikesAvailable),
+      (slot) => getValue(slot) !== null && Number.isFinite(getValue(slot)),
     )
     .map((slot) => ({
       sampleCount: slot.sampleCount,
-      value: slot.avgBikesAvailable ?? 0,
+      value: getValue(slot) ?? 0,
     }));
 
   if (weightedValues.length === 0) {
@@ -110,6 +153,7 @@ function combineSlotValue(slots: ProfileSlot[]) {
 function buildChartData(
   weekdayProfile: ProfileSlot[],
   weekendProfile: ProfileSlot[],
+  metric: PeakMetric,
 ): PeaksPoint[] {
   const slots = [...weekdayProfile, ...weekendProfile]
     .map((slot) => ({
@@ -127,15 +171,18 @@ function buildChartData(
   const data = slots.map((slot) => ({
     label: formatSlotTime(slot.label, slot.slotIndex),
     slotIndex: slot.slotIndex,
-    bikes: toChartValue(
-      combineSlotValue([
-        ...weekdayProfile.filter(
-          (profileSlot) => profileSlot.slotIndex === slot.slotIndex,
-        ),
-        ...weekendProfile.filter(
-          (profileSlot) => profileSlot.slotIndex === slot.slotIndex,
-        ),
-      ]),
+    value: toChartValue(
+      combineSlotValue(
+        [
+          ...weekdayProfile.filter(
+            (profileSlot) => profileSlot.slotIndex === slot.slotIndex,
+          ),
+          ...weekendProfile.filter(
+            (profileSlot) => profileSlot.slotIndex === slot.slotIndex,
+          ),
+        ],
+        metric.getValue,
+      ),
     ),
   }));
 
@@ -159,51 +206,54 @@ function buildChartData(
 }
 
 function getPeakValleyMarker(slot: PeaksPoint | null): PeakValleyMarker | null {
-  if (!slot || slot.bikes === null) {
+  if (!slot || slot.value === null) {
     return null;
   }
 
   return {
     label: slot.label,
     slotIndex: slot.slotIndex,
-    value: slot.bikes,
+    value: slot.value,
   };
 }
 
 function getPeakPoint(chartData: PeaksPoint[]) {
   return chartData.reduce<PeaksPoint | null>((peak, slot) => {
-    if (slot.bikes === null) {
+    if (slot.value === null) {
       return peak;
     }
 
-    if (peak === null || peak.bikes === null) {
+    if (peak === null || peak.value === null) {
       return slot;
     }
 
-    return slot.bikes > peak.bikes ? slot : peak;
+    return slot.value > peak.value ? slot : peak;
   }, null);
 }
 
 function getValleyPoint(chartData: PeaksPoint[]) {
   return chartData.reduce<PeaksPoint | null>((valley, slot) => {
-    if (slot.bikes === null) {
+    if (slot.value === null) {
       return valley;
     }
 
-    if (valley === null || valley.bikes === null) {
+    if (valley === null || valley.value === null) {
       return slot;
     }
 
-    return slot.bikes < valley.bikes ? slot : valley;
+    return slot.value < valley.value ? slot : valley;
   }, null);
 }
 
-function formatMarker(marker: PeakValleyMarker | null) {
+function formatMarker(
+  marker: PeakValleyMarker | null,
+  formatValue: PeakMetric["formatValue"],
+) {
   if (!marker) {
     return "--";
   }
 
-  return `${marker.label} / ${marker.value.toFixed(1)}`;
+  return `${marker.label} / ${formatValue(marker.value)}`;
 }
 
 function TimeTick({
@@ -235,8 +285,7 @@ function TimeTick({
       dy={14}
       fill="var(--foreground)"
       fontSize={12}
-      textAnchor={hour === 24 ? "end" : hour === 0 ? "start" : "middle"}
-    >
+      textAnchor={hour === 24 ? "end" : hour === 0 ? "start" : "middle"}>
       {label}
     </text>
   );
@@ -268,79 +317,90 @@ function MarkerDots({
 }
 
 export function PeaksChart({
-  stationStatus,
+  stationCapacity,
+  metricKey,
+  stationStatus: _stationStatus,
   weekdayProfile,
   weekendProfile,
 }: {
+  metricKey: PeakMetricKey;
+  stationCapacity: number | null;
   stationStatus: StationRow | null;
   weekdayProfile: ProfileSlot[];
   weekendProfile: ProfileSlot[];
 }) {
-  if (weekdayProfile.length === 0 && weekendProfile.length === 0) {
-    return null;
-  }
+  const selectedMetric =
+    peakMetrics.find((metric) => metric.key === metricKey) ?? peakMetrics[0];
+  const chartConfig = {
+    value: {
+      label: selectedMetric.label,
+      color: selectedMetric.color,
+    },
+  } satisfies ChartConfig;
 
-  const chartData = buildChartData(weekdayProfile, weekendProfile);
+  const chartData = buildChartData(
+    weekdayProfile,
+    weekendProfile,
+    selectedMetric,
+  );
+  const hasData = chartData.some((point) => point.value !== null);
   const peak = getPeakValleyMarker(getPeakPoint(chartData));
   const valley = getPeakValleyMarker(getValleyPoint(chartData));
-  const isOffline = stationStatus?.isActive === false;
-  const maxSlotIndex = Math.max(...chartData.map((point) => point.slotIndex));
+  const capacityReference =
+    selectedMetric.showCapacityReference &&
+    stationCapacity !== null &&
+    Number.isFinite(stationCapacity) &&
+    stationCapacity > 0
+      ? stationCapacity
+      : null;
+  const maxSlotIndex = hasData
+    ? Math.max(...chartData.map((point) => point.slotIndex))
+    : 24;
   const slotsPerHour = maxSlotIndex > 24 ? maxSlotIndex / 24 : 1;
   const xTicks = [0, 6, 12, 18, 24].map((hour) => hour * slotsPerHour);
+  const fillId = `peakAvailabilityFill-${selectedMetric.key}`;
 
   return (
     <Card className="flex h-full md:h-98">
       <CardHeader className="gap-3 px-4.5!">
-        <div className="flex flex-wrap items-start gap-3">
-          <div className="min-w-0 flex-1">
-            <CardTitle>Average Bikes</CardTitle>
+        <div className="flex min-w-0 flex-1 flex-col items-start gap-3">
+          <div className="min-w-0">
+            <CardTitle>Average {selectedMetric.label}</CardTitle>
             <div className="text-muted-foreground mt-1 flex items-center gap-3 text-xs font-medium">
               <p>
-                <span className="text-chart-5">H:</span> {formatMarker(peak)}
+                <span className="text-chart-5">H:</span>{" "}
+                {formatMarker(peak, selectedMetric.formatValue)}
               </p>
               <p>
                 <span className="text-destructive">L:</span>{" "}
-                {formatMarker(valley)}
+                {formatMarker(valley, selectedMetric.formatValue)}
               </p>
             </div>
           </div>
-          {isOffline ? (
-            <Badge variant="offline" aria-label="Offline">
-              Offline
-            </Badge>
-          ) : null}
         </div>
       </CardHeader>
       <CardContent className="flex min-h-0 flex-1 flex-col px-2 pt-0 pb-3 sm:px-4">
-        {chartData.length > 0 ? (
+        {hasData ? (
           <ChartContainer
-            config={peaksChartConfig}
+            config={chartConfig}
             className="[&_.recharts-cartesian-grid_line]:stroke-border/40 flex h-full min-h-0 w-full flex-1 [&_.recharts-legend-wrapper]:pt-2"
-            initialDimension={{ width: 720, height: 320 }}
-          >
+            initialDimension={{ width: 720, height: 320 }}>
             <AreaChart
               accessibilityLayer
               data={chartData}
-              margin={{ top: 12, right: 12, bottom: 4, left: 0 }}
-            >
+              margin={{ top: 12, right: 12, bottom: 4, left: 0 }}>
               <MarkerDots marker={peak} variant="peak" />
               <MarkerDots marker={valley} variant="valley" />
               <defs>
-                <linearGradient
-                  id="bikeAvailabilityFill"
-                  x1="0"
-                  x2="0"
-                  y1="0"
-                  y2="1"
-                >
+                <linearGradient id={fillId} x1="0" x2="0" y1="0" y2="1">
                   <stop
                     offset="4%"
-                    stopColor="var(--color-bikes)"
+                    stopColor="var(--color-value)"
                     stopOpacity={0.46}
                   />
                   <stop
                     offset="92%"
-                    stopColor="var(--color-bikes)"
+                    stopColor="var(--color-value)"
                     stopOpacity={0.04}
                   />
                 </linearGradient>
@@ -360,9 +420,27 @@ export function PeaksChart({
                 hide
                 domain={[
                   (dataMin) => Math.max(0, dataMin - 10),
-                  (dataMax) => dataMax,
+                  (dataMax) =>
+                    capacityReference === null
+                      ? dataMax
+                      : Math.max(dataMax, capacityReference),
                 ]}
               />
+              {capacityReference !== null ? (
+                <ReferenceLine
+                  y={capacityReference}
+                  ifOverflow="extendDomain"
+                  stroke="var(--muted-foreground)"
+                  strokeDasharray="5 5"
+                  strokeOpacity={0.72}
+                  label={{
+                    value: `Capacity ${capacityReference.toLocaleString()}`,
+                    fill: "var(--muted-foreground)",
+                    fontSize: 12,
+                    position: "insideTopRight",
+                  }}
+                />
+              ) : null}
               <ChartTooltip
                 cursor={{
                   stroke: "var(--border)",
@@ -380,26 +458,57 @@ export function PeaksChart({
                       return point?.label ?? "";
                     }}
                     labelClassName="text-foreground"
+                    formatter={(value, _name, item) => (
+                      <>
+                        <div
+                          className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
+                          style={{
+                            backgroundColor: item.color,
+                          }}
+                        />
+                        <div className="flex flex-1 justify-between leading-none">
+                          <span className="text-muted-foreground">
+                            {chartConfig.value.label}
+                          </span>
+                          <span className="text-foreground font-mono font-medium tabular-nums">
+                            {typeof value === "number"
+                              ? selectedMetric.formatValue(value)
+                              : String(value)}
+                          </span>
+                        </div>
+                      </>
+                    )}
                   />
                 }
               />
               <Area
-                dataKey="bikes"
+                dataKey="value"
                 type="natural"
-                fill="url(#bikeAvailabilityFill)"
-                stroke="var(--color-bikes)"
+                fill={`url(#${fillId})`}
+                stroke="var(--color-value)"
                 strokeWidth={3.25}
                 dot={false}
+                animationDuration={475}
                 activeDot={{
                   r: 6,
                   fill: "var(--background)",
-                  stroke: "var(--color-bikes)",
+                  stroke: "var(--color-value)",
                   strokeWidth: 2.5,
                 }}
               />
             </AreaChart>
           </ChartContainer>
-        ) : null}
+        ) : (
+          <Empty className="min-h-74 flex-1 border-0 p-6">
+            <EmptyHeader>
+              <EmptyTitle>No availability data</EmptyTitle>
+              <EmptyDescription>
+                Average bike availability will appear here once this station has
+                enough samples.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        )}
       </CardContent>
     </Card>
   );

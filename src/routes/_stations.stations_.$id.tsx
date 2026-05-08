@@ -7,7 +7,7 @@ import { RouteBreadcrumb } from "#/components/route-breadcrumb";
 import { ComparisonChart } from "#/components/station/comparison-chart";
 import { StationLocationMapTile } from "#/components/station/location-map-tile";
 import { StationNeighbors } from "#/components/station/neighbors";
-import { PeaksChart } from "#/components/station/peaks-chart";
+import { PeaksChart, peakMetrics } from "#/components/station/peaks-chart";
 import { StationRanks } from "#/components/station/ranks";
 import {
   StationComparisonChartSkeleton,
@@ -52,6 +52,7 @@ export const Route = createFileRoute("/_stations/stations_/$id")({
 });
 
 interface StationPreviewStation {
+  capacity?: number;
   lat: number;
   lon: number;
   name: string;
@@ -59,7 +60,13 @@ interface StationPreviewStation {
   station_id: string;
 }
 
-function StationChartPanels({ stationId }: { stationId: string }) {
+function StationChartPanels({
+  stationCapacity,
+  stationId,
+}: {
+  stationCapacity: number | null;
+  stationId: string;
+}) {
   const { data: profile } = useSuspenseQuery({
     queryKey: [
       "station-availability-profile",
@@ -78,11 +85,16 @@ function StationChartPanels({ stationId }: { stationId: string }) {
 
   return (
     <>
-      <PeaksChart
-        stationStatus={stationStatus}
-        weekdayProfile={profile.weekdayProfile}
-        weekendProfile={profile.weekendProfile}
-      />
+      {peakMetrics.map((metric) => (
+        <PeaksChart
+          key={metric.key}
+          metricKey={metric.key}
+          stationCapacity={stationCapacity}
+          stationStatus={stationStatus}
+          weekdayProfile={profile.weekdayProfile}
+          weekendProfile={profile.weekendProfile}
+        />
+      ))}
       <ComparisonChart
         weekdayProfile={profile.weekdayProfile}
         weekendProfile={profile.weekendProfile}
@@ -170,12 +182,16 @@ function StationDetailPage() {
           <Suspense
             fallback={
               <>
-                <StationPeaksChartSkeleton />
+                <StationPeaksChartSkeleton title="Average Bikes" />
+                <StationPeaksChartSkeleton title="Average Electric" />
+                <StationPeaksChartSkeleton title="Average Open Dock %" />
                 <StationComparisonChartSkeleton />
               </>
-            }
-          >
-            <StationChartPanels stationId={id} />
+            }>
+            <StationChartPanels
+              stationCapacity={station.capacity ?? null}
+              stationId={id}
+            />
           </Suspense>
           <StationLocationAndNeighborsPanels
             station={station}
