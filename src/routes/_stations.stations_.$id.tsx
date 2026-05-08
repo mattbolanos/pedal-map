@@ -187,7 +187,8 @@ function StationDetailPage() {
                 <StationPeaksChartSkeleton title="Average Open Dock %" />
                 <StationComparisonChartSkeleton />
               </>
-            }>
+            }
+          >
             <StationChartPanels
               stationCapacity={station.capacity ?? null}
               stationId={id}
