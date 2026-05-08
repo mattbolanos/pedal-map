@@ -78,11 +78,15 @@ export function StationNeighborsSkeleton() {
   );
 }
 
-export function StationPeaksChartSkeleton() {
+export function StationPeaksChartSkeleton({
+  title = "Average Bikes",
+}: {
+  title?: string;
+}) {
   return (
     <Card className="h-full md:h-98">
       <CardHeader className="gap-3 px-4.5!">
-        <CardTitle>Average Bikes</CardTitle>
+        <CardTitle>{title}</CardTitle>
         <Skeleton className="h-4 w-36" />
       </CardHeader>
       <CardContent className="flex min-h-0 flex-1 flex-col px-2 pt-0 pb-3 sm:px-4">
@@ -149,7 +153,9 @@ export function StationDetailSkeleton() {
       <StationTitleSkeleton />
       <div className="grid gap-6 md:grid-cols-2">
         <StationRanksSkeleton />
-        <StationPeaksChartSkeleton />
+        <StationPeaksChartSkeleton title="Average Bikes" />
+        <StationPeaksChartSkeleton title="Average Electric" />
+        <StationPeaksChartSkeleton title="Average Open Dock %" />
         <StationComparisonChartSkeleton />
         <StationMapTileSkeleton />
         <StationNeighborsSkeleton />
