@@ -4,6 +4,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
+import { Analytics } from "@vercel/analytics/react";
 import { NotFound } from "#/components/not-found";
 import { Toaster } from "#/components/ui/sonner";
 import ConvexRootProvider from "#/integrations/convex/root-provider";
@@ -169,6 +170,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         </TanStackQueryProvider>
         <Scripts />
         <Toaster richColors />
+        <Analytics />
       </body>
     </html>
   );
