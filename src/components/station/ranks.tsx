@@ -144,7 +144,7 @@ function RankMetricItem({
 
   return (
     <div
-      className="grid min-h-26 grid-rows-[auto_1fr_auto] px-3 py-2.5"
+      className="grid min-h-26 grid-rows-[auto_1fr_auto] px-2 py-2.5"
       style={rankStyle}
     >
       <div className="text-muted-foreground flex items-center gap-x-1.5 text-sm">
