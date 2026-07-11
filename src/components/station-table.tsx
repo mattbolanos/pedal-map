@@ -226,7 +226,8 @@ export function StationTableSkeleton() {
                   {STATION_TABLE_MOBILE_METRICS.map((metric) => (
                     <div
                       key={`${row}-${metric}`}
-                      className="flex min-w-0 flex-col items-center gap-1.5 px-1">
+                      className="flex min-w-0 flex-col items-center gap-1.5 px-1"
+                    >
                       <Skeleton className="h-3 w-12 max-w-full" />
                       <Skeleton className="h-4 w-8" />
                     </div>
@@ -246,7 +247,8 @@ export function StationTableSkeleton() {
                   key={group.key}
                   colSpan={group.colSpan}
                   aria-hidden={group.label ? undefined : true}
-                  className="text-foreground h-7 border-b-0 text-center tracking-wide uppercase">
+                  className="text-foreground h-7 border-b-0 text-center tracking-wide uppercase"
+                >
                   {group.label}
                 </TableHead>
               ))}
@@ -256,7 +258,8 @@ export function StationTableSkeleton() {
                 <TableHead
                   key={column.key}
                   scope="col"
-                  className="h-9 whitespace-nowrap">
+                  className="h-9 whitespace-nowrap"
+                >
                   {column.label}
                 </TableHead>
               ))}
@@ -268,7 +271,8 @@ export function StationTableSkeleton() {
                 {STATION_TABLE_SKELETON_COLUMNS.map((column) => (
                   <TableCell
                     key={`${row}-${column.key}`}
-                    className="text-right whitespace-nowrap">
+                    className="text-right whitespace-nowrap"
+                  >
                     <Skeleton
                       className={
                         column.key === "station"
@@ -338,7 +342,8 @@ const stationTableColumns: ColumnDef<StationTableRow>[] = [
       return (
         <div
           className="flex w-full min-w-0 items-center gap-2"
-          title={station.name}>
+          title={station.name}
+        >
           <span className="md:hidden">{station.name}</span>
           {region ? (
             <Badge variant={region.badgeVariant} className="ml-auto md:hidden">
@@ -351,7 +356,8 @@ const stationTableColumns: ColumnDef<StationTableRow>[] = [
             aria-label={`View ${station.name} station profile`}
             onFocus={() => prewarmProfile(station.station_id)}
             onPointerEnter={() => prewarmProfile(station.station_id)}
-            className="focus-visible:border-ring focus-visible:ring-ring/50 hidden min-w-0 truncate rounded-sm font-medium transition-colors outline-none hover:text-teal-500/80 focus-visible:ring-[3px] md:block">
+            className="focus-visible:border-ring focus-visible:ring-ring/50 hidden min-w-0 truncate rounded-sm font-medium transition-colors outline-none hover:text-teal-500/80 focus-visible:ring-[3px] md:block"
+          >
             {station.name}
           </Link>
           {!isStationActive(station) ? (
@@ -388,23 +394,37 @@ const stationTableColumns: ColumnDef<StationTableRow>[] = [
     header: "Bikes",
     meta: { mobileLabel: "Latest bikes rank" },
     cell: RankCell,
+    invertSorting: true,
   },
   {
     accessorKey: "latestEbikesRank",
     header: "E-bikes",
     meta: { mobileLabel: "Latest e-bike rank" },
     cell: RankCell,
+    invertSorting: true,
   },
   {
     accessorKey: "averageBikesRank",
     header: "Bikes",
     meta: { mobileLabel: "Average bikes rank" },
     cell: RankCell,
+    invertSorting: true,
+    sortingFn: (rowA, rowB) => {
+      const rowAValue = rowA.original.averageBikesRank ?? 999999;
+      const rowBValue = rowB.original.averageBikesRank ?? 999999;
+      return rowAValue - rowBValue;
+    },
   },
   {
     accessorKey: "averageEbikesRank",
     header: "E-bikes",
     meta: { mobileLabel: "Average e-bike rank" },
     cell: RankCell,
+    invertSorting: true,
+    sortingFn: (rowA, rowB) => {
+      const rowAValue = rowA.original.averageEbikesRank ?? 999999;
+      const rowBValue = rowB.original.averageEbikesRank ?? 999999;
+      return rowAValue - rowBValue;
+    },
   },
 ];
