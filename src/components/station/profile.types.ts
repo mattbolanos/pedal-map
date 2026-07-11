@@ -1,12 +1,3 @@
-import type { FunctionReturnType } from "convex/server";
-import type { api } from "#/integrations/convex/api";
-
-type StationsData = FunctionReturnType<
-  typeof api.pedalMap.getStationsTableData
->;
-
-export type StationRow = StationsData["rows"][number];
-
 export interface ProfileSlot {
   activeSampleCount: number;
   avgBikesAvailable: number | null;

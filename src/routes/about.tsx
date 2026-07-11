@@ -65,13 +65,13 @@ function AboutPage() {
           dropoffs, refreshed every 15 seconds or so.
         </p>
         <p>
-          The data aggregation layer lives in a small separate service. Every 15
-          minutes it fetches station status, refreshes the station catalog when
+          The data aggregation layer lives in a small separate service. Every
+          hour it fetches station status, refreshes the station catalog when
           needed, and stores a compact sample for each station with occupancy,
           dock availability, empty and full flags, and inferred arrivals and
-          departures. From there, another job rolls those samples into daily
-          summaries, which is what powers the station table and keeps the raw
-          samples from piling up forever.
+          departures. Once a day, another job rolls up the previous date and
+          removes expired raw samples. The station table stays live by reading
+          the public feed directly instead of querying the historical database.
         </p>
         <p>
           I want to give props to{" "}
@@ -79,8 +79,7 @@ function AboutPage() {
             href="https://bikemap.nyc"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-link"
-          >
+            className="text-link">
             bikemap.nyc
           </a>
           , who made an awesome project visualizing a Lyft data dump of user
@@ -92,8 +91,7 @@ function AboutPage() {
             href="https://github.com/mattbolanos/pedal-map"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-link"
-          >
+            className="text-link">
             <GithubLogoIcon className="size-3.5" />
             mattbolanos/pedal-map
           </a>
@@ -103,8 +101,7 @@ function AboutPage() {
             href="https://www.buymeacoffee.com/mattbolanos"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-link"
-          >
+            className="text-link">
             <CoffeeIcon className="size-3.5" />
             buy me a coffee
           </a>

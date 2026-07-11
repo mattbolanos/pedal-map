@@ -28,21 +28,6 @@ const RANK_GROUPS: {
       },
     ],
   },
-  {
-    title: "Average Ranks",
-    metrics: [
-      {
-        key: "station-rank-average-bikes-skeleton",
-        label: "Bikes",
-        icon: <BicycleIcon className="size-5" />,
-      },
-      {
-        key: "station-rank-average-ebikes-skeleton",
-        label: "Electrics",
-        icon: <ChargingStationIcon className="size-5" />,
-      },
-    ],
-  },
 ];
 
 export function StationTitleSkeleton() {
@@ -67,8 +52,7 @@ export function StationNeighborsSkeleton() {
         {NEIGHBOR_ROW_KEYS.map((key) => (
           <div
             key={key}
-            className="flex items-center gap-3 rounded-2xl px-3 py-2.5"
-          >
+            className="flex items-center gap-3 rounded-2xl px-3 py-2.5">
             <Skeleton className="h-5 min-w-0 flex-1" />
             <Skeleton className="h-4 w-14 shrink-0" />
           </div>
@@ -122,8 +106,7 @@ export function StationRanksSkeleton() {
               {group.metrics.map((metric) => (
                 <div
                   key={metric.key}
-                  className="grid min-h-26 grid-rows-[auto_1fr_auto] px-3 py-2.5"
-                >
+                  className="grid min-h-26 grid-rows-[auto_1fr_auto] px-3 py-2.5">
                   <div className="text-muted-foreground flex items-center gap-x-1.5 text-sm">
                     {metric.icon}
                     <span>{metric.label}</span>

@@ -2,7 +2,6 @@ import NumberFlow, { NumberFlowGroup } from "@number-flow/react";
 import { BicycleIcon } from "@phosphor-icons/react/dist/csr/Bicycle";
 import { ChargingStationIcon } from "@phosphor-icons/react/dist/csr/ChargingStation";
 import type { CSSProperties, ReactNode } from "react";
-import type { StationRow } from "#/components/station/profile.types";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { availabilityColorCss } from "#/lib/station-pin";
 import { cn } from "#/lib/utils";
@@ -13,15 +12,20 @@ type RankStyle = CSSProperties & {
 };
 
 interface StationRanksProps {
-  station: StationRow;
+  station: StationCurrentRanks;
   stationCount: number;
+}
+
+export interface StationCurrentRanks {
+  ranks: {
+    bikesAvailable: number | null;
+    ebikesAvailable: number | null;
+  };
 }
 
 interface RankMetric {
   label: string;
-  rankKey: keyof StationRow["ranks"];
-  valueKey: keyof StationRow;
-  valuePrecision: "decimal" | "integer";
+  rankKey: keyof StationCurrentRanks["ranks"];
   icon: ReactNode;
 }
 
@@ -51,72 +55,40 @@ function formatOrdinal(n: number): string {
   return `${n}${suffix}`;
 }
 
-const RANK_GROUPS: { title: string; metrics: RankMetric[] }[] = [
+const RANK_METRICS: RankMetric[] = [
   {
-    title: "Latest Ranks",
-    metrics: [
-      {
-        label: "Bikes",
-        rankKey: "currentBikesAvailable",
-        valueKey: "bikesAvailable",
-        valuePrecision: "integer",
-        icon: <BicycleIcon className="size-5" />,
-      },
-      {
-        label: "Electrics",
-        rankKey: "currentEbikesAvailable",
-        valueKey: "ebikesAvailable",
-        valuePrecision: "integer",
-        icon: <ChargingStationIcon className="size-5" />,
-      },
-    ],
+    label: "Bikes",
+    rankKey: "bikesAvailable",
+    icon: <BicycleIcon className="size-5" />,
   },
   {
-    title: "Average Ranks",
-    metrics: [
-      {
-        label: "Bikes",
-        rankKey: "avgBikesAvailable",
-        valueKey: "avgBikesAvailable",
-        valuePrecision: "decimal",
-        icon: <BicycleIcon className="size-5" />,
-      },
-      {
-        label: "Electrics",
-        rankKey: "avgEbikesAvailable",
-        valueKey: "avgEbikesAvailable",
-        valuePrecision: "decimal",
-        icon: <ChargingStationIcon className="size-5" />,
-      },
-    ],
+    label: "Electrics",
+    rankKey: "ebikesAvailable",
+    icon: <ChargingStationIcon className="size-5" />,
   },
 ];
 
 export function StationRanks({ station, stationCount }: StationRanksProps) {
   return (
-    <>
-      {RANK_GROUPS.map((group) => (
-        <Card key={group.title} className="pb-3!">
-          <CardHeader className="px-4.5!">
-            <CardTitle>{group.title}</CardTitle>
-          </CardHeader>
-          <CardContent className="px-3.5!">
-            <NumberFlowGroup>
-              <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-1 xl:grid-cols-2">
-                {group.metrics.map((metric) => (
-                  <RankMetricItem
-                    key={metric.rankKey}
-                    metric={metric}
-                    station={station}
-                    stationCount={stationCount}
-                  />
-                ))}
-              </div>
-            </NumberFlowGroup>
-          </CardContent>
-        </Card>
-      ))}
-    </>
+    <Card className="pb-3!">
+      <CardHeader className="px-4.5!">
+        <CardTitle>Latest Ranks</CardTitle>
+      </CardHeader>
+      <CardContent className="px-3.5!">
+        <NumberFlowGroup>
+          <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-1 xl:grid-cols-2">
+            {RANK_METRICS.map((metric) => (
+              <RankMetricItem
+                key={metric.rankKey}
+                metric={metric}
+                station={station}
+                stationCount={stationCount}
+              />
+            ))}
+          </div>
+        </NumberFlowGroup>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -126,7 +98,7 @@ function RankMetricItem({
   stationCount,
 }: {
   metric: RankMetric;
-  station: StationRow;
+  station: StationCurrentRanks;
   stationCount: number;
 }) {
   const rank = station.ranks[metric.rankKey];
@@ -145,8 +117,7 @@ function RankMetricItem({
   return (
     <div
       className="grid min-h-26 grid-rows-[auto_1fr_auto] px-3 py-2.5"
-      style={rankStyle}
-    >
+      style={rankStyle}>
       <div className="text-muted-foreground flex items-center gap-x-1.5 text-sm">
         {metric.icon}
         <span>{metric.label}</span>
@@ -180,8 +151,7 @@ function RankMetricItem({
           className={cn(
             "text-sm tabular-nums",
             isRanked ? "text-[var(--rank-color)]" : "text-muted-foreground",
-          )}
-        >
+          )}>
           {rankLabel}
         </div>
       </div>
