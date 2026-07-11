@@ -28,6 +28,21 @@ const RANK_GROUPS: {
       },
     ],
   },
+  {
+    title: "Average Ranks",
+    metrics: [
+      {
+        key: "station-rank-average-bikes-skeleton",
+        label: "Bikes",
+        icon: <BicycleIcon className="size-5" />,
+      },
+      {
+        key: "station-rank-average-ebikes-skeleton",
+        label: "Electrics",
+        icon: <ChargingStationIcon className="size-5" />,
+      },
+    ],
+  },
 ];
 
 export function StationTitleSkeleton() {

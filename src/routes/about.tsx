@@ -67,11 +67,11 @@ function AboutPage() {
         <p>
           The data aggregation layer lives in a small separate service. Every
           hour it fetches station status, refreshes the station catalog when
-          needed, and stores a compact sample for each station with occupancy,
-          dock availability, empty and full flags, and inferred arrivals and
-          departures. Once a day, another job rolls up the previous date and
-          removes expired raw samples. The station table stays live by reading
-          the public feed directly instead of querying the historical database.
+          needed, and updates compact weekday/weekend hourly averages for each
+          station. Once a day, another job finalizes average station ranks and
+          removes expired daily summaries. The station table stays live by
+          reading the public feed directly, with only a small daily rank
+          snapshot coming from the historical database.
         </p>
         <p>
           I want to give props to{" "}

@@ -1,6 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { Suspense, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { NotFound } from "#/components/not-found";
 import { RouteBreadcrumb } from "#/components/route-breadcrumb";
 import { ComparisonChart } from "#/components/station/comparison-chart";
@@ -12,6 +12,7 @@ import {
   StationComparisonChartSkeleton,
   StationDetailSkeleton,
   StationPeaksChartSkeleton,
+  StationRanksSkeleton,
 } from "#/components/station/skeleton";
 import { api } from "#/integrations/convex/api";
 import {
@@ -23,6 +24,7 @@ import {
   type CitiBikeStation,
   citiBikeStationsQueryOptions,
 } from "#/lib/citibike";
+import { buildCurrentStationRanks } from "#/lib/station-ranks";
 
 export const Route = createFileRoute("/_stations/stations_/$id")({
   loader: async ({ context, params }) => {
@@ -59,14 +61,8 @@ interface StationPreviewStation {
   station_id: string;
 }
 
-function StationChartPanels({
-  stationCapacity,
-  stationId,
-}: {
-  stationCapacity: number | null;
-  stationId: string;
-}) {
-  const { data: profile } = useSuspenseQuery({
+function stationProfileQueryOptions(stationId: string) {
+  return {
     queryKey: [
       "station-availability-profile",
       stationId,
@@ -77,7 +73,19 @@ function StationChartPanels({
         days: STATION_AVAILABILITY_PROFILE_DAYS,
         stationId,
       }),
-  });
+  };
+}
+
+function StationChartPanels({
+  stationCapacity,
+  stationId,
+}: {
+  stationCapacity: number | null;
+  stationId: string;
+}) {
+  const { data: profile } = useSuspenseQuery(
+    stationProfileQueryOptions(stationId),
+  );
   return (
     <>
       {peakMetrics.map((metric) => (
@@ -97,31 +105,6 @@ function StationChartPanels({
   );
 }
 
-function getCurrentRank(
-  stations: CitiBikeStation[],
-  stationId: string,
-  getValue: (station: CitiBikeStation) => number | undefined,
-) {
-  const station = stations.find(
-    (candidate) => candidate.station_id === stationId,
-  );
-  const stationValue = station ? getValue(station) : undefined;
-
-  if (stationValue === undefined) {
-    return null;
-  }
-
-  return (
-    stations.reduce(
-      (higherCount, candidate) =>
-        (getValue(candidate) ?? Number.NEGATIVE_INFINITY) > stationValue
-          ? higherCount + 1
-          : higherCount,
-      0,
-    ) + 1
-  );
-}
-
 function StationRanksPanel({
   stationId,
   stations,
@@ -129,29 +112,22 @@ function StationRanksPanel({
   stationId: string;
   stations: CitiBikeStation[];
 }) {
-  const station = stations.find(
-    (candidate) => candidate.station_id === stationId,
+  const { data: profile } = useSuspenseQuery(
+    stationProfileQueryOptions(stationId),
   );
+  const currentRanks = useMemo(
+    () => buildCurrentStationRanks(stations),
+    [stations],
+  ).get(stationId);
 
-  if (!station) return null;
+  if (!currentRanks) return null;
 
   return (
     <StationRanks
-      station={{
-        ranks: {
-          bikesAvailable: getCurrentRank(
-            stations,
-            stationId,
-            (candidate) => candidate.num_bikes_available,
-          ),
-          ebikesAvailable: getCurrentRank(
-            stations,
-            stationId,
-            (candidate) => candidate.num_ebikes_available,
-          ),
-        },
-      }}
-      stationCount={stations.length}
+      latestRanks={currentRanks}
+      latestStationCount={stations.length}
+      averageRanks={profile.averageRanks}
+      averageStationCount={profile.averageRankStationCount}
     />
   );
 }
@@ -212,7 +188,9 @@ function StationDetailPage() {
       <div className="flex flex-col gap-6">
         <h1 className="text-xl font-bold">{station.name}</h1>
         <div className="grid gap-6 md:grid-cols-2">
-          <StationRanksPanel stationId={id} stations={stations} />
+          <Suspense fallback={<StationRanksSkeleton />}>
+            <StationRanksPanel stationId={id} stations={stations} />
+          </Suspense>
           <Suspense
             fallback={
               <>

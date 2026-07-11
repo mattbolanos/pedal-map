@@ -1,9 +1,15 @@
 import { Link } from "@tanstack/react-router";
 import type { CellContext, ColumnDef } from "@tanstack/react-table";
-import { DataTable } from "#/components/ui/data-table";
+import { useMemo } from "react";
+import {
+  DataTable,
+  type DataTableColumnGroup,
+} from "#/components/ui/data-table";
 import { prewarmStationAvailabilityProfile } from "#/integrations/convex/root-provider";
 import type { CitiBikeStation } from "#/lib/citibike";
 import { isStationActive } from "#/lib/station";
+import type { StationAverageRanksData } from "#/lib/station-average-ranks";
+import { buildCurrentStationRanks } from "#/lib/station-ranks";
 import { getStationRegion } from "#/lib/station-region";
 import { ColorCell } from "./color-cell";
 import { Badge } from "./ui/badge";
@@ -21,8 +27,16 @@ import {
 } from "./ui/table";
 
 interface StationTableProps {
+  averageRanks: StationAverageRanksData;
   data: CitiBikeStation[];
 }
+
+type StationTableRow = CitiBikeStation & {
+  averageBikesRank: number | null;
+  averageEbikesRank: number | null;
+  latestBikesRank: number | null;
+  latestEbikesRank: number | null;
+};
 
 function clampRatio(ratio: number): number {
   return Math.max(0, Math.min(1, ratio));
@@ -51,6 +65,17 @@ const STATION_TABLE_SKELETON_COLUMNS = [
   { key: "bikes", label: "Bikes" },
   { key: "electric", label: "E-bikes" },
   { key: "docks", label: "Docks" },
+  { key: "latest-bikes-rank", label: "Bikes" },
+  { key: "latest-ebikes-rank", label: "E-bikes" },
+  { key: "average-bikes-rank", label: "Bikes" },
+  { key: "average-ebikes-rank", label: "E-bikes" },
+] as const;
+
+const STATION_TABLE_SKELETON_GROUPS = [
+  { key: "station", label: "", colSpan: 1 },
+  { key: "availability", label: "Live availability", colSpan: 4 },
+  { key: "latest-ranks", label: "Latest ranks", colSpan: 2 },
+  { key: "average-ranks", label: "Average ranks", colSpan: 2 },
 ] as const;
 
 const STATION_TABLE_SKELETON_ROWS = Array.from(
@@ -64,14 +89,14 @@ const STATION_TABLE_MOBILE_SKELETON_ROWS = Array.from(
 );
 
 const STATION_TABLE_MOBILE_METRICS = Array.from(
-  { length: 4 },
+  { length: 8 },
   (_, index) => `station-table-mobile-skeleton-metric-${index}`,
 );
 
 function AvailabilityCell({
   getValue,
   row,
-}: CellContext<CitiBikeStation, unknown>) {
+}: CellContext<StationTableRow, unknown>) {
   const value = getValue() as number | undefined;
 
   return (
@@ -84,7 +109,7 @@ function AvailabilityCell({
   );
 }
 
-function CapacityCell({ getValue }: CellContext<CitiBikeStation, unknown>) {
+function CapacityCell({ getValue }: CellContext<StationTableRow, unknown>) {
   const value = getValue() as number | undefined;
 
   return (
@@ -94,15 +119,52 @@ function CapacityCell({ getValue }: CellContext<CitiBikeStation, unknown>) {
   );
 }
 
+function RankCell({ getValue }: CellContext<StationTableRow, unknown>) {
+  const value = getValue() as number | null;
+
+  return (
+    <span className="tabular-nums">
+      {value === null ? "--" : `#${value.toLocaleString()}`}
+    </span>
+  );
+}
+
 function prewarmProfile(stationId: string) {
   prewarmStationAvailabilityProfile(stationId);
 }
 
-export function StationTable({ data }: StationTableProps) {
+export function StationTable({ averageRanks, data }: StationTableProps) {
+  const currentRanksByStationId = useMemo(
+    () => buildCurrentStationRanks(data),
+    [data],
+  );
+  const averageRanksByStationId = useMemo(
+    () =>
+      new Map(averageRanks.rows.map((row) => [row.stationId, row] as const)),
+    [averageRanks.rows],
+  );
+  const rows = useMemo<StationTableRow[]>(
+    () =>
+      data.map((station) => {
+        const currentRanks = currentRanksByStationId.get(station.station_id);
+        const historicalRanks = averageRanksByStationId.get(station.station_id);
+
+        return {
+          ...station,
+          latestBikesRank: currentRanks?.bikesAvailable ?? null,
+          latestEbikesRank: currentRanks?.ebikesAvailable ?? null,
+          averageBikesRank: historicalRanks?.avgBikesRank ?? null,
+          averageEbikesRank: historicalRanks?.avgEbikesRank ?? null,
+        };
+      }),
+    [averageRanksByStationId, currentRanksByStationId, data],
+  );
+
   return (
     <DataTable
       columns={stationTableColumns}
-      data={data}
+      columnGroups={stationTableColumnGroups}
+      data={rows}
       searchPlaceholder="Search stations..."
       getSearchText={(row) =>
         [
@@ -179,6 +241,17 @@ export function StationTableSkeleton() {
         <Table className="w-max min-w-full">
           <TableHeader>
             <TableRow className="bg-accent hover:bg-accent">
+              {STATION_TABLE_SKELETON_GROUPS.map((group) => (
+                <TableHead
+                  key={group.key}
+                  colSpan={group.colSpan}
+                  aria-hidden={group.label ? undefined : true}
+                  className="text-foreground h-7 border-b-0 text-center tracking-wide uppercase">
+                  {group.label}
+                </TableHead>
+              ))}
+            </TableRow>
+            <TableRow className="bg-accent hover:bg-accent">
               {STATION_TABLE_SKELETON_COLUMNS.map((column) => (
                 <TableHead
                   key={column.key}
@@ -226,7 +299,27 @@ export function StationTableSkeleton() {
   );
 }
 
-const stationTableColumns: ColumnDef<CitiBikeStation>[] = [
+const stationTableColumnGroups: DataTableColumnGroup[] = [
+  {
+    label: "Live availability",
+    columnIds: [
+      "capacity",
+      "num_bikes_available",
+      "num_ebikes_available",
+      "num_docks_available",
+    ],
+  },
+  {
+    label: "Latest ranks",
+    columnIds: ["latestBikesRank", "latestEbikesRank"],
+  },
+  {
+    label: "Average ranks",
+    columnIds: ["averageBikesRank", "averageEbikesRank"],
+  },
+];
+
+const stationTableColumns: ColumnDef<StationTableRow>[] = [
   {
     accessorKey: "name",
     header: "Station",
@@ -289,5 +382,29 @@ const stationTableColumns: ColumnDef<CitiBikeStation>[] = [
     accessorKey: "num_docks_available",
     header: "Docks",
     cell: AvailabilityCell,
+  },
+  {
+    accessorKey: "latestBikesRank",
+    header: "Bikes",
+    meta: { mobileLabel: "Latest bikes rank" },
+    cell: RankCell,
+  },
+  {
+    accessorKey: "latestEbikesRank",
+    header: "E-bikes",
+    meta: { mobileLabel: "Latest e-bike rank" },
+    cell: RankCell,
+  },
+  {
+    accessorKey: "averageBikesRank",
+    header: "Bikes",
+    meta: { mobileLabel: "Average bikes rank" },
+    cell: RankCell,
+  },
+  {
+    accessorKey: "averageEbikesRank",
+    header: "E-bikes",
+    meta: { mobileLabel: "Average e-bike rank" },
+    cell: RankCell,
   },
 ];

@@ -4,6 +4,7 @@ import { ChargingStationIcon } from "@phosphor-icons/react/dist/csr/ChargingStat
 import type { CSSProperties, ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { availabilityColorCss } from "#/lib/station-pin";
+import type { StationRankPair } from "#/lib/station-ranks";
 import { cn } from "#/lib/utils";
 import { Progress } from "../ui/progress";
 
@@ -12,20 +13,15 @@ type RankStyle = CSSProperties & {
 };
 
 interface StationRanksProps {
-  station: StationCurrentRanks;
-  stationCount: number;
-}
-
-export interface StationCurrentRanks {
-  ranks: {
-    bikesAvailable: number | null;
-    ebikesAvailable: number | null;
-  };
+  averageRanks: StationRankPair;
+  averageStationCount: number;
+  latestRanks: StationRankPair;
+  latestStationCount: number;
 }
 
 interface RankMetric {
   label: string;
-  rankKey: keyof StationCurrentRanks["ranks"];
+  rankKey: keyof StationRankPair;
   icon: ReactNode;
 }
 
@@ -68,40 +64,62 @@ const RANK_METRICS: RankMetric[] = [
   },
 ];
 
-export function StationRanks({ station, stationCount }: StationRanksProps) {
+export function StationRanks({
+  averageRanks,
+  averageStationCount,
+  latestRanks,
+  latestStationCount,
+}: StationRanksProps) {
+  const groups = [
+    {
+      title: "Latest Ranks",
+      ranks: latestRanks,
+      stationCount: latestStationCount,
+    },
+    {
+      title: "Average Ranks",
+      ranks: averageRanks,
+      stationCount: averageStationCount,
+    },
+  ];
+
   return (
-    <Card className="pb-3!">
-      <CardHeader className="px-4.5!">
-        <CardTitle>Latest Ranks</CardTitle>
-      </CardHeader>
-      <CardContent className="px-3.5!">
-        <NumberFlowGroup>
-          <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-1 xl:grid-cols-2">
-            {RANK_METRICS.map((metric) => (
-              <RankMetricItem
-                key={metric.rankKey}
-                metric={metric}
-                station={station}
-                stationCount={stationCount}
-              />
-            ))}
-          </div>
-        </NumberFlowGroup>
-      </CardContent>
-    </Card>
+    <>
+      {groups.map((group) => (
+        <Card key={group.title} className="pb-3!">
+          <CardHeader className="px-4.5!">
+            <CardTitle>{group.title}</CardTitle>
+          </CardHeader>
+          <CardContent className="px-3.5!">
+            <NumberFlowGroup>
+              <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-1 xl:grid-cols-2">
+                {RANK_METRICS.map((metric) => (
+                  <RankMetricItem
+                    key={metric.rankKey}
+                    metric={metric}
+                    ranks={group.ranks}
+                    stationCount={group.stationCount}
+                  />
+                ))}
+              </div>
+            </NumberFlowGroup>
+          </CardContent>
+        </Card>
+      ))}
+    </>
   );
 }
 
 function RankMetricItem({
   metric,
-  station,
+  ranks,
   stationCount,
 }: {
   metric: RankMetric;
-  station: StationCurrentRanks;
+  ranks: StationRankPair;
   stationCount: number;
 }) {
-  const rank = station.ranks[metric.rankKey];
+  const rank = ranks[metric.rankKey];
 
   const rankPercent = getRankPercent(rank, stationCount);
   const isRanked = rank !== null;
