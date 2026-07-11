@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import { availabilityColorCss } from "#/lib/station-pin";
 import type { StationRankPair } from "#/lib/station-ranks";
 import { cn } from "#/lib/utils";
-import { Progress } from "../ui/progress";
+import { Progress } from "#/components/ui/progress";
 
 type RankStyle = CSSProperties & {
   "--rank-color"?: string;
@@ -134,8 +134,9 @@ function RankMetricItem({
 
   return (
     <div
-      className="grid min-h-26 grid-rows-[auto_1fr_auto] px-3 py-2.5"
-      style={rankStyle}>
+      className="grid min-h-26 grid-rows-[auto_1fr_auto] px-1.5 py-2.5"
+      style={rankStyle}
+    >
       <div className="text-muted-foreground flex items-center gap-x-1.5 text-sm">
         {metric.icon}
         <span>{metric.label}</span>
