@@ -1,7 +1,6 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { useQuery } from "convex/react";
-import { Suspense, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { NotFound } from "#/components/not-found";
 import { RouteBreadcrumb } from "#/components/route-breadcrumb";
 import { ComparisonChart } from "#/components/station/comparison-chart";
@@ -19,17 +18,19 @@ import { api } from "#/integrations/convex/api";
 import {
   convex,
   prewarmStationAvailabilityProfile,
-  prewarmStationsTableData,
   STATION_AVAILABILITY_PROFILE_DAYS,
 } from "#/integrations/convex/root-provider";
-import { stationInformationQueryOptions } from "#/lib/citibike";
+import {
+  type CitiBikeStation,
+  citiBikeStationsQueryOptions,
+} from "#/lib/citibike";
+import { buildCurrentStationRanks } from "#/lib/station-ranks";
 
 export const Route = createFileRoute("/_stations/stations_/$id")({
   loader: async ({ context, params }) => {
     prewarmStationAvailabilityProfile(params.id);
-    prewarmStationsTableData();
     return await context.queryClient.ensureQueryData(
-      stationInformationQueryOptions,
+      citiBikeStationsQueryOptions,
     );
   },
   head: () => ({
@@ -60,14 +61,8 @@ interface StationPreviewStation {
   station_id: string;
 }
 
-function StationChartPanels({
-  stationCapacity,
-  stationId,
-}: {
-  stationCapacity: number | null;
-  stationId: string;
-}) {
-  const { data: profile } = useSuspenseQuery({
+function stationProfileQueryOptions(stationId: string) {
+  return {
     queryKey: [
       "station-availability-profile",
       stationId,
@@ -78,11 +73,19 @@ function StationChartPanels({
         days: STATION_AVAILABILITY_PROFILE_DAYS,
         stationId,
       }),
-  });
-  const stationsTableData = useQuery(api.pedalMap.getStationsTableData);
-  const stationStatus =
-    stationsTableData?.rows.find((row) => row.stationId === stationId) ?? null;
+  };
+}
 
+function StationChartPanels({
+  stationCapacity,
+  stationId,
+}: {
+  stationCapacity: number | null;
+  stationId: string;
+}) {
+  const { data: profile } = useSuspenseQuery(
+    stationProfileQueryOptions(stationId),
+  );
   return (
     <>
       {peakMetrics.map((metric) => (
@@ -90,7 +93,6 @@ function StationChartPanels({
           key={metric.key}
           metricKey={metric.key}
           stationCapacity={stationCapacity}
-          stationStatus={stationStatus}
           weekdayProfile={profile.weekdayProfile}
           weekendProfile={profile.weekendProfile}
         />
@@ -103,23 +105,29 @@ function StationChartPanels({
   );
 }
 
-function StationRanksPanel({ stationId }: { stationId: string }) {
-  const stationsTableData = useQuery(api.pedalMap.getStationsTableData);
-  const station =
-    stationsTableData?.rows.find((row) => row.stationId === stationId) ?? null;
+function StationRanksPanel({
+  stationId,
+  stations,
+}: {
+  stationId: string;
+  stations: CitiBikeStation[];
+}) {
+  const { data: profile } = useSuspenseQuery(
+    stationProfileQueryOptions(stationId),
+  );
+  const currentRanks = useMemo(
+    () => buildCurrentStationRanks(stations),
+    [stations],
+  ).get(stationId);
 
-  if (!stationsTableData) {
-    return <StationRanksSkeleton />;
-  }
-
-  if (!station) {
-    return null;
-  }
+  if (!currentRanks) return null;
 
   return (
     <StationRanks
-      station={station}
-      stationCount={stationsTableData.rows.length}
+      latestRanks={currentRanks}
+      latestStationCount={stations.length}
+      averageRanks={profile.averageRanks}
+      averageStationCount={profile.averageRankStationCount}
     />
   );
 }
@@ -160,9 +168,11 @@ function StationLocationPanel({
 
 function StationDetailPage() {
   const { id } = Route.useParams();
-  const stationInformation = Route.useLoaderData();
+  const { data: stationInformation } = useSuspenseQuery(
+    citiBikeStationsQueryOptions,
+  );
 
-  const stations = stationInformation.data.stations;
+  const stations = stationInformation.stations;
   const station = stations.find((candidate) => candidate.station_id === id);
 
   if (!station) {
@@ -178,7 +188,9 @@ function StationDetailPage() {
       <div className="flex flex-col gap-6">
         <h1 className="text-xl font-bold">{station.name}</h1>
         <div className="grid gap-6 md:grid-cols-2">
-          <StationRanksPanel stationId={id} />
+          <Suspense fallback={<StationRanksSkeleton />}>
+            <StationRanksPanel stationId={id} stations={stations} />
+          </Suspense>
           <Suspense
             fallback={
               <>
@@ -187,8 +199,7 @@ function StationDetailPage() {
                 <StationPeaksChartSkeleton title="Average Open Dock %" />
                 <StationComparisonChartSkeleton />
               </>
-            }
-          >
+            }>
             <StationChartPanels
               stationCapacity={station.capacity ?? null}
               stationId={id}

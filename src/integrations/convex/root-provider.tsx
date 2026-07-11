@@ -6,19 +6,7 @@ export const convex = new ConvexReactClient(
   import.meta.env.VITE_CONVEX_URL as string,
 );
 
-export const STATION_AVAILABILITY_PROFILE_DAYS = 30;
-
-export function prewarmStationsTableData() {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  convex.prewarmQuery({
-    query: api.pedalMap.getStationsTableData,
-    args: {},
-    extendSubscriptionFor: 30_000,
-  });
-}
+export const STATION_AVAILABILITY_PROFILE_DAYS = 28;
 
 export function prewarmStationAvailabilityProfile(
   stationId: string,

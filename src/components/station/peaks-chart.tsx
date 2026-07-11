@@ -7,10 +7,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import type {
-  ProfileSlot,
-  StationRow,
-} from "#/components/station/profile.types";
+import type { ProfileSlot } from "#/components/station/profile.types";
 import { Card, CardContent, CardHeader, CardTitle } from "#/components/ui/card";
 import {
   type ChartConfig,
@@ -285,8 +282,7 @@ function TimeTick({
       dy={14}
       fill="var(--foreground)"
       fontSize={12}
-      textAnchor={hour === 24 ? "end" : hour === 0 ? "start" : "middle"}
-    >
+      textAnchor={hour === 24 ? "end" : hour === 0 ? "start" : "middle"}>
       {label}
     </text>
   );
@@ -320,13 +316,11 @@ function MarkerDots({
 export function PeaksChart({
   stationCapacity,
   metricKey,
-  stationStatus: _stationStatus,
   weekdayProfile,
   weekendProfile,
 }: {
   metricKey: PeakMetricKey;
   stationCapacity: number | null;
-  stationStatus: StationRow | null;
   weekdayProfile: ProfileSlot[];
   weekendProfile: ProfileSlot[];
 }) {
@@ -385,13 +379,11 @@ export function PeaksChart({
           <ChartContainer
             config={chartConfig}
             className="[&_.recharts-cartesian-grid_line]:stroke-border/40 flex h-full min-h-0 w-full flex-1 [&_.recharts-legend-wrapper]:pt-2"
-            initialDimension={{ width: 720, height: 320 }}
-          >
+            initialDimension={{ width: 720, height: 320 }}>
             <AreaChart
               accessibilityLayer
               data={chartData}
-              margin={{ top: 12, right: 12, bottom: 4, left: 0 }}
-            >
+              margin={{ top: 12, right: 12, bottom: 4, left: 0 }}>
               <MarkerDots marker={peak} variant="peak" />
               <MarkerDots marker={valley} variant="valley" />
               <defs>

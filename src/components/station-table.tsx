@@ -1,13 +1,15 @@
 import { Link } from "@tanstack/react-router";
 import type { CellContext, ColumnDef } from "@tanstack/react-table";
-import type { FunctionReturnType } from "convex/server";
+import { useMemo } from "react";
 import {
   DataTable,
   type DataTableColumnGroup,
-  type DataTableGlossary,
 } from "#/components/ui/data-table";
-import type { api } from "#/integrations/convex/api";
 import { prewarmStationAvailabilityProfile } from "#/integrations/convex/root-provider";
+import type { CitiBikeStation } from "#/lib/citibike";
+import { isStationActive } from "#/lib/station";
+import type { StationAverageRanksData } from "#/lib/station-average-ranks";
+import { buildCurrentStationRanks } from "#/lib/station-ranks";
 import { getStationRegion } from "#/lib/station-region";
 import { ColorCell } from "./color-cell";
 import { Badge } from "./ui/badge";
@@ -24,21 +26,28 @@ import {
   TableRow,
 } from "./ui/table";
 
-type StationsData = FunctionReturnType<
-  typeof api.pedalMap.getStationsTableData
->;
-type StationRow = StationsData["rows"][number];
-
 interface StationTableProps {
-  data: StationsData["rows"];
+  averageRanks: StationAverageRanksData;
+  data: CitiBikeStation[];
 }
+
+type StationTableRow = CitiBikeStation & {
+  averageBikesRank: number | null;
+  averageEbikesRank: number | null;
+  latestBikesRank: number | null;
+  latestEbikesRank: number | null;
+};
 
 function clampRatio(ratio: number): number {
   return Math.max(0, Math.min(1, ratio));
 }
 
-function getCapacityRatio(value: number | null, capacity: number | null) {
-  if (value === null || capacity === null || capacity <= 0) {
+function toNullableNumber(value: number | undefined) {
+  return value ?? null;
+}
+
+function getCapacityRatio(value: number | undefined, capacity?: number) {
+  if (value === undefined || capacity === undefined || capacity <= 0) {
     return null;
   }
 
@@ -52,24 +61,21 @@ const WHOLE_NUMBER_FORMAT: Intl.NumberFormatOptions = {
 
 const STATION_TABLE_SKELETON_COLUMNS = [
   { key: "station", label: "Station" },
-  { key: "avg-bikes", label: "Bikes" },
-  { key: "avg-electric", label: "Electric" },
-  { key: "avg-electric-percent", label: "Electric %" },
-  { key: "pressure", label: "Pressure" },
-  { key: "turnover", label: "Turnover" },
-  { key: "arrivals", label: "Arrivals" },
-  { key: "departures", label: "Departures" },
-  { key: "avg-occupancy", label: "Occ %" },
-  { key: "latest-bikes", label: "Bikes" },
-  { key: "latest-electric", label: "Electric" },
-  { key: "latest-classic", label: "Classic" },
-  { key: "latest-occupancy", label: "Occ %" },
+  { key: "capacity", label: "Capacity" },
+  { key: "bikes", label: "Bikes" },
+  { key: "electric", label: "E-bikes" },
+  { key: "docks", label: "Docks" },
+  { key: "latest-bikes-rank", label: "Bikes" },
+  { key: "latest-ebikes-rank", label: "E-bikes" },
+  { key: "average-bikes-rank", label: "Bikes" },
+  { key: "average-ebikes-rank", label: "E-bikes" },
 ] as const;
 
 const STATION_TABLE_SKELETON_GROUPS = [
   { key: "station", label: "", colSpan: 1 },
-  { key: "average", label: "Average", colSpan: 8 },
-  { key: "latest", label: "Latest", colSpan: 4 },
+  { key: "availability", label: "Live availability", colSpan: 4 },
+  { key: "latest-ranks", label: "Latest ranks", colSpan: 2 },
+  { key: "average-ranks", label: "Average ranks", colSpan: 2 },
 ] as const;
 
 const STATION_TABLE_SKELETON_ROWS = Array.from(
@@ -83,89 +89,102 @@ const STATION_TABLE_MOBILE_SKELETON_ROWS = Array.from(
 );
 
 const STATION_TABLE_MOBILE_METRICS = Array.from(
-  { length: 6 },
+  { length: 8 },
   (_, index) => `station-table-mobile-skeleton-metric-${index}`,
 );
 
-function PercentCell({ getValue, row }: CellContext<StationRow, unknown>) {
-  const value = getValue() as number | null;
-
-  return (
-    <ColorCell
-      active={row.original.isActive}
-      formatOptions={{
-        maximumFractionDigits: 1,
-        minimumFractionDigits: 1,
-        style: "percent",
-      }}
-      ratio={value}
-      value={value}
-    />
-  );
-}
-
-function WholeNumberAvailabilityCell({
+function AvailabilityCell({
   getValue,
   row,
-}: CellContext<StationRow, unknown>) {
-  const value = getValue() as number | null;
+}: CellContext<StationTableRow, unknown>) {
+  const value = getValue() as number | undefined;
 
   return (
     <ColorCell
-      active={row.original.isActive}
+      active={isStationActive(row.original)}
       formatOptions={WHOLE_NUMBER_FORMAT}
       ratio={getCapacityRatio(value, row.original.capacity)}
-      value={value}
+      value={toNullableNumber(value)}
     />
   );
 }
 
-export function StationTable({ data }: StationTableProps) {
+function CapacityCell({ getValue }: CellContext<StationTableRow, unknown>) {
+  const value = getValue() as number | undefined;
+
+  return (
+    <span className="tabular-nums">
+      {value === undefined ? "--" : value.toLocaleString()}
+    </span>
+  );
+}
+
+function RankCell({ getValue }: CellContext<StationTableRow, unknown>) {
+  const value = getValue() as number | null;
+
+  return (
+    <span className="tabular-nums">
+      {value === null ? "--" : `#${value.toLocaleString()}`}
+    </span>
+  );
+}
+
+function prewarmProfile(stationId: string) {
+  prewarmStationAvailabilityProfile(stationId);
+}
+
+export function StationTable({ averageRanks, data }: StationTableProps) {
+  const currentRanksByStationId = useMemo(
+    () => buildCurrentStationRanks(data),
+    [data],
+  );
+  const averageRanksByStationId = useMemo(
+    () =>
+      new Map(averageRanks.rows.map((row) => [row.stationId, row] as const)),
+    [averageRanks.rows],
+  );
+  const rows = useMemo<StationTableRow[]>(
+    () =>
+      data.map((station) => {
+        const currentRanks = currentRanksByStationId.get(station.station_id);
+        const historicalRanks = averageRanksByStationId.get(station.station_id);
+
+        return {
+          ...station,
+          latestBikesRank: currentRanks?.bikesAvailable ?? null,
+          latestEbikesRank: currentRanks?.ebikesAvailable ?? null,
+          averageBikesRank: historicalRanks?.avgBikesRank ?? null,
+          averageEbikesRank: historicalRanks?.avgEbikesRank ?? null,
+        };
+      }),
+    [averageRanksByStationId, currentRanksByStationId, data],
+  );
+
   return (
     <DataTable
       columns={stationTableColumns}
       columnGroups={stationTableColumnGroups}
-      data={data}
-      glossary={stationTableGlossary}
+      data={rows}
       searchPlaceholder="Search stations..."
       getSearchText={(row) =>
         [
           row.name,
-          row.shortName ?? "",
-          getStationRegion(row.regionId, row.stationId)?.label ?? "",
+          row.short_name ?? "",
+          getStationRegion(row.region_id, row.station_id)?.label ?? "",
         ].join(" ")
       }
       getMobileCardLink={(row) => ({
         to: "/stations/$id",
-        params: { id: row.stationId },
+        params: { id: row.station_id },
         "aria-label": `View ${row.name} station profile`,
-        onFocus: () => {
-          prewarmStationAvailabilityProfile(row.stationId);
-        },
-        onPointerEnter: () => {
-          prewarmStationAvailabilityProfile(row.stationId);
-        },
-        onTouchStart: () => {
-          prewarmStationAvailabilityProfile(row.stationId);
-        },
+        onFocus: () => prewarmProfile(row.station_id),
+        onPointerEnter: () => prewarmProfile(row.station_id),
+        onTouchStart: () => prewarmProfile(row.station_id),
       })}
-      defaultColumn={{
-        cell: ({ getValue, row }) => {
-          const value = getValue() as number | null;
-
-          return (
-            <ColorCell
-              active={row.original.isActive}
-              ratio={getCapacityRatio(value, row.original.capacity)}
-              value={value}
-            />
-          );
-        },
-      }}
       initialState={{
         sorting: [
           {
-            id: "avgBikesAvailable",
+            id: "num_bikes_available",
             desc: true,
           },
         ],
@@ -203,12 +222,11 @@ export function StationTableSkeleton() {
                 <Skeleton className="h-4 w-3/4" />
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-4 gap-3">
                   {STATION_TABLE_MOBILE_METRICS.map((metric) => (
                     <div
                       key={`${row}-${metric}`}
-                      className="flex min-w-0 flex-col items-center gap-1.5 px-1"
-                    >
+                      className="flex min-w-0 flex-col items-center gap-1.5 px-1">
                       <Skeleton className="h-3 w-12 max-w-full" />
                       <Skeleton className="h-4 w-8" />
                     </div>
@@ -228,8 +246,7 @@ export function StationTableSkeleton() {
                   key={group.key}
                   colSpan={group.colSpan}
                   aria-hidden={group.label ? undefined : true}
-                  className="text-foreground h-7 border-b-0 text-center tracking-wide uppercase"
-                >
+                  className="text-foreground h-7 border-b-0 text-center tracking-wide uppercase">
                   {group.label}
                 </TableHead>
               ))}
@@ -239,8 +256,7 @@ export function StationTableSkeleton() {
                 <TableHead
                   key={column.key}
                   scope="col"
-                  className="h-9 whitespace-nowrap"
-                >
+                  className="h-9 whitespace-nowrap">
                   {column.label}
                 </TableHead>
               ))}
@@ -252,8 +268,7 @@ export function StationTableSkeleton() {
                 {STATION_TABLE_SKELETON_COLUMNS.map((column) => (
                   <TableCell
                     key={`${row}-${column.key}`}
-                    className="text-right whitespace-nowrap"
-                  >
+                    className="text-right whitespace-nowrap">
                     <Skeleton
                       className={
                         column.key === "station"
@@ -286,192 +301,110 @@ export function StationTableSkeleton() {
 
 const stationTableColumnGroups: DataTableColumnGroup[] = [
   {
-    label: "Average",
+    label: "Live availability",
     columnIds: [
-      "avgBikesAvailable",
-      "avgEbikesAvailable",
-      "avgEbikeShare",
-      "pressureScore",
-      "sumTurnover",
-      "sumInferredArrivals",
-      "sumInferredDepartures",
-      "avgOccupancyPct",
+      "capacity",
+      "num_bikes_available",
+      "num_ebikes_available",
+      "num_docks_available",
     ],
   },
   {
-    label: "Latest",
-    columnIds: [
-      "bikesAvailable",
-      "ebikesAvailable",
-      "classicBikesAvailable",
-      "currentOccupancyPct",
-    ],
+    label: "Latest ranks",
+    columnIds: ["latestBikesRank", "latestEbikesRank"],
+  },
+  {
+    label: "Average ranks",
+    columnIds: ["averageBikesRank", "averageEbikesRank"],
   },
 ];
 
-const stationTableGlossary: DataTableGlossary = {
-  title: "Station Metrics",
-  triggerLabel: "Glossary",
-  items: [
-    {
-      id: "e-bike-share",
-      term: "Electric %",
-      description:
-        "Average electric bikes divided by average total bikes for the day. Blank values mean no bikes were available in the averaged samples.",
-    },
-    {
-      id: "occupancy",
-      term: "Occ %",
-      description:
-        "Bikes available divided by station capacity. Average columns use the day's sampled occupancy; latest columns use the most recent station status.",
-    },
-    {
-      id: "dock-availability",
-      term: "Dock %",
-      description:
-        "Docks available divided by station capacity. Capacity comes from station information, with a status-based fallback when needed.",
-    },
-    {
-      id: "pressure",
-      term: "Pressure",
-      description:
-        "Share of today's samples where the station was either empty or full. Requires at least six samples.",
-    },
-    {
-      id: "turnover",
-      term: "Turnover",
-      description:
-        "Sum of inferred arrivals and departures across today's samples, based on changes in bikes available between samples.",
-    },
-    {
-      id: "classic",
-      term: "Classic",
-      description: "The total number of non-electric bikes available.",
-    },
-  ],
-};
-
-const stationTableColumns: ColumnDef<StationRow>[] = [
+const stationTableColumns: ColumnDef<StationTableRow>[] = [
   {
     accessorKey: "name",
     header: "Station",
     meta: {
       cellClassName:
-        "w-30 min-w-30 max-w-30 md:w-48 md:min-w-48 md:max-w-48 overflow-hidden text-left",
+        "w-30 min-w-30 max-w-30 md:w-64 md:min-w-64 md:max-w-64 overflow-hidden text-left",
       headerButtonClassName: "ml-0 w-full justify-start",
       headerClassName:
-        "w-30 min-w-30 max-w-30 md:w-48 md:min-w-48 md:max-w-48 text-left",
+        "w-30 min-w-30 max-w-30 md:w-64 md:min-w-64 md:max-w-64 text-left",
       sticky: "left",
     },
-    cell: ({ row }) => (
-      <div
-        className="flex w-full min-w-0 items-center gap-2"
-        title={row.original.name}
-      >
-        <span className="md:hidden">{row.original.name}</span>
-        <Badge
-          variant={
-            getStationRegion(row.original.regionId, row.original.stationId)
-              ?.badgeVariant
-          }
-          className="ml-auto md:hidden"
-        >
-          {
-            getStationRegion(row.original.regionId, row.original.stationId)
-              ?.label
-          }
-        </Badge>
-        <Link
-          to="/stations/$id"
-          params={{ id: row.original.stationId }}
-          aria-label={`View ${row.original.name} station profile`}
-          className="focus-visible:border-ring focus-visible:ring-ring/50 hidden min-w-0 truncate rounded-sm font-medium transition-colors outline-none hover:text-teal-500/80 focus-visible:ring-[3px] md:block"
-        >
-          {row.original.name}
-        </Link>
-        {row.original.isActive === false ? (
-          <Badge variant="offline" aria-label="Offline" className="shrink-0">
-            Offline
-          </Badge>
-        ) : null}
-      </div>
-    ),
-  },
-  {
-    accessorKey: "avgBikesAvailable",
-    header: "Bikes",
-  },
-  {
-    accessorKey: "avgEbikesAvailable",
-    header: "Electric",
-  },
-  {
-    accessorFn: (row) => {
-      if (
-        row.avgEbikesAvailable === null ||
-        row.avgBikesAvailable === null ||
-        row.avgBikesAvailable <= 0
-      ) {
-        return null;
-      }
+    cell: ({ row }) => {
+      const station = row.original;
+      const region = getStationRegion(station.region_id, station.station_id);
 
-      return clampRatio(row.avgEbikesAvailable / row.avgBikesAvailable);
+      return (
+        <div
+          className="flex w-full min-w-0 items-center gap-2"
+          title={station.name}>
+          <span className="md:hidden">{station.name}</span>
+          {region ? (
+            <Badge variant={region.badgeVariant} className="ml-auto md:hidden">
+              {region.label}
+            </Badge>
+          ) : null}
+          <Link
+            to="/stations/$id"
+            params={{ id: station.station_id }}
+            aria-label={`View ${station.name} station profile`}
+            onFocus={() => prewarmProfile(station.station_id)}
+            onPointerEnter={() => prewarmProfile(station.station_id)}
+            className="focus-visible:border-ring focus-visible:ring-ring/50 hidden min-w-0 truncate rounded-sm font-medium transition-colors outline-none hover:text-teal-500/80 focus-visible:ring-[3px] md:block">
+            {station.name}
+          </Link>
+          {!isStationActive(station) ? (
+            <Badge variant="offline" aria-label="Offline" className="shrink-0">
+              Offline
+            </Badge>
+          ) : null}
+        </div>
+      );
     },
-    id: "avgEbikeShare",
-    header: "Electric %",
-    cell: PercentCell,
-  },
-
-  {
-    accessorKey: "pressureScore",
-    header: "Pressure",
-    cell: PercentCell,
   },
   {
-    accessorKey: "sumTurnover",
-    header: "Turnover",
-    cell: WholeNumberAvailabilityCell,
+    accessorKey: "capacity",
+    header: "Capacity",
+    cell: CapacityCell,
   },
   {
-    accessorKey: "sumInferredArrivals",
-    header: "Arrivals",
-    cell: WholeNumberAvailabilityCell,
-  },
-  {
-    accessorKey: "sumInferredDepartures",
-    header: "Departures",
-    cell: WholeNumberAvailabilityCell,
-  },
-  {
-    accessorKey: "avgOccupancyPct",
-    header: "Occ %",
-    cell: PercentCell,
-  },
-  {
-    accessorKey: "bikesAvailable",
+    accessorKey: "num_bikes_available",
     header: "Bikes",
-    cell: WholeNumberAvailabilityCell,
+    cell: AvailabilityCell,
   },
   {
-    accessorKey: "ebikesAvailable",
-    header: "Electric",
-    cell: WholeNumberAvailabilityCell,
+    accessorKey: "num_ebikes_available",
+    header: "E-bikes",
+    cell: AvailabilityCell,
   },
   {
-    id: "classicBikesAvailable",
-    accessorFn: (row) => {
-      if (row.bikesAvailable === null || row.ebikesAvailable === null) {
-        return null;
-      }
-
-      return row.bikesAvailable - row.ebikesAvailable;
-    },
-    header: "Classic",
-    cell: WholeNumberAvailabilityCell,
+    accessorKey: "num_docks_available",
+    header: "Docks",
+    cell: AvailabilityCell,
   },
   {
-    accessorKey: "currentOccupancyPct",
-    header: "Occ %",
-    cell: PercentCell,
+    accessorKey: "latestBikesRank",
+    header: "Bikes",
+    meta: { mobileLabel: "Latest bikes rank" },
+    cell: RankCell,
+  },
+  {
+    accessorKey: "latestEbikesRank",
+    header: "E-bikes",
+    meta: { mobileLabel: "Latest e-bike rank" },
+    cell: RankCell,
+  },
+  {
+    accessorKey: "averageBikesRank",
+    header: "Bikes",
+    meta: { mobileLabel: "Average bikes rank" },
+    cell: RankCell,
+  },
+  {
+    accessorKey: "averageEbikesRank",
+    header: "E-bikes",
+    meta: { mobileLabel: "Average e-bike rank" },
+    cell: RankCell,
   },
 ];
