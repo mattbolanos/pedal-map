@@ -23,7 +23,6 @@ import {
 } from "#/components/station-map-view-state";
 import { useIsMobile } from "#/hooks/use-mobile";
 import { usePrefersReducedMotion } from "#/hooks/use-reduced-motion";
-import { prewarmStationAvailabilityProfile } from "#/integrations/convex/root-provider";
 import type { CitiBikeStation } from "#/lib/citibike";
 import { citiBikeStationsQueryOptions } from "#/lib/citibike";
 import { NYC_METRO_BOUNDS } from "#/lib/geo";
@@ -69,7 +68,6 @@ export function StationMap() {
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const isMobile = useIsMobile();
   const locationRequestIdRef = useRef(0);
-  const prewarmedStationIdsRef = useRef<Set<string>>(new Set());
   const prefersReducedMotion = usePrefersReducedMotion();
   const { setUserLocation, userLocation } = useUserLocation();
   const renderStations =
@@ -93,15 +91,6 @@ export function StationMap() {
     isMobile,
     viewState,
   });
-
-  const prewarmStation = useCallback((station: CitiBikeStation | null) => {
-    if (!station || prewarmedStationIdsRef.current.has(station.station_id)) {
-      return;
-    }
-
-    prewarmedStationIdsRef.current.add(station.station_id);
-    prewarmStationAvailabilityProfile(station.station_id);
-  }, []);
 
   const alignStationInViewport = (
     station: CitiBikeStation,
@@ -197,8 +186,6 @@ export function StationMap() {
   }, [setUserLocation]);
 
   const selectStationFromSearch = (station: CitiBikeStation) => {
-    prewarmStation(station);
-
     setViewState((currentViewState) => {
       const nextViewState = clampViewState(
         createStationFlyToViewState(
@@ -239,7 +226,6 @@ export function StationMap() {
         return;
       }
 
-      prewarmStation(station);
       markStationInteraction(station.station_id);
       setIsMobileDrawerOpen(true);
       setSelectedMobileStation((current) => {
@@ -265,14 +251,10 @@ export function StationMap() {
 
     if (!station) {
       setSearchSelectedDesktopStation(null);
-      return;
     }
-
-    prewarmStation(station);
   };
 
   const handleMapHover = (info: PickingInfo<CitiBikeStation>) => {
-    prewarmStation(info.object ?? null);
     handleStationTooltipHover(info);
   };
 

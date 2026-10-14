@@ -7,7 +7,6 @@ import {
 import { Analytics } from "@vercel/analytics/react";
 import { NotFound } from "#/components/not-found";
 import { Toaster } from "#/components/ui/sonner";
-import ConvexRootProvider from "#/integrations/convex/root-provider";
 import TanStackQueryProvider from "#/integrations/tanstack-query/root-provider";
 import { UserLocationProvider } from "#/lib/user-location-provider";
 import appCss from "#/styles.css?url";
@@ -165,9 +164,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <body className="bg-background dark font-sans wrap-anywhere antialiased">
         <Analytics />
         <TanStackQueryProvider>
-          <ConvexRootProvider>
-            <UserLocationProvider>{children}</UserLocationProvider>
-          </ConvexRootProvider>
+          <UserLocationProvider>{children}</UserLocationProvider>
         </TanStackQueryProvider>
         <Scripts />
         <Toaster richColors />

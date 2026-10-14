@@ -13,7 +13,6 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as StationsRouteImport } from './routes/_stations'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as StationsStationsRouteImport } from './routes/_stations.stations'
-import { Route as StationsStationsIdRouteImport } from './routes/_stations.stations_.$id'
 
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
@@ -34,23 +33,16 @@ const StationsStationsRoute = StationsStationsRouteImport.update({
   path: '/stations',
   getParentRoute: () => StationsRoute,
 } as any)
-const StationsStationsIdRoute = StationsStationsIdRouteImport.update({
-  id: '/stations_/$id',
-  path: '/stations/$id',
-  getParentRoute: () => StationsRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/stations': typeof StationsStationsRoute
-  '/stations/$id': typeof StationsStationsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/stations': typeof StationsStationsRoute
-  '/stations/$id': typeof StationsStationsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -58,20 +50,13 @@ export interface FileRoutesById {
   '/_stations': typeof StationsRouteWithChildren
   '/about': typeof AboutRoute
   '/_stations/stations': typeof StationsStationsRoute
-  '/_stations/stations_/$id': typeof StationsStationsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/stations' | '/stations/$id'
+  fullPaths: '/' | '/about' | '/stations'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/stations' | '/stations/$id'
-  id:
-    | '__root__'
-    | '/'
-    | '/_stations'
-    | '/about'
-    | '/_stations/stations'
-    | '/_stations/stations_/$id'
+  to: '/' | '/about' | '/stations'
+  id: '__root__' | '/' | '/_stations' | '/about' | '/_stations/stations'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -110,24 +95,15 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StationsStationsRouteImport
       parentRoute: typeof StationsRoute
     }
-    '/_stations/stations_/$id': {
-      id: '/_stations/stations_/$id'
-      path: '/stations/$id'
-      fullPath: '/stations/$id'
-      preLoaderRoute: typeof StationsStationsIdRouteImport
-      parentRoute: typeof StationsRoute
-    }
   }
 }
 
 interface StationsRouteChildren {
   StationsStationsRoute: typeof StationsStationsRoute
-  StationsStationsIdRoute: typeof StationsStationsIdRoute
 }
 
 const StationsRouteChildren: StationsRouteChildren = {
   StationsStationsRoute: StationsStationsRoute,
-  StationsStationsIdRoute: StationsStationsIdRoute,
 }
 
 const StationsRouteWithChildren = StationsRoute._addFileChildren(

@@ -1,14 +1,11 @@
-import { Link } from "@tanstack/react-router";
 import type { CellContext, ColumnDef } from "@tanstack/react-table";
 import { useMemo } from "react";
 import {
   DataTable,
   type DataTableColumnGroup,
 } from "#/components/ui/data-table";
-import { prewarmStationAvailabilityProfile } from "#/integrations/convex/root-provider";
 import type { CitiBikeStation } from "#/lib/citibike";
 import { isStationActive } from "#/lib/station";
-import type { StationAverageRanksData } from "#/lib/station-average-ranks";
 import { buildCurrentStationRanks } from "#/lib/station-ranks";
 import { getStationRegion } from "#/lib/station-region";
 import { ColorCell } from "./color-cell";
@@ -27,13 +24,10 @@ import {
 } from "./ui/table";
 
 interface StationTableProps {
-  averageRanks: StationAverageRanksData;
   data: CitiBikeStation[];
 }
 
 type StationTableRow = CitiBikeStation & {
-  averageBikesRank: number | null;
-  averageEbikesRank: number | null;
   latestBikesRank: number | null;
   latestEbikesRank: number | null;
 };
@@ -67,15 +61,12 @@ const STATION_TABLE_SKELETON_COLUMNS = [
   { key: "docks", label: "Docks" },
   { key: "latest-bikes-rank", label: "Bikes" },
   { key: "latest-ebikes-rank", label: "E-bikes" },
-  { key: "average-bikes-rank", label: "Bikes" },
-  { key: "average-ebikes-rank", label: "E-bikes" },
 ] as const;
 
 const STATION_TABLE_SKELETON_GROUPS = [
   { key: "station", label: "", colSpan: 1 },
   { key: "availability", label: "Live availability", colSpan: 4 },
   { key: "latest-ranks", label: "Latest ranks", colSpan: 2 },
-  { key: "average-ranks", label: "Average ranks", colSpan: 2 },
 ] as const;
 
 const STATION_TABLE_SKELETON_ROWS = Array.from(
@@ -89,7 +80,7 @@ const STATION_TABLE_MOBILE_SKELETON_ROWS = Array.from(
 );
 
 const STATION_TABLE_MOBILE_METRICS = Array.from(
-  { length: 8 },
+  { length: 6 },
   (_, index) => `station-table-mobile-skeleton-metric-${index}`,
 );
 
@@ -129,35 +120,23 @@ function RankCell({ getValue }: CellContext<StationTableRow, unknown>) {
   );
 }
 
-function prewarmProfile(stationId: string) {
-  prewarmStationAvailabilityProfile(stationId);
-}
-
-export function StationTable({ averageRanks, data }: StationTableProps) {
+export function StationTable({ data }: StationTableProps) {
   const currentRanksByStationId = useMemo(
     () => buildCurrentStationRanks(data),
     [data],
-  );
-  const averageRanksByStationId = useMemo(
-    () =>
-      new Map(averageRanks.rows.map((row) => [row.stationId, row] as const)),
-    [averageRanks.rows],
   );
   const rows = useMemo<StationTableRow[]>(
     () =>
       data.map((station) => {
         const currentRanks = currentRanksByStationId.get(station.station_id);
-        const historicalRanks = averageRanksByStationId.get(station.station_id);
 
         return {
           ...station,
           latestBikesRank: currentRanks?.bikesAvailable ?? null,
           latestEbikesRank: currentRanks?.ebikesAvailable ?? null,
-          averageBikesRank: historicalRanks?.avgBikesRank ?? null,
-          averageEbikesRank: historicalRanks?.avgEbikesRank ?? null,
         };
       }),
-    [averageRanksByStationId, currentRanksByStationId, data],
+    [currentRanksByStationId, data],
   );
 
   return (
@@ -173,14 +152,6 @@ export function StationTable({ averageRanks, data }: StationTableProps) {
           getStationRegion(row.region_id, row.station_id)?.label ?? "",
         ].join(" ")
       }
-      getMobileCardLink={(row) => ({
-        to: "/stations/$id",
-        params: { id: row.station_id },
-        "aria-label": `View ${row.name} station profile`,
-        onFocus: () => prewarmProfile(row.station_id),
-        onPointerEnter: () => prewarmProfile(row.station_id),
-        onTouchStart: () => prewarmProfile(row.station_id),
-      })}
       initialState={{
         sorting: [
           {
@@ -317,10 +288,6 @@ const stationTableColumnGroups: DataTableColumnGroup[] = [
     label: "Latest ranks",
     columnIds: ["latestBikesRank", "latestEbikesRank"],
   },
-  {
-    label: "Average ranks",
-    columnIds: ["averageBikesRank", "averageEbikesRank"],
-  },
 ];
 
 const stationTableColumns: ColumnDef<StationTableRow>[] = [
@@ -350,16 +317,9 @@ const stationTableColumns: ColumnDef<StationTableRow>[] = [
               {region.label}
             </Badge>
           ) : null}
-          <Link
-            to="/stations/$id"
-            params={{ id: station.station_id }}
-            aria-label={`View ${station.name} station profile`}
-            onFocus={() => prewarmProfile(station.station_id)}
-            onPointerEnter={() => prewarmProfile(station.station_id)}
-            className="focus-visible:border-ring focus-visible:ring-ring/50 hidden min-w-0 truncate rounded-sm font-medium transition-colors outline-none hover:text-teal-500/80 focus-visible:ring-[3px] md:block"
-          >
+          <span className="hidden min-w-0 truncate font-medium md:block">
             {station.name}
-          </Link>
+          </span>
           {!isStationActive(station) ? (
             <Badge variant="offline" aria-label="Offline" className="shrink-0">
               Offline
@@ -402,29 +362,5 @@ const stationTableColumns: ColumnDef<StationTableRow>[] = [
     meta: { mobileLabel: "Latest e-bike rank" },
     cell: RankCell,
     invertSorting: true,
-  },
-  {
-    accessorKey: "averageBikesRank",
-    header: "Bikes",
-    meta: { mobileLabel: "Average bikes rank" },
-    cell: RankCell,
-    invertSorting: true,
-    sortingFn: (rowA, rowB) => {
-      const rowAValue = rowA.original.averageBikesRank ?? 999999;
-      const rowBValue = rowB.original.averageBikesRank ?? 999999;
-      return rowAValue - rowBValue;
-    },
-  },
-  {
-    accessorKey: "averageEbikesRank",
-    header: "E-bikes",
-    meta: { mobileLabel: "Average e-bike rank" },
-    cell: RankCell,
-    invertSorting: true,
-    sortingFn: (rowA, rowB) => {
-      const rowAValue = rowA.original.averageEbikesRank ?? 999999;
-      const rowBValue = rowB.original.averageEbikesRank ?? 999999;
-      return rowAValue - rowBValue;
-    },
   },
 ];

@@ -3,7 +3,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { RouteBreadcrumb } from "#/components/route-breadcrumb";
 import { StationTable, StationTableSkeleton } from "#/components/station-table";
 import { citiBikeStationsQueryOptions } from "#/lib/citibike";
-import { stationAverageRanksQueryOptions } from "#/lib/station-average-ranks";
 
 const DESCRIPTION =
   "Browse live Citi Bike station capacity, bikes, docks, and e-bikes across the system.";
@@ -37,25 +36,19 @@ export const Route = createFileRoute("/_stations/stations")({
     ],
   }),
   loader: ({ context }) =>
-    Promise.all([
-      context.queryClient.ensureQueryData(citiBikeStationsQueryOptions),
-      context.queryClient.ensureQueryData(stationAverageRanksQueryOptions),
-    ]),
+    context.queryClient.ensureQueryData(citiBikeStationsQueryOptions),
   pendingComponent: StationTableSkeleton,
   component: StationsPage,
 });
 
 function StationsPage() {
   const { data } = useSuspenseQuery(citiBikeStationsQueryOptions);
-  const { data: averageRanks } = useSuspenseQuery(
-    stationAverageRanksQueryOptions,
-  );
 
   return (
     <>
       <RouteBreadcrumb current="Stations" />
       <h1 className="text-xl font-bold">Stations</h1>
-      <StationTable data={data.stations} averageRanks={averageRanks} />
+      <StationTable data={data.stations} />
     </>
   );
 }
