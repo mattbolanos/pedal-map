@@ -65,15 +65,6 @@ function AboutPage() {
           dropoffs, refreshed every 15 seconds or so.
         </p>
         <p>
-          The data aggregation layer lives in a small separate service. Every
-          hour it fetches station status, refreshes the station catalog when
-          needed, and updates compact weekday/weekend hourly averages for each
-          station. Once a day, another job finalizes average station ranks and
-          removes expired daily summaries. The station table stays live by
-          reading the public feed directly, with only a small daily rank
-          snapshot coming from the historical database.
-        </p>
-        <p>
           I want to give props to{" "}
           <a
             href="https://bikemap.nyc"

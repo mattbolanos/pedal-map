@@ -15,13 +15,10 @@ Live station information comes from Citi Bike's public GBFS feeds:
 - `station_information.json`
 - `station_status.json`
 
-Historical station summaries are read from a Convex backend via typed API references in `src/integrations/convex/api.ts`.
-
 ## Running Locally
 
 Create a local environment file with:
 
 ```bash
 VITE_MAPBOX_TOKEN=your_mapbox_token
-VITE_CONVEX_URL=your_convex_url
 ```
